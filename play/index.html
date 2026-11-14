@@ -1757,10 +1757,15 @@ function mzReveal(){
 function mzRevealRoom(r){const W=MZ.W;for(let z=r.z0-(r.kind==='piece'?4:1);z<=r.z1+1;z++)for(let x=r.x0-1;x<=r.x1+1;x++)MZ.seen[z*W+x]=1;}
 function mzBars(r,on){for(const di of r.doors){const d=MZ.doors[di];d.bar=on;}mzRefreshBlk();if(on){sfx('door');S.shake=Math.max(S.shake,0.15);}}
 function mzRoomDone(){if(S.aRoom==null)return;const r=MZ.rooms[S.aRoom];r.state='clear';S.aRoom=null;mzBars(r,false);}
+function partyExtra(r){if(!NET.on||!NET.host||!r.foes.length)return [];let n=0;for(const id in NET.peers){const s=NET.peers[id].s;if(s&&s.lvl==='dungeon'&&s.floor===S.floor)n++;}
+  const out=[];for(let i=0;i<n*2;i++)out.push(r.foes[ri(0,r.foes.length-1)]);return out;}
+function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>e.state!=='dead').length>1)return;
+  const nw=S.roomWaves[0].w,batch=S.roomWaves.filter(q=>q.w===nw);S.roomWaves=S.roomWaves.filter(q=>q.w!==nw);
+  batch.forEach((q,k)=>{const [x,z]=mzRoomSpot(H.x,H.z,4.5,ar);S.queue.push({t:30+k*28,type:q.type,boss:false,x,z});});floatText(H.x,2.5,H.z,'More are coming!','#ff9a6a',18);sfx('door');}
 function updRooms(){
   if(!MZ)return;
   const ar=S.aRoom!=null?MZ.rooms[S.aRoom]:null;
-  if(ar){if(ar.kind!=='boss'&&!S.queue.length&&!S.enemies.some(e=>e.state!=='dead')){mzRoomDone();sfx('go');
+  if(ar){roomWaveTick(ar);if(ar.kind!=='boss'&&!S.queue.length&&!(S.roomWaves&&S.roomWaves.length)&&!S.enemies.some(e=>e.state!=='dead')){mzRoomDone();sfx('go');
       if(ar.key){const [cx,cz]=mzCenter(ar);dropPickup(ar.key==='great'?'gkey':'rkey',cx,cz);floatText(cx,2.2,cz,ar.key==='great'?GKEY[S.floor]+'!':'A rusty key!','#ffd35c',20);}
       else floatText(H.x,2.4,H.z,'Room cleared!','#bfffcf',18);}
     return;}
@@ -1770,7 +1775,8 @@ function updRooms(){
   const tx=Math.floor(H.x/TS),tz=Math.floor(H.z/TS);if(tx<=r.x0-1||tx>=r.x1+1||tz<=r.z0-1||tz>=r.z1+1)return;
   r.state='fight';S.aRoom=r.i;mzBars(r,true);
   if(r.kind==='piece'&&r.i>=0)toast('You found '+PIECE_N[S.floor]+'. Defeat its guards to win the '+GKEY[S.floor]+'.');
-  r.foes.forEach((type,k)=>{const boss=!!EN[type].boss;const [x,z]=boss?[(r.x0+r.x1+1)*TS/2,(r.z0+2.2)*TS]:mzRoomSpot(H.x,H.z,4.5,r);S.queue.push({t:12+k*32,type,boss,x,z});});
+  const foes=r.kind==='normal'?r.foes.concat(partyExtra(r)):r.foes,cap=document.body.classList.contains('phone')?4:6;S.roomWaves=[];
+  foes.forEach((type,k)=>{const boss=!!EN[type].boss,w=boss?0:Math.floor(k/cap);if(w>0){S.roomWaves.push({type,w});return;}const [x,z]=boss?[(r.x0+r.x1+1)*TS/2,(r.z0+2.2)*TS]:mzRoomSpot(H.x,H.z,4.5,r);S.queue.push({t:12+k*32,type,boss,x,z});});
   if(r.kind==='piece')for(const c of MZ.cells)if(c.kind==='burst'){c.open=true;mzRefreshBlk();const cx=(c.tx+1)*TS,cz=(c.tz-1)*TS+TS/2;
     for(let k=0;k<2;k++)S.queue.push({t:30+k*25,type:'skeleton',x:cx+(k?0.8:-0.8),z:cz});schedule(20,()=>{floatText(cx,2.6,cz,'The prisoners break free!','#ffcf8a',20);sfx('door');});}
 }
@@ -2499,6 +2505,7 @@ function drawBelt(g){
 // ================= levels =================
 const houseGroups={};let houseGroup=null;
 function clearLevel(){
+  S.roomWaves=[];
   for(const e of S.enemies)killSprite(e.spr);S.enemies=[];for(const m of S.minions||[])minionDrop(m);S.minions=[];
   for(const p of S.pickups){scene.remove(p.spr);p.spr.material.dispose();}S.pickups=[];
   for(const p of S.props)p.grp.remove(p.obj);S.props=[];
