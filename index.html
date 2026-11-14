@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grimfall</title>
+<meta name="description" content="Grimfall is a free dungeon adventure you play in your browser. Wake up on the dock of Sumera, pick a hero, and fight your way down to the Lich Queen with up to three friends.">
+<meta property="og:title" content="Grimfall">
+<meta property="og:description" content="A free dungeon adventure in your browser. Up to 4 friends online.">
+<meta property="og:image" content="img/town-night.jpg">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600;800&family=Alegreya+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="img/emblem.png" alt="">Grimfall</a>
+    <nav aria-label="Main">
+      <a class="hide-sm" href="#heroes">Heroes</a>
+      <a class="hide-sm" href="#together">Play together</a>
+      <a href="parents.html">For parents</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <img src="img/town-night.jpg" alt="The town of Sumera at night, lit by fire baskets around a glowing crystal fountain">
+    <div class="wrap">
+      <h1 class="logo">Grimfall</h1>
+      <p class="lead">You wake up on a dock with no memory. The people of Sumera need a hero, and something terrible stirs under the old castle.</p>
+      <div class="cta">
+        <a class="btn" href="play/">Play free</a>
+        <small>Right in your browser, nothing to download.<br>Bring up to 3 friends.</small>
+      </div>
+    </div>
+  </div>
+
+  <section id="story">
+    <div class="wrap split">
+      <div class="text">
+        <h2>Washed up in Sumera</h2>
+        <p>The tide carried you in at dawn, holding on to a broken plank. Old Maren, the harbor keeper, finds you on the dock and tells you what happened to her town.</p>
+        <p>The Lich Queen woke beneath the castle. Her dead fill the halls below, and every night they creep a little closer to the houses.</p>
+        <blockquote class="quote">“You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.”<cite>Old Maren, the harbor keeper</cite></blockquote>
+      </div>
+      <img class="shot" src="img/dock.jpg" alt="The hero standing on the dock beside Old Maren, with her words in a dialogue box" loading="lazy">
+    </div>
+  </section>
+
+  <section id="heroes" class="heroes">
+    <div class="wrap">
+      <h2>Choose your hero</h2>
+      <p class="dim" style="max-width:56ch;color:var(--dim)">Each hero fights in their own way. Level up, spend skill points, and dress them in armor you find deep in the castle.</p>
+      <div class="roster">
+        <article class="char">
+          <img src="img/hero-sorceress.png" alt="The Necromancer in a horned purple and gold robe" loading="lazy">
+          <h3>Necromancer</h3>
+          <p class="role">Dark magic from afar. Calls on the dead.</p>
+          <ul><li><b>Soul Fire</b> hurls green flame.</li><li><b>Raise Skeletons</b> brings up three bony fighters with red eyes.</li></ul>
+        </article>
+        <article class="char">
+          <img src="img/hero-archer.png" alt="The Archer with a longbow" loading="lazy">
+          <h3>Archer</h3>
+          <p class="role">Arrows from far away, a knife up close.</p>
+          <ul><li><b>Triple Shot</b> fires three arrows at once.</li><li><b>Arrow Storm</b> rains arrows on a crowd.</li></ul>
+        </article>
+        <article class="char">
+          <img src="img/hero-barbarian.png" alt="The Druid Barbarian in armor with twin axes" loading="lazy">
+          <h3>Barbarian</h3>
+          <p class="role">An armored druid with twin axes.</p>
+          <ul><li><b>Earthquake</b> shakes the ground around you.</li><li><b>Bear Rage</b> makes you faster and much stronger.</li></ul>
+        </article>
+        <article class="char">
+          <img src="img/hero-healer.png" alt="The Healer Wizard in white and blue robes" loading="lazy">
+          <h3>Healer</h3>
+          <p class="role">Keeps the party alive and fires a holy beam.</p>
+          <ul><li><b>Arcane Bolt</b> pierces through enemies.</li><li><b>Healing Light</b> heals you in a burst.</li></ul>
+        </article>
+        <article class="char soon">
+          <div class="q" aria-hidden="true">?</div>
+          <h3>Coming soon</h3>
+          <p class="role">A new hero is on the way. Players will help pick who it is.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="castle">
+    <div class="wrap">
+      <h2>Down into the castle</h2>
+      <p style="max-width:56ch">Follow the forest path east to the castle gate. Four floors of halls, traps and locked doors lie between you and the Lich Queen.</p>
+      <div class="pair">
+        <figure><img class="shot" src="img/castle.jpg" alt="The castle gate at dusk with torches and red banners" loading="lazy"><figcaption>The castle gate at the end of the forest path.</figcaption></figure>
+        <figure><img class="shot" src="img/dungeon.jpg" alt="A Necromancer's skeletons with red glowing rings fighting in a stone hall" loading="lazy"><figcaption>A Necromancer and her skeletons clear a room.</figcaption></figure>
+      </div>
+      <div class="facts">
+        <div><h3>Bosses</h3><p>Every floor ends with a boss guarding the way down.</p></div>
+        <div><h3>Armor sets</h3><p>Collect all four pieces of your hero's set, or match their colors, for big bonuses.</p></div>
+        <div><h3>Crystals</h3><p>Set rubies, diamonds and fairy amber into your gear for extra powers.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="together" class="heroes">
+    <div class="wrap split flip">
+      <div class="text">
+        <h2>Play together</h2>
+        <p>One player hosts a room and gets a four-letter code. Friends type the code and join the same town and the same dungeon, up to four heroes at once.</p>
+        <div class="code" aria-label="Example room code W O L F"><span>W</span><span>O</span><span>L</span><span>F</span></div>
+        <p class="dim">Talk with quick-chat or typed chat, which filters bad words. Voice chat works too, unless a parent has it turned off.</p>
+      </div>
+      <img class="shot" src="img/town-day.jpg" alt="Sumera by day with heroes and townsfolk near the fountain" loading="lazy">
+    </div>
+  </section>
+
+  <section class="parents" id="parents">
+    <div class="wrap">
+      <h2>For parents</h2>
+      <p>Grimfall is made for older kids and teens. The fights are fantasy battles with no blood: defeated monsters simply fade away.</p>
+      <ul>
+        <li>Kids under 13 need a parent to make their account, using the parent's email.</li>
+        <li>Under-13 players only get preset quick-chat phrases. You can turn typed chat and voice on with your own PIN.</li>
+        <li>Grimfall is free to play and has no purchases right now.</li>
+      </ul>
+      <p><a href="parents.html">Read the full parent guide</a> or <a href="privacy.html">our privacy policy</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Grimfall</span>
+    <nav aria-label="Footer"><a href="play/">Play</a><a href="parents.html">For parents</a><a href="privacy.html">Privacy</a><a href="mailto:playgrimfall@proton.me">playgrimfall@proton.me</a></nav>
+  </div>
+</footer>
+</body>
+</html>
