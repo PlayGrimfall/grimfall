@@ -191,6 +191,13 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
 #intro .itxt.on{opacity:1}
 #intro .ibox{display:none;width:min(760px,calc(100% - 32px));margin-bottom:22px;padding:14px 18px 12px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(32,26,36,.94),rgba(20,16,24,.94));color:var(--parch);box-shadow:0 10px 30px rgba(0,0,0,.5)}
 #intro .ibox.on{display:block}
+#intro .iwho{display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:default;padding:0 16px}
+#intro .iwho.on{display:flex}
+#intro .iwho p{margin:0;font:500 clamp(20px,2.8vw,30px)/1.4 var(--display);color:#e9dcc0;text-align:center}
+#intro .iwho .row{display:flex;gap:12px}
+#intro .iwho [data-sex].sel{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+#intro .iwho input{width:min(280px,100%);padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:rgba(20,16,24,.9);color:var(--parch);font:600 17px var(--body);text-align:center}
+#intro .iwho .btn:disabled{opacity:.45;cursor:default}
 #intro .ibox b{display:block;font-family:var(--display);font-size:19px;color:var(--gold);margin-bottom:4px}
 #intro .ibox p{margin:0;font-size:16px;line-height:1.5}
 #intro .ibox small{display:block;margin-top:8px;color:var(--dim);font-size:12px;text-align:right}
@@ -232,7 +239,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
     <canvas id="gl" aria-label="Grimfall 3D world"></canvas>
     <canvas id="hud" width="960" height="540"></canvas>
     <div id="toast" hidden></div>
-    <div id="intro" hidden><div class="itxt"></div><div class="ibox"><b>Old Maren, the harbor keeper</b><p></p><small>Click, tap or press Enter</small></div><button id="introSkip" type="button">Skip</button></div>
+    <div id="intro" hidden><div class="itxt"></div><div class="iwho"><p>You awaken. Who are you?</p><div class="row"><button class="btn alt" type="button" data-sex="m">Male</button><button class="btn alt" type="button" data-sex="f">Female</button></div><input id="introName" maxlength="16" placeholder="Your name" autocomplete="off" aria-label="Your name"><button class="btn" id="introWake" type="button" disabled>Wake up</button></div><div class="ibox"><b>Old Maren, the harbor keeper</b><p></p><small>Click, tap or press Enter</small></div><button id="introSkip" type="button">Skip</button></div>
     <div id="err" hidden></div>
     <div id="netUI" hidden><button id="chatBtn" type="button">💬 Chat</button><button id="vcBtn" type="button">🎙 Join voice</button><button id="micBtn" type="button" hidden>🎙 Mic on</button></div>
     <div id="chatLog" aria-live="polite"></div>
@@ -1978,7 +1985,7 @@ let toastT=null;function toast(msg){const el=document.getElementById('toast');el
 // ================= hero =================
 function makeHero(cls){const d=HEROES[cls];return {cls,x:0,z:2,y:0,vy:0,fx:1,fz:0,face:1,hp:d.hp,maxHp:d.hp,mp:d.mp,maxMp:d.mp,
   weapon:{tier:0,grade:0,sockets:[null],aff:[]},armor:{tier:0,grade:0,sockets:[null],aff:[]},jewels:{neck:null,ears:null,ring1:null,ring2:null,ring3:null,ring4:null},rune:null,vit:0,foc:0,fairyUsed:false,
-  off:null,helm:null,hands:null,feet:null,cape:null,lvl:1,xp:0,pts:0,sp:0,st:{str:0,dex:0,vit:0,mag:0},sk:{s1:1,s2:1},look:null,name:d.name,
+  off:null,helm:null,hands:null,feet:null,cape:null,lvl:1,xp:0,pts:0,sp:0,st:{str:0,dex:0,vit:0,mag:0},sk:{s1:1,s2:1},look:null,sex:'m',name:d.name,
   anim:0,moving:false,swing:0,swingMax:1,hitPending:false,combo:0,comboT:0,atkCD:0,castT:0,state:'ok',hurtT:0,kdT:0,vx:0,vz:0,inv:0,dash:0,dashHit:null,rage:0,noMpT:0,
   spr:makeSprite(512,512,256,472,2)};}
 // ================= character: levels, stats, skills, gear =================
@@ -3004,12 +3011,12 @@ function showMap(){
 
 // ================= save =================
 const SAVE3='hollowdeep-3d-save-v1';
-function save(){if(!H||S.state==='start')return;try{localStorage.setItem(SAVE3,JSON.stringify({v:1,cls:H.cls,weapon:H.weapon,armor:H.armor,jewels:H.jewels,rune:H.rune,vit:H.vit,foc:H.foc,off:H.off,helm:H.helm,hands:H.hands,feet:H.feet,cape:H.cape,lvl:H.lvl,xp:H.xp,pts:H.pts,sp:H.sp,st:H.st,sk:H.sk,look:H.look,name:H.name,inv:INV,t:Date.now(),uid:ACCT.user?ACCT.user.id:undefined}));cloudQueue();}catch(e){}}
+function save(){if(!H||S.state==='start')return;try{localStorage.setItem(SAVE3,JSON.stringify({v:1,cls:H.cls,weapon:H.weapon,armor:H.armor,jewels:H.jewels,rune:H.rune,vit:H.vit,foc:H.foc,off:H.off,helm:H.helm,hands:H.hands,feet:H.feet,cape:H.cape,lvl:H.lvl,xp:H.xp,pts:H.pts,sp:H.sp,st:H.st,sk:H.sk,look:H.look,sex:H.sex,name:H.name,inv:INV,t:Date.now(),uid:ACCT.user?ACCT.user.id:undefined}));cloudQueue();}catch(e){}}
 function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.cls==='elf'){s.cls='archer';if(!s.name||s.name==='Elf')s.name='Archer';}return s&&s.v===1&&HEROES[s.cls]?s:null;}catch(e){return null;}}
 function loadGame(){const sv=readSave();if(!sv)return false;if(H)killSprite(H.spr);H=makeHero(sv.cls);
   Object.assign(H,{weapon:sv.weapon||H.weapon,armor:sv.armor||H.armor,jewels:Object.assign({},H.jewels,sv.jewels||{}),rune:sv.rune||null,vit:sv.vit||0,foc:sv.foc||0,
     off:sv.off||null,helm:sv.helm||null,hands:sv.hands||null,feet:sv.feet||null,cape:sv.cape||null,lvl:sv.lvl||1,xp:sv.xp||0,pts:sv.pts||0,sp:sv.sp||0,
-    st:Object.assign({str:0,dex:0,vit:0,mag:0},sv.st||{}),sk:Object.assign({s1:1,s2:1},sv.sk||{}),look:sv.look||null,name:sv.name||HEROES[sv.cls].name});
+    st:Object.assign({str:0,dex:0,vit:0,mag:0},sv.st||{}),sk:Object.assign({s1:1,s2:1},sv.sk||{}),look:sv.look||null,sex:sv.sex==='f'?'f':'m',name:sv.name||HEROES[sv.cls].name});
   for(const it of allGear(H))it.aff=it.aff||[];
   Object.assign(INV,{gold:0,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{}},sv.inv||{});for(const it of INV.bag.concat(INV.stash))if(it.type==='gear')it.aff=it.aff||[];
   recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;S.cls=sv.cls;return true;}
@@ -3120,7 +3127,7 @@ const FMAT={};
 function fmat(col,o={}){const key=col+(o.metal?'m':'')+(o.glow?'g':'')+(o.ds?'d':'');if(FMAT[key])return FMAT[key];const c=new THREE.Color(col);
   return FMAT[key]=new THREE.MeshStandardMaterial({color:c,roughness:o.metal?0.32:0.6,metalness:o.metal?0.55:0,emissive:c.clone().multiplyScalar(o.glow?1.1:o.metal?0.1:0.15),side:o.ds?THREE.DoubleSide:THREE.FrontSide});}
 let FIG=null;
-function figKey(h){return [h.cls,JSON.stringify(h.look||{}),h.weapon.tier,h.armor.tier,h.jewels.neck?h.jewels.neck.tier:'-',...EXTRA.map(k=>h[k]?h[k].tier+'.'+h[k].grade:'-'),WPN_ST==='ready'?'W':'',ARM_ST==='ready'?'A':''].join('|');}
+function figKey(h){return [h.cls,h.sex||'m',(REALS[modelInfo(h.cls,h).f]||{}).state==='ready'?'R':'',JSON.stringify(h.look||{}),h.weapon.tier,h.armor.tier,h.jewels.neck?h.jewels.neck.tier:'-',...EXTRA.map(k=>h[k]?h[k].tier+'.'+h[k].grade:'-'),WPN_ST==='ready'?'W':'',ARM_ST==='ready'?'A':''].join('|');}
 function disposeFig(F){scene.remove(F.root);F.root.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
 function axeHead(col){const s=new THREE.Shape();s.moveTo(0,0.02);s.quadraticCurveTo(0.03,0.2,0.2,0.23);s.quadraticCurveTo(0.12,0.08,0.2,-0.07);s.quadraticCurveTo(0.05,-0.06,0,-0.04);s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:0.03,bevelEnabled:true,bevelThickness:0.008,bevelSize:0.008,bevelSegments:1});g.translate(0,0,-0.015);g.rotateY(-Math.PI/2);g.rotateX(Math.PI/2);return g;}
@@ -3518,12 +3525,12 @@ const HDM={};window.HDM_part=(name,i,n,str)=>{const m=HDM[name]||(HDM[name]={par
 const loadJs=src=>new Promise((res,rej)=>{const el=document.createElement('script');el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el);});
 async function loadModelData(name){const MD=document.body.classList.contains('phone')?'../play/models/m/':'../play/models/';await loadJs(MD+name+'.0.js');const m=HDM[name];for(let i=1;i<m.n;i++)await loadJs(MD+name+'.'+i+'.js');const txt=m.parts.join('');m.parts=[];return await new Promise((res,rej)=>new THREE.GLTFLoader().parse(txt,'',res,rej));}
 const REALS={};const MODEL_FOR={barbarian:{f:'paladin',tall:1.8,roles:{39636:'body',4344:'helm',306:'hide',684:'hide',8590:'body',932:'helm',85:'hide',194:'hide'}},
-  archer:{f:'erika',roles:{240:'hide'},ownBow:true},elf:{f:'arissa',roles:{4944:'hide'}},sorceress:{f:'nightshade',tall:1.95},healer:{f:'newwizard',tall:1.74,outfits:[{min:0,f:'knight',tall:2.06,tierLook:1,slots:1,grip:1}]}};
+  archer:{f:'erika',roles:{240:'hide'},ownBow:true},elf:{f:'arissa',roles:{4944:'hide'}},sorceress:{f:'nightshade',tall:1.95},healer:{f:'newwizard',tall:1.74,outfits:[{min:0,f:'knight',tall:2.06,tierLook:1,slots:1,grip:1},{min:0,sex:'f',f:'knightf',tall:1.9,tierLook:1,slots:1,grip:1}]}};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
-const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;let o=null;for(const x of mi.outfits)if(t>=x.min)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
+const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
 function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
   if(animState==='fail')return 'fail';
-  if(!fOverride){const bm=MODEL_FOR[cls||(H&&H.cls)||S.cls];if(bm&&bm.outfits){const st=loadReal(null,bm.f);let any=false;for(const o of bm.outfits)if(loadReal(null,o.f)==='loading')any=true;return st==='ready'&&any?'loading':st;}}
+  if(!fOverride){const bm=MODEL_FOR[cls||(H&&H.cls)||S.cls];if(bm&&bm.outfits){const st=loadReal(null,bm.f);let any=false;const sx=H&&H.sex==='f'?'f':'m';for(const o of bm.outfits)if((o.sex||'m')===sx&&loadReal(null,o.f)==='loading')any=true;return st==='ready'&&any?'loading':st;}}
   const mi=fOverride?{f:fOverride}:modelInfo(cls||(H&&H.cls)||S.cls);const REAL=REALS[mi.f]||(REALS[mi.f]={state:'none'});
   if(REAL.state==='ready'&&animState!=='ready')return 'loading';
   if(REAL.state==='none'){if(!THREE.GLTFLoader){REAL.state='fail';}else{REAL.state='loading';
@@ -3866,7 +3873,7 @@ async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'')
         for(const id in NET.peers)if(!seen[id])netDrop(id);}});
     c.on('close',()=>{if(NET.on&&typeof toast==='function')toast('The host closed the room.');netLeave();netNote('Disconnected.');});});
   p.on('error',e=>{netNote(e.type==='peer-unavailable'?'No game found with that code.':'Online error: '+(e.type||e.message||e));});}
-function netState(){const h=H;return {cls:h.cls,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
+function netState(){const h=H;return {cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
 function netDrop(id){const p=NET.peers[id];if(!p)return;if(p.mins)for(const m of p.mins){minionDrop(m);S.rminions.splice(S.rminions.indexOf(m),1);}bubbleKill(p);vcHang(id);if(p.R)disposeReal(p.R);if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}delete NET.peers[id];netBadge();}
 function netTag(name){const c=document.createElement('canvas');c.width=256;c.height=48;const g=c.getContext('2d');g.font='bold 26px sans-serif';g.textAlign='center';const w=Math.min(250,g.measureText(name).width+22);g.fillStyle='rgba(8,6,14,.62)';g.fillRect(128-w/2,6,w,36);g.fillStyle='#9fe3ff';g.fillText(name,128,33);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(2.2,0.42,1);s.renderOrder=999;s.userData.name=name;return s;}
@@ -3983,10 +3990,10 @@ function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now()
     const vis=!!H&&SET.style==='real'&&s.lvl===S.level&&(S.level!=='house'||s.house===S.house)&&(S.level!=='dungeon'||s.floor===S.floor);netMinions(p,s,vis);
     if(p.R&&!p.R.root.parent){disposeReal(p.R);p.R=null;}
     if(!vis){if(p.R)p.R.root.visible=false;if(p.tag)p.tag.visible=false;continue;}
-    if(!p.h||p.h.cls!==s.cls){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;}
+    if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;}
     const h=p.h;if(Math.hypot(s.x-h.x,s.z-h.z)>8){h.x=s.x;h.z=s.z;}h.x+=(s.x-h.x)*0.22;h.z+=(s.z-h.z)*0.22;h.y=s.y;h.fx=s.fx;h.fz=s.fz;h.moving=s.moving;h.state=s.state;h.setT=s.st||0;h.cg=s.cg||0;h.melee=s.melee;h.combo=s.combo;h.swingMax=8;h.swing=0;h.castT=0;
     if(s.atk!==p.atk){p.atk=s.atk;h.swing=h.swingMax-1;}if(s.cast!==p.cast){p.cast=s.cast;h.castT=1;}
-    if(loadReal(s.cls)!=='ready'||animState!=='ready')continue;
+    if(loadReal(s.cls)!=='ready'||animState!=='ready'||loadReal(null,modelInfo(s.cls,h).f)!=='ready')continue;
     if(!p.R)p.R=buildReal(h);poseReal(p.R,h,false);p.R.root.visible=true;
     const lb=s.name+(s.vc?' 🎙':'');if(!p.tag||p.tag.userData.name!==lb){if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}p.tag=netTag(lb);}
     if(!p.tag.parent)scene.add(p.tag);p.tag.visible=true;p.tag.position.set(h.x,h.y+(modelInfo(s.cls).tall||1.62)+0.45,h.z);}
@@ -4152,7 +4159,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['Cold water. The creak of old wood. Gulls crying somewhere above.','You wake on a wooden dock, soaked to the bone, with no memory of how you got here.'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','Your name? Nothing at all? Well... the sea keeps its secrets.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Rest at the house marked Your House. When you are ready, follow the path east through the gate. The castle waits.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Rest at the house marked Your House. When you are ready, follow the path east through the gate. The castle waits.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
@@ -4161,24 +4168,29 @@ function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance
   el.hidden=false;el.classList.add('black');el.querySelector('.ibox').classList.remove('on');introWaves(true);introShow();}
 function introShow(){const el=introEl(),tx=el.querySelector('.itxt'),bx=el.querySelector('.ibox');
   if(INTRO.phase==='black'){tx.classList.remove('on');setTimeout(()=>{if(!INTRO)return;tx.textContent=INTRO_BLACK[INTRO.i];tx.classList.add('on');},INTRO.i?450:700);}
-  else{tx.classList.remove('on');bx.classList.add('on');bx.querySelector('p').textContent=INTRO_TALK[INTRO.i];}}
+  else{tx.classList.remove('on');bx.classList.add('on');bx.querySelector('p').textContent=INTRO_TALK[INTRO.i].replace('{n}',H.name||HEROES[H.cls].name);}}
 function introNext(){if(!INTRO||performance.now()-INTRO.t0<500)return;INTRO.t0=performance.now();const el=introEl();
   if(INTRO.phase==='black'){if(++INTRO.i<INTRO_BLACK.length){introShow();return;}
-    INTRO.phase='wake';INTRO.i=0;el.querySelector('.itxt').classList.remove('on');el.classList.remove('black');
-    setTimeout(()=>{if(!INTRO)return;H.state='ok';H.fx=1;H.fz=0.25;INTRO.phase='talk';introShow();},2200);return;}
-  if(INTRO.phase==='wake')return;
+    INTRO.phase='who';el.querySelector('.itxt').classList.remove('on');setTimeout(()=>{if(INTRO&&INTRO.phase==='who')el.querySelector('.iwho').classList.add('on');},900);return;}
+  if(INTRO.phase==='who'||INTRO.phase==='wake')return;
   if(++INTRO.i<INTRO_TALK.length){introShow();return;}endIntro();}
-function endIntro(){if(!INTRO)return;const el=introEl();el.hidden=true;el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
+function introPick(sx){if(!INTRO||INTRO.phase!=='who')return;INTRO.sex=sx;H.sex=sx;loadReal(H.cls);const el=introEl();el.querySelectorAll('[data-sex]').forEach(b=>b.classList.toggle('sel',b.dataset.sex===sx));el.querySelector('#introWake').disabled=false;}
+function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;
+  el.querySelector('.iwho').classList.remove('on');INTRO.phase='wake';INTRO.i=0;const t0=performance.now();
+  // stay dark until the chosen body has loaded, so the old model never flashes up
+  const go=()=>{if(!INTRO)return;if(performance.now()-t0<9000&&(loadReal(H.cls)!=='ready'||animState!=='ready')){setTimeout(go,250);return;}el.classList.remove('black');
+    setTimeout(()=>{if(!INTRO)return;H.state='ok';H.fx=1;H.fz=0.25;INTRO.phase='talk';introShow();},2200);};go();}
+function endIntro(){if(!INTRO)return;const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
   const n=INTRO.npc;if(n){killSprite(n.spr);if(n.spr.rfig)n.spr.rfig=null;S.npcs=S.npcs.filter(x=>x!==n);}INTRO=null;introWaves(false);
   Object.assign(H,{state:'ok',inv:30});S.state='play';S.banner={top:'Sumera',text:'Town of Grimfall',t:170};camUpdate(true);updateTouch();save();
-  schedule(120,()=>toast('Press H to name your hero and pick a look. Your house is the first one across the street.'));}
+  schedule(120,()=>toast('Press H to change your name or look. Your house is the first one across the street.'));}
 function introWaves(on){try{if(!on){if(INTRO_W){const w=INTRO_W;INTRO_W=null;w.g.gain.setTargetAtTime(0,AC.currentTime,0.6);setTimeout(()=>{try{w.src.stop();}catch(e){}},2500);}return;}
   if(muted)return;musStart();const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();
   const b=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate),d=b.getChannelData(0);let v=0;for(let i=0;i<d.length;i++){v=v*0.97+(Math.random()*2-1)*0.03;d[i]=v*6;}src.buffer=b;src.loop=true;
   f.type='lowpass';f.frequency.value=700;l.frequency.value=0.13;lg.gain.value=0.05;l.connect(lg);lg.connect(g.gain);g.gain.value=0.07;src.connect(f);f.connect(g);g.connect(AC.destination);src.start();l.start();INTRO_W={src,g};}catch(e){}}
 let INTRO_W=null;
-document.getElementById('intro').addEventListener('click',e=>{if(e.target.id==='introSkip'){endIntro();return;}introNext();});
-addEventListener('keydown',e=>{if(!INTRO)return;if(e.key==='Enter'||e.key===' '||e.key==='j'||e.key==='J'){e.preventDefault();e.stopPropagation();introNext();}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();endIntro();}},true);
+document.getElementById('intro').addEventListener('click',e=>{if(e.target.id==='introSkip'){endIntro();return;}if(e.target.closest('.iwho')){const b=e.target.closest('[data-sex]');if(b)introPick(b.dataset.sex);else if(e.target.id==='introWake')introWake();return;}introNext();});
+addEventListener('keydown',e=>{if(!INTRO)return;if(INTRO.phase==='who'&&e.key!=='Escape'){e.stopPropagation();if(e.key==='Enter'){e.preventDefault();introWake();}return;}if(e.key==='Enter'||e.key===' '||e.key==='j'||e.key==='J'){e.preventDefault();e.stopPropagation();introNext();}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();endIntro();}},true);
 
 document.getElementById('contBtn').addEventListener('click',()=>{if(loadGame()){document.getElementById('start').hidden=true;goTown();sfx('go');}});
 document.getElementById('bBag').addEventListener('click',()=>{if(S.state==='play')openInv();});
