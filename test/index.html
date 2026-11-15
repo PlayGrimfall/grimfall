@@ -2572,7 +2572,7 @@ function enterDoorOld(d){
 function makeNpcs(){
   const cols=['#b85a4a','#4a7ab8','#8a6ab0','#c9a03a','#4a9a6a','#a87a4a','#6a6a8a','#c96a8a'];
   for(let i=0;i<9;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
-    n.rm=['girl','peasant','guard'][i%3];clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
+    n.rm=['girl','guard','mage','guard'][i%4];clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
 }
 function npcOpen(ax,az,bx,bz){const r=0.5;for(const c of TOWN_COL.concat(TOWN_JUMP)){const o={x0:c[0]-r,x1:c[1]+r,z0:c[2]-r,z1:c[3]+r};if(ax>o.x0&&ax<o.x1&&az>o.z0&&az<o.z1)continue;if(segBox(ax,az,bx,bz,o))return false;}
   const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1,t=clamp(((0-ax)*dx+(1-az)*dz)/l2,0,1);return Math.hypot(ax+dx*t,az+dz*t-1)>4.3;}
@@ -2597,7 +2597,7 @@ const HOUSES=[
  {id:'gems',shop:true,x:-10,name:'Crystals & Jewels',npc:{name:'Opal',x:0,z:-2.7,col:'#a463f2',skin:'#f6d5b8',hat:1,lines:[]}},
  {id:'magic',shop:true,x:-22,name:'Runes & Magic',npc:{name:'Master Wren',x:0,z:-2.7,col:'#3a5a8a',skin:'#e9b58d',hat:1,lines:[]}},
 ];
-const NPC_RM={smith:'smith',armory:'guard',gems:'girl',magic:'mage',baker:'peasant',sailor:'peasant',weaver:'girl'};
+const NPC_RM={smith:'smith',armory:'guard',gems:'girl',magic:'mage',baker:'girl',sailor:'smith',weaver:'girl'};
 function sheathSword(R){let sw=null,sp=null;R.model.traverse(o=>{if(o.isMesh&&/sword/i.test(o.name))sw=o;if(o.isBone&&!sp&&/Spine2$/.test(o.name))sp=o;});if(!sw||!sp)return;
   R.model.updateMatrixWorld(true);const g=sw.geometry.clone();g.applyMatrix4(sw.matrixWorld);const P=g.attributes.position,v=new THREE.Vector3(),far=from=>{let b=null,bd=-1;for(let i=0;i<P.count;i+=3){v.fromBufferAttribute(P,i);const d=v.distanceToSquared(from);if(d>bd){bd=d;b=v.clone();}}return b;};
   g.computeBoundingBox();const c0=g.boundingBox.getCenter(new THREE.Vector3()),p1=far(c0),p2=far(p1);let hb=null;R.model.traverse(o=>{if(o.isBone&&!hb&&/RightHand$/.test(o.name))hb=o;});const hp=new THREE.Vector3();if(hb)hb.getWorldPosition(hp);
@@ -4157,7 +4157,7 @@ let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
   Object.assign(H,{x:-44.6,z:2.2,y:0,fx:1,fz:0,state:'down'});if(SET.cam==='free')CAM.yaw=0.35;camUpdate(true);
-  const n={x:-41.9,z:2.9,tx:-41.9,tz:2.9,vx:-1,pause:1e9,anim:0,col:'#5a6a7a',hat:0,skin:'#d9a07a',face:-1,fx:-1,fz:-0.2,rm:'peasant',keeper:true,spr:makeSprite(512,512,256,472,2)};S.npcs.push(n);INTRO.npc=n;
+  const n={x:-41.9,z:2.9,tx:-41.9,tz:2.9,vx:-1,pause:1e9,anim:0,col:'#5a6a7a',hat:0,skin:'#d9a07a',face:-1,fx:-1,fz:-0.2,rm:'girl',keeper:true,spr:makeSprite(512,512,256,472,2)};S.npcs.push(n);INTRO.npc=n;
   el.hidden=false;el.classList.add('black');el.querySelector('.ibox').classList.remove('on');introWaves(true);introShow();}
 function introShow(){const el=introEl(),tx=el.querySelector('.itxt'),bx=el.querySelector('.ibox');
   if(INTRO.phase==='black'){tx.classList.remove('on');setTimeout(()=>{if(!INTRO)return;tx.textContent=INTRO_BLACK[INTRO.i];tx.classList.add('on');},INTRO.i?450:700);}
