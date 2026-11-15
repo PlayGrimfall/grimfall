@@ -4350,4 +4350,19 @@ Promise.all(PHOTO_IMGS.map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve(
 if(document.fonts&&document.fonts.load){document.fonts.load(`800 20px ${DF}`).catch(()=>{});document.fonts.load(`700 14px ${BF}`).catch(()=>{});}
 </script>
 
-</html>
+</html<div id="tpanel" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.9);color:#f2e7cf;font:14px sans-serif;padding:8px 10px;border:1px solid #4a3e68;border-radius:10px;max-width:260px">
+<b>Test version</b> (saving is off here)<br>Healer armor:
+<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+<button data-a="none">None</button><button data-a="helm">Helmet only</button><button data-a="half">Helmet + chest</button><button data-a="2">Full Steel</button><button data-a="3">Full Mithril</button><button data-a="4">Full Runic</button></div></div>
+<script>
+// test page only: never write saves, and let the tester try armor on the Healer
+save=function(){};if(typeof cloudPush==='function')cloudPush=function(){};
+document.getElementById('tpanel').addEventListener('click',e=>{const a=e.target.dataset&&e.target.dataset.a;if(!a||!H)return;
+  if(H.cls!=='healer'){toast('Pick the Healer to try the new armor.');return;}
+  const g=(k,t)=>({type:'gear',kind:k,tier:t,grade:Math.min(4,t),name:'Test '+k});
+  if(a==='none'){H.helm=H.hands=H.feet=null;H.armor.tier=0;}
+  else if(a==='helm'){H.helm=g('helm',2);H.hands=H.feet=null;H.armor.tier=0;}
+  else if(a==='half'){H.helm=g('helm',2);H.hands=H.feet=null;H.armor.tier=2;}
+  else{const t=+a;H.helm=g('helm',t);H.hands=g('hands',t);H.feet=g('feet',t);H.armor.tier=t;}
+  recalc(H);});
+</script>>
