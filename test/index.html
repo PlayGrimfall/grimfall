@@ -3528,7 +3528,9 @@ async function loadModelData(name){const MD=document.body.classList.contains('ph
 const REALS={};
 // every hero shares one male and one female body; the armor set (its own file) and the attacks set them apart
 const HERO_BODY={f:'hero_m',arm:'arm_pal_m',tall:1.85,tierLook:1,slots:1,grip:1,outfits:[{min:0,sex:'f',f:'hero_f',arm:'arm_pal_f',tall:1.8}]};
-const MODEL_FOR={barbarian:HERO_BODY,archer:HERO_BODY,elf:HERO_BODY,sorceress:HERO_BODY,healer:HERO_BODY};
+// each hero's own armor set (Dark Fantasy Protagonist Pack), fitted to both bodies
+const heroArm=(m,f)=>Object.assign({},HERO_BODY,{arm:m,outfits:[Object.assign({},HERO_BODY.outfits[0],{arm:f})]});
+const MODEL_FOR={barbarian:HERO_BODY,archer:heroArm('arm_lg_m','arm_lg_f'),elf:HERO_BODY,sorceress:HERO_BODY,healer:HERO_BODY};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
 function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
