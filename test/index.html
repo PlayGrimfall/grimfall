@@ -3127,7 +3127,7 @@ const FMAT={};
 function fmat(col,o={}){const key=col+(o.metal?'m':'')+(o.glow?'g':'')+(o.ds?'d':'');if(FMAT[key])return FMAT[key];const c=new THREE.Color(col);
   return FMAT[key]=new THREE.MeshStandardMaterial({color:c,roughness:o.metal?0.32:0.6,metalness:o.metal?0.55:0,emissive:c.clone().multiplyScalar(o.glow?1.1:o.metal?0.1:0.15),side:o.ds?THREE.DoubleSide:THREE.FrontSide});}
 let FIG=null;
-function figKey(h){return [h.cls,h.sex||'m',(REALS[modelInfo(h.cls,h).f]||{}).state==='ready'?'R':'',JSON.stringify(h.look||{}),h.weapon.tier,h.armor.tier,h.jewels.neck?h.jewels.neck.tier:'-',...EXTRA.map(k=>h[k]?h[k].tier+'.'+h[k].grade:'-'),WPN_ST==='ready'?'W':'',ARM_ST==='ready'?'A':''].join('|');}
+function figKey(h){return [h.cls,h.sex||'m',[modelInfo(h.cls,h)].map(m=>(REALS[m.f]||{}).state==='ready'&&(!m.arm||(REALS[m.arm]||{}).state==='ready')?'R':'')[0],JSON.stringify(h.look||{}),h.weapon.tier,h.armor.tier,h.jewels.neck?h.jewels.neck.tier:'-',...EXTRA.map(k=>h[k]?h[k].tier+'.'+h[k].grade:'-'),WPN_ST==='ready'?'W':'',ARM_ST==='ready'?'A':''].join('|');}
 function disposeFig(F){scene.remove(F.root);F.root.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
 function axeHead(col){const s=new THREE.Shape();s.moveTo(0,0.02);s.quadraticCurveTo(0.03,0.2,0.2,0.23);s.quadraticCurveTo(0.12,0.08,0.2,-0.07);s.quadraticCurveTo(0.05,-0.06,0,-0.04);s.closePath();
   const g=new THREE.ExtrudeGeometry(s,{depth:0.03,bevelEnabled:true,bevelThickness:0.008,bevelSize:0.008,bevelSegments:1});g.translate(0,0,-0.015);g.rotateY(-Math.PI/2);g.rotateX(Math.PI/2);return g;}
@@ -3503,7 +3503,7 @@ function cardHero(cls){return {cls,look:null,weapon:{tier:1,grade:0},armor:{tier
   x:0,y:0,z:0,fx:0,fz:1,anim:0,moving:false,swing:0,swingMax:1,castT:0,state:'ok',dash:0,rage:0,inv:0,melee:false};}
 const CARDR={};
 function cardReal(cls){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;if(CARDR[cls])return CARDR[cls];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
-  const mi=modelInfo(cls),REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
+  const mi=modelInfo(cls),REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
   m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.material=o.material.clone();o.material.skinning=!!o.isSkinnedMesh;const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&role!=='shield';
     if(o.material.map){o.material.emissive=new THREE.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.18;}}});
   const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[cls]={root,mx,h:mi.tall||1.62};}
@@ -3524,13 +3524,15 @@ function drawCard3d(cv,cls,ang){if(!portraitInit())return false;
 const HDM={};window.HDM_part=(name,i,n,str)=>{const m=HDM[name]||(HDM[name]={parts:[]});m.n=n;m.parts[i]=str;};
 const loadJs=src=>new Promise((res,rej)=>{const el=document.createElement('script');el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el);});
 async function loadModelData(name){const MD=document.body.classList.contains('phone')?'../play/models/m/':'../play/models/';await loadJs(MD+name+'.0.js');const m=HDM[name];for(let i=1;i<m.n;i++)await loadJs(MD+name+'.'+i+'.js');const txt=m.parts.join('');m.parts=[];return await new Promise((res,rej)=>new THREE.GLTFLoader().parse(txt,'',res,rej));}
-const REALS={};const MODEL_FOR={barbarian:{f:'paladin',tall:1.8,roles:{39636:'body',4344:'helm',306:'hide',684:'hide',8590:'body',932:'helm',85:'hide',194:'hide'}},
-  archer:{f:'erika',roles:{240:'hide'},ownBow:true},elf:{f:'arissa',roles:{4944:'hide'}},sorceress:{f:'nightshade',tall:1.95},healer:{f:'newwizard',tall:1.74,outfits:[{min:0,f:'knight',tall:2.06,tierLook:1,slots:1,grip:1},{min:0,sex:'f',f:'knightf',tall:1.9,tierLook:1,slots:1,grip:1}]}};
+const REALS={};
+// every hero shares one male and one female body; the armor set (its own file) and the attacks set them apart
+const HERO_BODY={f:'hero_m',arm:'arm_pal_m',tall:1.85,tierLook:1,slots:1,grip:1,outfits:[{min:0,sex:'f',f:'hero_f',arm:'arm_pal_f',tall:1.8}]};
+const MODEL_FOR={barbarian:HERO_BODY,archer:HERO_BODY,elf:HERO_BODY,sorceress:HERO_BODY,healer:HERO_BODY};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
 function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
   if(animState==='fail')return 'fail';
-  if(!fOverride){const bm=MODEL_FOR[cls||(H&&H.cls)||S.cls];if(bm&&bm.outfits){const st=loadReal(null,bm.f);let any=false;const sx=H&&H.sex==='f'?'f':'m';for(const o of bm.outfits)if((o.sex||'m')===sx&&loadReal(null,o.f)==='loading')any=true;return st==='ready'&&any?'loading':st;}}
+  if(!fOverride){const m=modelInfo(cls||(H&&H.cls)||S.cls);if(m.arm){const a=loadReal(null,m.f),b=loadReal(null,m.arm);return a==='ready'&&b==='loading'?'loading':a;}}
   const mi=fOverride?{f:fOverride}:modelInfo(cls||(H&&H.cls)||S.cls);const REAL=REALS[mi.f]||(REALS[mi.f]={state:'none'});
   if(REAL.state==='ready'&&animState!=='ready')return 'loading';
   if(REAL.state==='none'){if(!THREE.GLTFLoader){REAL.state='fail';}else{REAL.state='loading';
@@ -3677,6 +3679,7 @@ const ARM_FIT={healer:{headY:1.66,hide:/Hair|Beard/i,slots:{
   armor:[{k:'torso',bone:'Spine2',piv:[0,1.40,-0.075],sc:1.2},{k:'waist',bone:'Hips',piv:[0,1.03,-0.04],sc:1.18},Object.assign({k:'shoulder',sc:0.95},ARM_ARM),Object.assign({k:'upper'},ARM_ARM)],
   hands:[{k:'hands',bone:'#ForeArm',sides:2,piv:[0.40,1.34,-0.10],dir:[0.17,-0.12,0.10],child:'#Hand'}],
   feet:[{k:'feet',bone:'#Leg',sides:2,half:1,piv:[0.15,0.55,0],dir:[0.05,-0.43,-0.06],child:'#Foot'}]}}};
+ARM_FIT.barbarian=ARM_FIT.archer=ARM_FIT.sorceress=ARM_FIT.elf=ARM_FIT.healer;
 // Rusty, Iron, Steel, Mithril, Runic: same plates, different metal and glow
 const ARM_LOOK=[{c:0x9a8a78,e:0xffffff,i:0.24},{c:0xc0c0c4,e:0xffffff,i:0.3},{c:0xffffff,e:0xffffff,i:0.36},{c:0xe6f4ff,e:0x9fe0ff,i:0.55},{c:0xfff0c8,e:0xffd27a,i:0.6}];
 function armGeo(k,mir,half){const key=k+(mir?'R':'L')+(half?'h':'');if(ARM_G[key])return ARM_G[key];const d=ARM_PAL.m[k],P=d.p,idx=[];
@@ -3706,6 +3709,10 @@ const HAND_R=new THREE.Matrix4().set(0,0,1,0, 0,-1,0,0, 1,0,0,0, 0,0,0,1),HAND_L
 function buildReal(h){
   const G=THREE,mi0=modelInfo(h.cls,h),mi=REALS[mi0.f]&&REALS[mi0.f].state==='ready'?mi0:MODEL_FOR[h.cls]||MODEL_FOR.barbarian,REAL=REALS[mi.f],g=REAL.gltf,model=h.remote&&THREE.SkeletonUtils?THREE.SkeletonUtils.clone(g.scene):g.scene,cls=h.cls,d=HEROES[cls],c=Object.assign({},d.col,h.look||{}),heavy=cls==='barbarian';
   const root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);
+  // armor set: its own file, so give each piece this body's bones
+  for(const o of model.children.filter(o=>o.userData.armc))model.remove(o);
+  const AR=mi.arm&&REALS[mi.arm];if(AR&&AR.state==='ready'){const bones={};model.traverse(o=>{if(o.isBone)bones[o.name.replace(/_\d+$/,'')]=o;});const ac=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(AR.gltf.scene):AR.gltf.scene,list=[];ac.traverse(o=>{if(o.isSkinnedMesh)list.push(o);});
+    for(const o of list){const bs=o.skeleton.bones.map(b=>bones[b.name.replace(/_\d+$/,'')]);if(bs.some(b=>!b))continue;o.bind(new THREE.Skeleton(bs,o.skeleton.boneInverses),o.bindMatrix);o.userData.armc=1;o.parent.remove(o);model.add(o);}}
   const tall=mi.tall||1.62;model.scale.setScalar(REAL.s0*tall/REAL.h0);
   const surf=heavy?ARMOR_COL[Math.max(1,h.armor.tier)]:c.body,joint=heavy?'#5a4a3a':c.trim;const mats=[];
   const mk=(col,metal)=>{const m=new G.MeshStandardMaterial({color:new G.Color(col),roughness:metal?0.35:0.55,metalness:metal?0.55:0.1,emissive:new G.Color(col).multiplyScalar(0.12)});mats.push(m);return m;};
@@ -3993,7 +4000,7 @@ function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now()
     if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;}
     const h=p.h;if(Math.hypot(s.x-h.x,s.z-h.z)>8){h.x=s.x;h.z=s.z;}h.x+=(s.x-h.x)*0.22;h.z+=(s.z-h.z)*0.22;h.y=s.y;h.fx=s.fx;h.fz=s.fz;h.moving=s.moving;h.state=s.state;h.setT=s.st||0;h.cg=s.cg||0;h.melee=s.melee;h.combo=s.combo;h.swingMax=8;h.swing=0;h.castT=0;
     if(s.atk!==p.atk){p.atk=s.atk;h.swing=h.swingMax-1;}if(s.cast!==p.cast){p.cast=s.cast;h.castT=1;}
-    if(loadReal(s.cls)!=='ready'||animState!=='ready'||loadReal(null,modelInfo(s.cls,h).f)!=='ready')continue;
+    if(loadReal(s.cls)!=='ready'||animState!=='ready'||loadReal(null,modelInfo(s.cls,h).f)!=='ready'||loadReal(null,modelInfo(s.cls,h).arm)==='loading')continue;
     if(!p.R)p.R=buildReal(h);poseReal(p.R,h,false);p.R.root.visible=true;
     const lb=s.name+(s.vc?' 🎙':'');if(!p.tag||p.tag.userData.name!==lb){if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}p.tag=netTag(lb);}
     if(!p.tag.parent)scene.add(p.tag);p.tag.visible=true;p.tag.position.set(h.x,h.y+(modelInfo(s.cls).tall||1.62)+0.45,h.z);}
