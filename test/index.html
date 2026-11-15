@@ -1288,7 +1288,8 @@ function makeGateGuards(){const G=THREE,g=GATE.g;g.updateMatrixWorld(true);
     const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*4000,aim:false});}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
-  const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;if(now>q.next){q.aim=!q.aim;q.next=now+(q.aim?2400:5000+Math.random()*6000);}q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);}}
+  const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;if(now>q.next){q.aim=!q.aim;q.next=now+(q.aim?2400:5000+Math.random()*6000);}q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);
+    if(!INV.gift&&!GATE.called&&H&&Math.hypot(H.x-q.e.x,H.z-q.e.z)<10){GATE.called=1;floatText(q.e.x,2.6,q.e.z,'Stranger! Over here!','#ffcf8a',20);}}}
 // walk straight into the real buildings: door gap in the walls, camera-side walls and upper floors cut away while inside
 const WALK={map:{},cur:null,pz:new THREE.Plane(new THREE.Vector3(0,0,-1),0),py:new THREE.Plane(new THREE.Vector3(0,-1,0),2.9)};
 const walkable=id=>bldState==='ready'&&!!WALK.map[id];
@@ -2775,6 +2776,7 @@ function interactables(){
   if(S.level==='town'){
     for(const d of DOORS){if(walkable(d.id))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?goHouse(d.id):openPlace(d.id)});}
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
+    if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:2.8,y:2.7,label:'Talk to the guard',act:guardGift});}
     walkInteract(L);
   } else if(S.level==='dungeon'){if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
   else{const hd=HOUSES.find(h=>h.id===S.house);L.push({x:0,z:4.2,r:1.5,y:3,label:'Go outside',act:()=>goTown(hd.shop?{x:hd.x,z:-7.6,fx:0,fz:1,house:true}:{x:hd.x,z:11.9,fx:0,fz:-1,house:true})});
@@ -2783,8 +2785,12 @@ function interactables(){
     if(S.hnpc)L.push(hd.shop?{x:S.hnpc.x,z:S.hnpc.z+1.2,r:2.2,y:2.8,label:'Shop with '+S.hnpc.name,act:()=>{gemSel=null;renderShop3(hd.id);}}:{x:S.hnpc.x,z:S.hnpc.z,r:1.9,y:2.6,label:'Talk to '+S.hnpc.name,act:talkNpc});}
   return L;
 }
+// starter armor: the gate guard asks for help and hands over plain level-1 pieces, so the hero looks armored right away
+function guardGift(){openDlg(`<h1 class="logo sm"><small>Guard at the castle gate</small>We need your help</h1><p class="tag">Stranger! We are being overrun. Every night the Lich Queen's dead pour out of the castle, and there are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
+function giveStarter(){const g=k=>({type:'gear',kind:k,tier:0,grade:0,sockets:[null],aff:[]});for(const k of ['helm','hands','feet'])if(!H[k])H[k]=g(k);if(!H.armor||H.armor.tier<1)H.armor=Object.assign(g('armor'),{tier:1});
+  INV.gift=1;recalc(H);save();sfx('go');sparks(H.x,1.4,H.z,14);toast('You put on the guard\'s armor: helmet, chest, gloves and boots. Press H to see your gear.');}
 function openPlace(id){
-  if(id==='gate')return showGate();
+  if(id==='gate')return INV.gift?showGate():guardGift();
   if(id==='harbor')return showMap();
   if(id==='ship')return toast('The ship sails for Kemet in a later update.');
   gemSel=null;renderShop3(id);
@@ -3707,7 +3713,7 @@ const ARM_ICON={helm:{p:[['helm']],ry:0.5,rx:0.1},armor:{p:[['torso'],['waist'],
 function armShot(cls,kind,tier){if(!ARM_FIT[cls]||ARM_ST!=='ready'||!ARM_ICON[kind])return null;const I=ARM_ICON[kind];
   return studio('arm'+cls+kind+tier,(p,K)=>{const mt=armMat(tier,[]);mt.envMap=stuEnv();mt.envMapIntensity=1.1;mt.metalness=1;mt.roughness=1;mt.emissiveIntensity*=0.45;
     for(const [k,mir] of I.p)p.add(new THREE.Mesh(armGeo(k,!!mir),mt));setTimeout(()=>mt.dispose(),0);},{ry:I.ry,rx:I.rx});}
-var WBOW=[0,0,-1.5708];
+var WBOW=[0,Math.PI,-1.5708];
 const HAND_R=new THREE.Matrix4().set(0,0,1,0, 0,-1,0,0, 1,0,0,0, 0,0,0,1),HAND_L=new THREE.Matrix4().set(0,0,-1,0, 0,-1,0,0, -1,0,0,0, 0,0,0,1);
 function buildReal(h){
   const G=THREE,mi0=modelInfo(h.cls,h),mi=REALS[mi0.f]&&REALS[mi0.f].state==='ready'?mi0:MODEL_FOR[h.cls]||MODEL_FOR.barbarian,REAL=REALS[mi.f],g=REAL.gltf,model=h.remote&&THREE.SkeletonUtils?THREE.SkeletonUtils.clone(g.scene):g.scene,cls=h.cls,d=HEROES[cls],c=Object.assign({},d.col,h.look||{}),heavy=cls==='barbarian';
