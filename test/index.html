@@ -3530,7 +3530,7 @@ const HERO_BODY={f:'hero_m',arm:'arm_pal_m',tall:1.85,tierLook:1,slots:1,grip:1,
 const MODEL_FOR={barbarian:HERO_BODY,archer:HERO_BODY,elf:HERO_BODY,sorceress:HERO_BODY,healer:HERO_BODY};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
-function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
+function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
   if(animState==='fail')return 'fail';
   if(!fOverride){const m=modelInfo(cls||(H&&H.cls)||S.cls);if(m.arm){const a=loadReal(null,m.f),b=loadReal(null,m.arm);return a==='ready'&&b==='loading'?'loading':a;}}
   const mi=fOverride?{f:fOverride}:modelInfo(cls||(H&&H.cls)||S.cls);const REAL=REALS[mi.f]||(REALS[mi.f]={state:'none'});
