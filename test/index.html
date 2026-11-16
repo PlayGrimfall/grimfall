@@ -2312,6 +2312,7 @@ function spawnEnemy(type,x,z){
   const d=EN[type],big=!!d.boss;
   const e={type,def:d,x,z,y:0,vy:0,vx:0,vz:0,hp:Math.round(d.hp*1.35*(1+0.18*S.floor)),maxHp:Math.round(d.hp*1.35*(1+0.18*S.floor)),face:-1,fx:-1,fz:0,state:'walk',t:0,cd:ri(30,80),anim:ri(0,99),flash:0,rootT:0,spawnInv:20,scale:d.scale||1,moving:false,sp:0,remove:false,
     spr:big?makeSprite(768,768,384,735,1.5):makeSprite(512,512,256,472,2)};
+  if(type==='skeleton'){e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)e.hp=e.maxHp=Math.round(e.hp*1.6);} // armored warrior: tougher
   e.nid=++NET.nid;S.enemies.push(e);poof(x,0,z,e.scale*0.8);
   if(big){S.boss=e;S.banner={top:'Boss',text:d.name,t:180};sfx('boss');}else if(d.elite){S.boss=e;S.banner={top:'Elite',text:d.name,t:160};sfx('boss');}
   return e;
@@ -3896,7 +3897,7 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skel2',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skeleton',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
+const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skelwl',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
   REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
