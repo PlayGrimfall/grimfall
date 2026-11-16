@@ -1845,13 +1845,14 @@ function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast(
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
   const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:Math.random()<0.5?'#7fb4ff':'#cfe2ff'});
   if(--S.portT===0){sfx('go');goTown();}}
-function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>e.state!=='dead').length>1)return;
+function inRoomFoe(e,r){if(e.state==='dead'||e.mine)return false;const tx=Math.floor(e.x/TS),tz=Math.floor(e.z/TS);return tx>=r.x0-1&&tx<=r.x1+1&&tz>=r.z0-1&&tz<=r.z1+1;} // only foes inside the locked room count
+function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>inRoomFoe(e,ar)).length>1)return;
   const nw=S.roomWaves[0].w,batch=S.roomWaves.filter(q=>q.w===nw);S.roomWaves=S.roomWaves.filter(q=>q.w!==nw);
   batch.forEach((q,k)=>{const [x,z]=mzRoomSpot(H.x,H.z,4.5,ar);S.queue.push({t:30+k*28,type:q.type,boss:false,x,z});});floatText(H.x,2.5,H.z,'More are coming!','#ff9a6a',18);sfx('door');}
 function updRooms(){
   if(!MZ)return;
   const ar=S.aRoom!=null?MZ.rooms[S.aRoom]:null;
-  if(ar){roomWaveTick(ar);if(ar.kind!=='boss'&&!S.queue.length&&!(S.roomWaves&&S.roomWaves.length)&&!S.enemies.some(e=>e.state!=='dead')){mzRoomDone();sfx('go');
+  if(ar){roomWaveTick(ar);if(ar.kind!=='boss'&&!S.queue.length&&!(S.roomWaves&&S.roomWaves.length)&&!S.enemies.some(e=>inRoomFoe(e,ar))){mzRoomDone();sfx('go');
       if(ar.key){const [cx,cz]=mzCenter(ar);dropPickup(ar.key==='great'?'gkey':'rkey',cx,cz);floatText(cx,2.2,cz,ar.key==='great'?GKEY[S.floor]+'!':'A rusty key!','#ffd35c',20);}
       else floatText(H.x,2.4,H.z,'Room cleared!','#bfffcf',18);}
     return;}
