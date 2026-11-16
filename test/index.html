@@ -249,7 +249,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
     <div class="keys">
       <span><kbd>WASD</kbd> or <kbd>Arrows</kbd> move</span>
       <span><kbd>J</kbd> attack / enter <kbd>K</kbd> jump <kbd>L</kbd> special <kbd>I</kbd> big special</span>
-      <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map</span>
+      <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map <kbd>T</kbd> town</span>
       <span><kbd>Q</kbd> <kbd>E</kbd> or drag to turn camera · <kbd>C</kbd> switch camera</span>
       <span>Online: <kbd>Enter</kbd> chat · <kbd>V</kbd> mute mic</span>
       <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town</span>
@@ -1513,8 +1513,8 @@ function updDayNight(){if(!DN.sky)return;DN.t=(DN.t+1/DN.len)%1;
 
 
 // ================= maze dungeons (Diablo-style camera, cutaway walls) =================
-const TS=2,MW=4,MH=3,CS=15,WALL_H=4.0;
-const MZ_CFG=[{start:[0,1],boss:[3,1],piece:[2,0]},{start:[0,1],boss:[3,2],piece:[1,0]},{start:[0,0],boss:[3,1],piece:[2,2]},{start:[0,2],boss:[3,0],piece:[1,0]}];
+const TS=2,MW=5,MH=4,CS=15,WALL_H=4.0;
+const MZ_CFG=[{start:[0,1],boss:[4,2],piece:[2,0]},{start:[0,2],boss:[4,1],piece:[2,3]},{start:[0,0],boss:[4,3],piece:[3,1]},{start:[0,3],boss:[4,0],piece:[2,1]}];
 const GKEY=['Jailer’s Key','Crypt Key','Root Key','Rune Key'];
 const PIECE_N=['the Prison Block','the Burial Vault','the Glow Grotto','the Ritual Hall'];
 let MZ=null;
@@ -1572,7 +1572,7 @@ function genMazeTry(fi,force){
   P.key='great';const norm=rooms.filter(r=>r.kind==='normal').sort(()=>Math.random()-0.5);for(let k=0;k<rusty&&k<norm.length;k++)norm[k].key='rusty';
   // monsters
   const F=FLOORS[fi],pool=[...new Set(F.waves.filter(w=>!w.boss).flatMap(w=>w.list))];
-  for(const r of rooms){if(r.kind==='normal')r.foes=[...Array(ri(3,4+Math.min(fi,2)))].map(()=>pool[ri(0,pool.length-1)]);
+  for(const r of rooms){if(r.kind==='normal')r.foes=[...Array(ri(4,5+Math.min(fi,2)))].map(()=>pool[ri(0,pool.length-1)]);
     else if(r.kind==='piece')r.foes=(fi===1||fi===3?['deathRider']:[]).concat(F.waves[2].list);else if(r.kind==='boss')r.foes=F.waves.find(w=>w.boss).list.slice();}
   // traps in corridors
   const traps=[],near=(x,z,R)=>{for(const d of doors)if(Math.abs(d.tx-x)<=R&&Math.abs(d.tz-z)<=R)return true;return false;};
@@ -1790,7 +1790,28 @@ function mzRevealRoom(r){const W=MZ.W;for(let z=r.z0-(r.kind==='piece'?4:1);z<=r
 function mzBars(r,on){for(const di of r.doors){const d=MZ.doors[di];d.bar=on;}mzRefreshBlk();if(on){sfx('door');S.shake=Math.max(S.shake,0.15);}}
 function mzRoomDone(){if(S.aRoom==null)return;const r=MZ.rooms[S.aRoom];r.state='clear';S.aRoom=null;mzBars(r,false);}
 function partyExtra(r){if(!NET.on||!NET.host||!r.foes.length)return [];let n=0;for(const id in NET.peers){const s=NET.peers[id].s;if(s&&s.lvl==='dungeon'&&s.floor===S.floor)n++;}
-  const out=[];for(let i=0;i<n*2;i++)out.push(r.foes[ri(0,r.foes.length-1)]);return out;}
+  const out=[];for(let i=0;i<n*3;i++)out.push(r.foes[ri(0,r.foes.length-1)]);return out;}
+// monsters find their way through the maze: a distance map from the hero over the floor tiles, refreshed a few times a second
+function mzFlowTick(){if(!MZ||!H||S.frame%15)return;const W=MZ.W,N=W*MZ.H,F=MZ.flow||(MZ.flow=new Int32Array(N)),q=MZ.flowQ||(MZ.flowQ=new Int32Array(N));F.fill(-1);
+  const tx=Math.floor(H.x/TS),tz=Math.floor(H.z/TS);if(mzSolid(tx,tz))return;let h=0,t=0;q[t++]=tz*W+tx;F[tz*W+tx]=0;
+  while(h<t){const i=q[h++],x=i%W,z=(i/W)|0;for(let k=0;k<4;k++){const nx=x+(k===0?1:k===1?-1:0),nz=z+(k===2?1:k===3?-1:0);if(mzSolid(nx,nz))continue;const j=nz*W+nx;if(F[j]>=0)continue;F[j]=F[i]+1;q[t++]=j;}}}
+function mzFlowDir(e){const F=MZ&&MZ.flow;if(!F)return null;const W=MZ.W,tx=Math.floor(e.x/TS),tz=Math.floor(e.z/TS);if(tx<0||tz<0||tx>=W||tz>=MZ.H)return null;const d0=F[tz*W+tx];if(d0<=1)return null;
+  let best=null,bd=d0;for(const [ax,az] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=tx+ax,nz=tz+az;if(nx<0||nz<0||nx>=W||nz>=MZ.H)continue;const v=F[nz*W+nx];
+    if(v>=0&&v<bd&&(!ax||!az||(F[tz*W+nx]>=0&&F[nz*W+tx]>=0))){bd=v;best=[(nx+0.5)*TS-e.x,(nz+0.5)*TS-e.z];}}if(!best)return null;const l=Math.hypot(best[0],best[1])||1;return [best[0]/l,best[1]/l];}
+// roaming packs: while you explore, small groups of this floor's monsters keep coming down the halls (more with a bigger party)
+function mzRoamTick(){if(!MZ||!MZ.flow||S.aRoom!=null||S.exitOpen||!H||H.state==='down')return;if(S.roamT==null)S.roamT=900;if(--S.roamT>0)return;
+  const phone=document.body.classList.contains('phone'),cap=phone?5:8,alive=S.enemies.filter(e=>e.state!=='dead').length;S.roamT=ri(1000,1500);if(alive>=cap||S.queue.length)return;
+  let n=1;if(NET.on)for(const id in NET.peers){const s=NET.peers[id].s;if(s&&s.lvl==='dungeon'&&s.floor===S.floor)n++;}
+  const F=MZ.flow,W=MZ.W,spots=[];for(let i=0;i<F.length;i++){const v=F[i];if(v>=9&&v<=16&&MZ.rid[i]<0)spots.push(i);}if(!spots.length)return;
+  const sp=spots[ri(0,spots.length-1)],x=(sp%W+0.5)*TS,z=((sp/W|0)+0.5)*TS,pool=[...new Set(FLOORS[S.floor].waves.filter(w=>!w.boss).flatMap(w=>w.list))].filter(t=>!EN[t].elite&&!EN[t].boss);if(!pool.length)return;
+  const cnt=Math.min(ri(2,3)+n-1,cap-alive);for(let k=0;k<cnt;k++)S.queue.push({t:10+k*25,type:pool[ri(0,pool.length-1)],boss:false,x:x+rnd(-0.6,0.6),z:z+rnd(-0.6,0.6)});
+  floatText(H.x,2.5,H.z,'Something is coming…','#ff9a6a',16);}
+// T: open a portal back to town (a short cast; moving slows it, getting knocked down cancels it)
+function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast('You are already in town.');return;}if(S.level==='house'){toast('Walk out the door to leave the house.');return;}if(S.portT>0)return;
+  S.portT=90;H.castT=Math.max(H.castT||0,20);toast('Opening a portal to town…');sfx('magic');}
+function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
+  const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:Math.random()<0.5?'#7fb4ff':'#cfe2ff'});
+  if(--S.portT===0){sfx('go');goTown();}}
 function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>e.state!=='dead').length>1)return;
   const nw=S.roomWaves[0].w,batch=S.roomWaves.filter(q=>q.w===nw);S.roomWaves=S.roomWaves.filter(q=>q.w!==nw);
   batch.forEach((q,k)=>{const [x,z]=mzRoomSpot(H.x,H.z,4.5,ar);S.queue.push({t:30+k*28,type:q.type,boss:false,x,z});});floatText(H.x,2.5,H.z,'More are coming!','#ff9a6a',18);sfx('door');}
@@ -1970,7 +1991,7 @@ addEventListener('keydown',e=>{
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
     const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
-  if(e.code==='KeyM'){if(S.level==='dungeon'&&S.state==='play')S.mapOn=!S.mapOn;else toggleMute();}
+  if(e.code==='KeyM'){if(S.level==='dungeon'&&S.state==='play')S.mapOn=!S.mapOn;else toggleMute();}if(e.code==='KeyT'&&!e.shiftKey)townPortal();
   if(e.code==='KeyN')toggleMute();
 });
 addEventListener('keyup',e=>{keys[e.code]=false;});
@@ -2306,7 +2327,7 @@ function updEnemy(e){
   }
   if(d.boss||d.elite)bossThink(e,dist);if(e.state!=='walk')return;
   if(H.state==='down'){return;}
-  e.fx=dx/dist;e.fz=dz/dist;
+  e.fx=dx/dist;e.fz=dz/dist;if(S.level==='dungeon'&&dist>4){const fd=mzFlowDir(e);if(fd){e.fx=fd[0];e.fz=fd[1];}}
   const spd=e.rootT>0?0:d.spd*U*1.1, reach=d.ranged?99:d.reach*U;
   if(d.ranged){const keep=d.keep*U*0.9;if(dist>keep+0.5){e.x+=e.fx*spd;e.z+=e.fz*spd;e.moving=spd>0;}else if(dist<keep-0.6){e.x-=e.fx*spd;e.z-=e.fz*spd;e.moving=spd>0;}
     else{e.x+=-e.fz*spd*0.4*Math.sin(e.anim*0.02);e.z+=e.fx*spd*0.4*Math.sin(e.anim*0.02);}
@@ -3110,7 +3131,8 @@ function step(){
   if(S.state!=='play')return;
   minionsUpd();if(S.level==='town'){for(const n of S.npcs)updNpc(n);}
   else{
-    if(S.level==='dungeon'){if(NET.linked)netClientRooms();else{if(!S.exitOpen)netRooms();spawnFromQueue();}updMaze();}
+    if(S.level==='dungeon'){mzFlowTick();if(NET.linked)netClientRooms();else{if(!S.exitOpen)netRooms();mzRoamTick();spawnFromQueue();}updMaze();}
+    portTick();
     for(const e of S.enemies)netUpdEnemy(e);
     for(const e of S.enemies)if(e.remove)killSprite(e.spr);S.enemies=S.enemies.filter(e=>!e.remove);
     for(const p of S.proj)updProj(p);S.proj=S.proj.filter(p=>!p.dead);
