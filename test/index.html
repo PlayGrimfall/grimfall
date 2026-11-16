@@ -2586,7 +2586,7 @@ function goTown(spot){
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
 }
 function goDungeon(fi=0){
-  if(INV.rack)INV.rack=null; // the smith restocks while you're away
+  if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
   clearLevel();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
@@ -2878,6 +2878,18 @@ function rackHtml(){const w=H.weapon,G0=INV.gold;return `<div class="scard"><h3>
   rackStock().map((it,i)=>{if(!it)return `<p class="note l">${RACK_N[i]}: sold. More after your next trip.</p>`;const rel=Math.round((Math.pow(1.25,it.tier-w.tier)*Math.pow(1.08,it.grade-w.grade)-1)*100);
     const info=[(rel>0?'+':'')+rel+'% damage vs yours',...it.aff.map(affText),it.sockets.length+' crystal setting'+(it.sockets.length>1?'s':'')].join(' · ');
     return buyBtn('rack-'+i,`${RACK_N[i]}: ${GRADES[it.grade].n} ${gearName({kind:'weapon',tier:it.tier})}`,info,it.price,G0>=it.price,iconURL({type:'gear',kind:'weapon',tier:it.tier,grade:it.grade}));}).join('')+`</div>`;}
+// armory's armor rack: same idea as the smith's: three chest pieces (cheap, middle, expensive), rerolled after every dungeon trip,
+// never above the second-best metal and never Epic or Legendary
+function armRackStock(){if(INV.arack&&INV.arack.cls===H.cls)return INV.arack.items;const b=H.armor.tier,P=PRIM[H.cls]||'str';
+  const items=[0,1,2].map(r=>{const tier=Math.min(3,b+[1,1,2][r]),it={type:'gear',kind:'armor',tier,grade:r,sockets:Array(r+1).fill(null),aff:[]};
+    if(r>=1)it.aff.push({s:'vit',v:AFF.vit.v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=[70+55*tier,140+90*tier,190+170*tier][r];return it;});
+  INV.arack={cls:H.cls,items};return items;}
+function armRackHtml(){const a=H.armor,G0=INV.gold;return `<p class="sub l">Armor for sale</p><p class="note l">New stock after every trip into the dungeon. Your old armor goes into your bag.</p>`+
+  armRackStock().map((it,i)=>{if(!it)return `<p class="note l">${RACK_N[i]}: sold. More after your next trip.</p>`;const dt=it.tier-a.tier;
+    const info=[dt>0?`${dt} metal${dt>1?'s':''} stronger than yours`:dt===0?'same metal as yours':'weaker metal than yours',...it.aff.map(affText),it.sockets.length+' crystal setting'+(it.sockets.length>1?'s':'')].join(' · ');
+    return buyBtn('arack-'+i,`${RACK_N[i]}: ${GRADES[it.grade].n} ${ARMOR_SETS[H.cls][it.tier]}`,info,it.price,G0>=it.price,iconURL({type:'gear',kind:'armor',tier:it.tier,grade:it.grade}));}).join('');}
+// crystals come in three qualities at the shop: Rough, Polished, Flawless
+let gemQ=1;const gemPrice=(t,q)=>Math.round(gemCost(t)*[0,1,3.5,11][q]);
 function renderShop3(id){
   const [title,sub]=SHOP_T[id],w=H.weapon,a=H.armor,G0=INV.gold;let card='',extra='';
   if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
@@ -2887,7 +2899,7 @@ function renderShop3(id){
   else if(id==='armory'){const tc=a.tier<4?COST.atier(a.tier):null,gc=a.grade<4?COST.agrade(a.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'armor',tier:a.tier,grade:a.grade,set:a.set})}" width="40" height="40" alt=""><b style="color:${GRADES[a.grade].c}">${GRADES[a.grade].n} ${esc(gearName({kind:'armor',tier:a.tier,set:a.set}))}</b> ${socketsHtml(a,'armor',false)}</div>`
       +buyBtn('atier',a.tier<4?ARMOR_SETS[H.cls][a.tier+1]:'Best armor reached','Take about 9% less damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
-      +buyBtn('agrade',a.grade<4?`Reinforce to ${GRADES[a.grade+1].n}`:'Legendary already',a.grade<4?`Sturdier, plus a bonus${GRADES[a.grade+1].s>a.sockets.length?' and a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);
+      +buyBtn('agrade',a.grade<4?`Reinforce to ${GRADES[a.grade+1].n}`:'Legendary already',a.grade<4?`Sturdier, plus a bonus${GRADES[a.grade+1].s>a.sockets.length?' and a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc)+armRackHtml();
     extra=`<div class="scard"><h3>Helmets, gloves, boots, capes${H.cls==='barbarian'?' and shields':''}</h3>`+EXTRA.map(k=>{const it=H[k],ic=iconURL({type:'gear',kind:k,tier:it?it.tier:0,grade:it?it.grade:0,set:it&&it.set}),desc=k==='off'?SLOT_E.off[H.cls==='barbarian'?'barbarian':'other']:SLOT_E[k];
       if(!it)return buyBtn('xbuy-'+k,`Common ${gearName({kind:k,tier:0})}`,`${SLOT_N[k]} · ${desc}`,COST.xbuy,G0>=COST.xbuy,ic);
       const tc=it.tier<4?COST.xtier(it.tier):null,gc2=it.grade<4?COST.xgrade(it.grade):null;
@@ -2910,7 +2922,7 @@ function renderShop3(id){
       +`<p class="note l">${gemSel?`Now tap an empty setting to set the ${GEM_LV[+gemSel.slice(-1)]} ${GEMS[gemSel.slice(0,-1)].n}.`:'Tap a crystal, then an empty setting. Tap a set crystal to take it out.'}</p>`;
     const combos=owned.filter(k=>+k.slice(-1)<3&&INV.gems[k]>=3);
     if(combos.length)card+=`<div class="chips">${combos.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<button class="chip" type="button" data-act="combine-${k}" ${G0>=25*lv?'':'disabled'}>Combine 3 → ${GEM_LV[lv+1]} ${GEMS[t].n} · ${25*lv}g</button>`;}).join('')}</div>`;
-    extra=`<div class="scard"><h3>Rough crystals</h3>${GEM_TYPES.map(t=>buyBtn('buygem-'+t,GEMS[t].n,GEMS[t].e,gemCost(t),G0>=gemCost(t),iconURL({type:'crystal',t}))).join('')}
+    extra=`<div class="scard"><h3>Crystals for sale</h3><div class="chips">${[1,2,3].map(q=>`<button class="chip ${gemQ===q?'sel':''}" type="button" data-act="gq-${q}">${RACK_N[q-1]}: ${GEM_LV[q]}</button>`).join('')}</div>${GEM_TYPES.map(t=>buyBtn('buygem-'+t,GEM_LV[gemQ]+' '+GEMS[t].n,GEMS[t].e,gemPrice(t,gemQ),G0>=gemPrice(t,gemQ),iconURL({type:'crystal',t}))).join('')}
       <p class="note l">A Polished crystal counts twice and a Flawless one three times. Crystals stack across your weapon, armor and jewelry.</p></div>`;
   }
   openDlg(`<h1 class="logo sm"><small>Grimfall</small>${esc(title)}</h1><p class="tag">${esc(sub)}</p>${goldLine()}
@@ -2922,6 +2934,9 @@ function renderShop3(id){
     if(k==='rack'){const it=rackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.weapon;
       addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
       toast('You bought the '+GRADES[it.grade].n+' '+gearName({kind:'weapon',tier:it.tier})+'. Your old weapon is in your bag.');}}}
+    if(k==='arack'){const it=armRackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.armor;
+      addToBag({type:'gear',kind:'armor',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H.armor={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.arack.items[+x]=null;
+      toast('You bought the '+GRADES[it.grade].n+' '+ARMOR_SETS[H.cls][it.tier]+'. Your old armor is in your bag.');}}}
     if(k==='wtier'&&H.weapon.tier<5&&pay(COST.wtier(H.weapon.tier)))H.weapon.tier++;
     if(k==='wgrade'&&H.weapon.grade<4&&pay(COST.wgrade(H.weapon.grade)))setGrade(H.weapon,H.weapon.grade+1);
     if(k==='atier'&&H.armor.tier<4&&pay(COST.atier(H.armor.tier)))H.armor.tier++;
@@ -2935,7 +2950,8 @@ function renderShop3(id){
     if(k==='foc'&&pay(60+25*H.foc)){H.foc++;recalc(H);H.mp=H.maxMp;}
     if(k==='jbuy'&&!H.jewels[x]&&pay(COST.jbuy)){H.jewels[x]={tier:0,sockets:Array(JEWELS.find(j=>j.id===x).s).fill(null)};recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;}
     if(k==='jup'&&H.jewels[x]&&H.jewels[x].tier<3&&pay(COST.jup(H.jewels[x].tier))){H.jewels[x].tier++;recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;}
-    if(k==='buygem'&&pay(gemCost(x)))addGem(INV,x,1);
+    if(k==='gq'){gemQ=clamp(+x,1,3);}
+    if(k==='buygem'&&pay(gemPrice(x,gemQ)))addGem(INV,x,gemQ);
     if(k==='pick')gemSel=gemSel===x?null:x;
     if(k==='sock'&&gemSel&&INV.gems[gemSel]){itemOf(H,x).sockets[+y]={t:gemSel.slice(0,-1),lv:+gemSel.slice(-1)};addGem(INV,gemSel.slice(0,-1),+gemSel.slice(-1),-1);sfx('gem');if(!INV.gems[gemSel])gemSel=null;}
     if(k==='unsock'){const it=itemOf(H,x),s=it.sockets[+y];if(s){addGem(INV,s.t,s.lv);it.sockets[+y]=null;}}
