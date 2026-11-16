@@ -232,6 +232,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
 #quickChat button{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--stone2);color:#fff;font:600 13px system-ui,sans-serif;cursor:pointer}
 #chatBox{position:absolute;left:12px;bottom:60px;z-index:7;display:flex;width:min(70%,460px)}
 #chatBox input{flex:1;font:500 15px system-ui,sans-serif;padding:7px 11px;border-radius:8px;border:1px solid #9fe3ff;background:rgba(8,6,14,.9);color:#fff}
+.fishlist{display:grid;gap:8px;max-width:600px;margin:10px auto}.fishrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--stone2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-align:left}.fishrow .btn{font-size:17px;padding:4px 14px;white-space:nowrap}.fdim{color:var(--dim);font-size:14px}
 </style>
 
 <div id="wrap">
@@ -1455,6 +1456,45 @@ function buildTown(){
 }
 // ================= the dock: props, rowboat, gulls =================
 const DKFX={boat:null,gulls:[],t:0};
+// ================= the harbor: quay, piers, vessels =================
+const DOCK_W=[[-58,-39.3,1.15,3.25],[-44.4,-40.45,-17,19.4],[-55.3,-44.3,11.2,13.4],[-55.3,-44.3,-9.4,-7.2]]; // walkable dock areas
+function dockClamp(o,r,b){for(const q of DOCK_W)if(o.x>=q[0]+r&&o.x<=q[1]-r&&o.z>=q[2]+r&&o.z<=q[3]-r)return;
+  let bx=b.minX,bz=clamp(o.z,b.minZ,b.maxZ),bd=Math.hypot(o.x-bx,o.z-bz);
+  for(const q of DOCK_W){const x=clamp(o.x,q[0]+r,q[1]-r),z=clamp(o.z,q[2]+r,q[3]-r),d=Math.hypot(x-o.x,z-o.z);if(d<bd){bd=d;bx=x;bz=z;}}o.x=bx;o.z=bz;}
+function harborTier(){const d=INV.deepest||0;return d>=4?4:d;}
+function buildVessel(kind){
+  const g=new THREE.Group(),big=kind==='merchant',L=big?6.2:3.1,B=big?2.1:1.2,D=big?1.9:0.9,dy=big?1.0:0.42,wallH=big?0.6:0.3;
+  const hullM=lam({map:TX.hull}),trim=lam({color:0x3e2616}),hm=lam({map:TX.hull,side:THREE.DoubleSide});
+  const h=mesh(new THREE.SphereGeometry(1,24,10,0,Math.PI*2,Math.PI/2,Math.PI/2),hullM,0,dy,0);h.scale.set(L,D,B);g.add(h);
+  const w=mesh(new THREE.CylinderGeometry(1,1,wallH,24,1,true),hm,0,dy+wallH/2,0);w.scale.set(L,1,B);g.add(w);
+  const rim=mesh(new THREE.TorusGeometry(1,big?0.07:0.05,5,30),trim,0,dy+wallH,0);rim.rotation.x=Math.PI/2;rim.scale.set(L,B,1);g.add(rim);
+  const dk=mesh(new THREE.CircleGeometry(1,24),texRep(M.wood,big?5:3,2),0,dy+0.01,0);dk.rotation.x=-Math.PI/2;dk.scale.set(L*0.97,B*0.97,1);dk.receiveShadow=true;g.add(dk);
+  const mastH=big?11:5.6,mx=big?0.4:0.7;g.add(mesh(new THREE.CylinderGeometry(big?0.12:0.07,big?0.17:0.1,mastH,9),trim,mx,dy+mastH/2,0));
+  const lp=[];const Ln=(a,b)=>lp.push(...a,...b);
+  if(big){ // merchant cog: one big striped square sail, a raised stern castle, cargo on deck
+    const st=canvasTex(128,128,(c,W,H)=>{for(let i=0;i<8;i++){c.fillStyle=i%2?'#ece0c4':'#a8382c';c.fillRect(i*W/8,0,W/8,H);}c.fillStyle='rgba(60,40,20,.18)';for(let k=0;k<300;k++)c.fillRect(Math.random()*W,Math.random()*H,2,2);});
+    const sw=4.2,sh=5.2,sg=new THREE.PlaneGeometry(sw,sh,10,8),a=sg.attributes.position;for(let i=0;i<a.count;i++){const u=a.getX(i)/sw+0.5,v=a.getY(i)/sh+0.5;a.setZ(i,Math.sin(Math.PI*u)*Math.sin(Math.PI*(0.1+v*0.8))*0.7);}sg.computeVertexNormals();
+    const sl=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({map:st,side:THREE.DoubleSide}));sl.rotation.y=Math.PI/2;sl.position.set(mx+0.15,dy+5.9,0);sl.castShadow=true;g.add(sl);
+    for(const yy of [dy+8.5,dy+3.3]){const yd=mesh(new THREE.CylinderGeometry(0.07,0.07,sw+0.4,8),trim,mx,yy,0);yd.rotation.x=Math.PI/2;g.add(yd);}
+    g.add(mesh(new THREE.BoxGeometry(2.6,1.3,B*1.55),texRep(M.wood,2,1),-L*0.66,dy+0.65,0));g.add(mesh(new THREE.BoxGeometry(2.7,0.12,B*1.62),trim,-L*0.66,dy+1.32,0));
+    for(const z of [-B*0.78,B*0.78])g.add(mesh(new THREE.BoxGeometry(2.6,0.35,0.07),trim,-L*0.66,dy+1.55,z));
+    g.add(mesh(new THREE.BoxGeometry(1.4,0.7,B*1.1),texRep(M.wood,1,1),L*0.72,dy+0.35,0));
+    const bs=mesh(new THREE.CylinderGeometry(0.06,0.11,3,7),trim,L+0.9,dy+1.1,0);bs.rotation.z=-1.25;g.add(bs);
+    const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.55),new THREE.MeshLambertMaterial({map:TX.flag,side:THREE.DoubleSide}));fl.position.set(mx-0.55,dy+mastH+0.2,0);g.add(fl);
+    for(const s of [-1,1]){Ln([mx,dy+mastH-0.4,0],[mx-1.2,dy+wallH,s*B*0.95]);Ln([mx,dy+mastH-0.4,0],[mx+1.2,dy+wallH,s*B*0.95]);}Ln([mx,dy+mastH,0],[L+2.1,dy+1.6,0]);Ln([mx,dy+mastH,0],[-L*0.95,dy+1.4,0]);
+    g.userData.cargo=[[1.6,0.6],[2.3,-0.5],[-1.2,0.7],[-1.8,-0.6],[2.9,0.4]];
+  } else { // fishing boat: one mast with a triangle sail, nets and baskets
+    const ts=new THREE.Shape();ts.moveTo(0,0);ts.lineTo(0,4.3);ts.lineTo(-2.6,0.3);ts.lineTo(0,0);
+    const sl=new THREE.Mesh(new THREE.ShapeGeometry(ts),new THREE.MeshLambertMaterial({map:TX.sailPlain,side:THREE.DoubleSide}));sl.position.set(mx-0.05,dy+0.9,0);sl.castShadow=true;g.add(sl);
+    const bm=mesh(new THREE.CylinderGeometry(0.05,0.05,2.7,6),trim,mx-1.3,dy+1.05,0);bm.rotation.z=Math.PI/2+0.1;g.add(bm);
+    Ln([mx,dy+mastH,0],[L+0.2,dy+wallH,0]);for(const s of [-1,1])Ln([mx,dy+mastH-0.3,0],[mx,dy+wallH,s*B*0.95]);
+    const nt=canvasTex(64,64,(c,W,H)=>{c.fillStyle='#3e4a3a';c.fillRect(0,0,W,H);c.strokeStyle='#9aa48a';c.lineWidth=1;for(let i=0;i<W;i+=6){c.beginPath();c.moveTo(i,0);c.lineTo(i,H);c.stroke();c.beginPath();c.moveTo(0,i);c.lineTo(W,i);c.stroke();}});
+    const net=mesh(new THREE.SphereGeometry(0.6,10,6),new THREE.MeshLambertMaterial({map:nt}),-L*0.5,dy+0.12,0.2);net.scale.set(1.3,0.35,0.9);g.add(net);
+    g.userData.cargo=[[1.6,0.4],[-1.6,-0.5]];
+  }
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));g.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0x2a2018})));
+  g.userData.dy=dy;return g;
+}
 function dockDeco(T){
   const DK=new THREE.Group();T.add(DK);const er=rng(77),Y=0.02;
   const darkW=new THREE.MeshStandardMaterial({color:0x4a3424,roughness:0.85}),rope=new THREE.MeshStandardMaterial({color:0xb89a6a,roughness:0.95}),
@@ -1502,10 +1542,56 @@ function dockDeco(T){
       g.userData.wings=[wing(1),wing(-1)];return g;};
     for(let i=0;i<4;i++){const g=gull();add(g);DKFX.gulls.push({g,r:5+er()*5,h:4.5+er()*3,sp:(0.25+er()*0.2)*(i%2?1:-1),ph:er()*6,cx:-47+er()*4,cz:4+er()*6});}
     const sit=gull();sit.position.set(-42.2,Y+2.45,3.55);sit.rotation.y=1.2;sit.userData.wings.forEach(w=>w.scale.set(0.35,1,1));add(sit);}
+
+  // ---- the bigger harbor: a long quay outside the wall and three piers ----
+  const deck=(x0,x1,z0,z1)=>{const lx=x1-x0,lz=z1-z0,along=lx>lz;const m=texRep(M.wood,Math.max(1,Math.round((along?lx:lz)/1.1)),1);
+    const d=mesh(new THREE.BoxGeometry(lx,0.2,lz),m,(x0+x1)/2,-0.08,(z0+z1)/2,true,true);if(!along){d.rotation.y=Math.PI/2;d.geometry=new THREE.BoxGeometry(lz,0.2,lx);}add(d);
+    for(const e of along?[z0,z1]:[x0,x1])add(along?mesh(new THREE.BoxGeometry(lx,0.16,0.14),darkW,(x0+x1)/2,-0.1,e):mesh(new THREE.BoxGeometry(0.14,0.16,lz),darkW,e,-0.1,(z0+z1)/2));
+    for(let k=0;k<=1.001;k+=3/Math.max(lx,lz)){for(const e of along?[z0,z1]:[x0,x1]){const px=along?x0+k*lx:e,pz=along?e:z0+k*lz;add(mesh(new THREE.CylinderGeometry(0.14,0.15,1.6,7),darkW,px,-0.75,pz));}}};
+  deck(-58.2,-49.4,1.0,3.4);deck(-44.65,-40.45,-17.3,19.7);deck(-55.5,-44.65,11.0,13.6);deck(-55.5,-44.65,-9.6,-7.0);
+  lamp(-42.55,-14.6,false);lamp(-42.55,8.5,true);lamp(-42.55,17.6,false);lamp(-55.2,13.65,false);lamp(-55.2,-9.65,true);lamp(-57.8,3.55,false);
+  for(const [x,z] of [[-52,1.05],[-56,1.05],[-48,11.05],[-52.5,11.05],[-49,13.45],[-53.5,13.45],[-48,-9.45],[-52.5,-9.45],[-50,-7.15],[-54.5,-7.15]])bollard(x,z);
+  coil(-55,12.1);coil(-50.6,-7.5);barrel(-44,-16);barrel(-43.4,-16.6);crate(-41.2,-16.4,0.7,Y,0.2);crate(-41.1,18.6,0.6,Y,-0.3);barrel(-43.9,18.9);basket(-54.2,13.1);coil(-41.2,15.2);crate(-54.6,-9.1,0.5,Y,0.6);
+  // vessels: a couple of fishing boats at first, more trade as the castle is beaten back, the warship once it falls
+  DKFX.ves=[];const V=(kind,x,z,ry,tier,opt={})=>{const v=buildVessel(kind);v.position.set(x,kind==='merchant'?-0.25:-0.15,z);v.rotation.y=ry;add(v);
+    for(const [cx,cz] of v.userData.cargo){const q=new THREE.Group();q.position.set(cx,v.userData.dy,cz);v.add(q);if(er()<0.5){const b=mesh(bG,M.wood,0,0,0);b.scale.setScalar(0.8);q.add(b);}else q.add(mesh(new THREE.BoxGeometry(0.6,0.6,0.6),M.wood,0,0.3,0));}
+    DKFX.ves.push(Object.assign({v,tier,y0:v.position.y,ph:er()*6},opt));return v;};
+  const shop=V('fish',-53,4.75,0,0,{shop:true});V('fish',-51,9.6,Math.PI,0);V('fish',-50.5,15.1,0.05,1);V('merchant',-50,-12.1,Math.PI,2);V('merchant',-70,9,0.5,3);V('fish',-80,0,0,3,{sail:{cx:-78,cz:2,r:14,sp:0.05}});
+  // Gil's stall on the shop boat: a striped awning over a counter of fish on ice
+  {const aw=canvasTex(64,64,(c,W,H)=>{for(let i=0;i<8;i++){c.fillStyle=i%2?'#e8e2d0':'#2f7a5a';c.fillRect(i*W/8,0,W/8,H);}});const dy=shop.userData.dy;
+    for(const [x,z] of [[-1.2,-0.75],[1.2,-0.75],[-1.2,0.55],[1.2,0.55]])shop.add(mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,6),darkW,x,dy+1.05,z));
+    const tp=mesh(new THREE.BoxGeometry(2.7,0.05,1.6),new THREE.MeshLambertMaterial({map:aw}),0,dy+2.12,-0.1);tp.rotation.x=-0.12;shop.add(tp);
+    shop.add(mesh(new THREE.BoxGeometry(2.2,0.7,0.5),M.wood,0,dy+0.35,-0.65));const ice=mesh(new THREE.BoxGeometry(2.1,0.08,0.45),new THREE.MeshStandardMaterial({color:0xdff2ff,roughness:0.3}),0,dy+0.74,-0.65);shop.add(ice);
+    const fm=new THREE.MeshStandardMaterial({color:0xaab6c0,metalness:0.5,roughness:0.35}),rm=new THREE.MeshStandardMaterial({color:0xc85a3a,roughness:0.6});
+    for(let i=0;i<9;i++){const f=mesh(new THREE.SphereGeometry(0.07,7,5),i%4===3?rm:fm,-0.9+i*0.22,dy+0.82,-0.65+(i%2?0.08:-0.08));f.scale.set(2.6,0.7,1);f.rotation.y=0.3*(i%3-1);shop.add(f);}
+    const sg=canvasTex(256,64,(c,W,H)=>{c.fillStyle='#3a2616';c.fillRect(0,0,W,H);c.strokeStyle='#c9a03a';c.lineWidth=4;c.strokeRect(4,4,W-8,H-8);c.fillStyle='#f3e6c4';c.font='bold 30px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.fillText("Gil's Fresh Fish",W/2,H/2+2);});
+    const sign=mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:sg,side:THREE.DoubleSide}),0,dy+2.4,-0.93,false,false);sign.rotation.y=Math.PI;shop.add(sign);DKFX.shop=shop;}
 }
 function dockTick(){if(!DKFX.boat)return;const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
   for(const q of DKFX.gulls){const a=q.ph+t*q.sp,g=q.g;g.position.set(q.cx+Math.cos(a)*q.r,q.h+Math.sin(t*0.7+q.ph)*0.4,q.cz+Math.sin(a)*q.r);g.rotation.y=-a+(q.sp>0?0:Math.PI);g.rotation.z=(q.sp>0?-1:1)*0.25;
-    const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}}
+    const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}
+  const tr=harborTier();if(DKFX.tier!==tr){DKFX.tier=tr;for(const q of DKFX.ves)q.v.visible=q.tier<=tr;if(ship)ship.visible=tr>=4;}
+  for(const q of DKFX.ves){if(!q.v.visible)continue;if(q.sail){const a=q.ph+t*q.sail.sp;q.v.position.x=q.sail.cx+Math.cos(a)*q.sail.r;q.v.position.z=q.sail.cz+Math.sin(a)*q.sail.r;q.v.rotation.y=-a-Math.PI/2;}
+    q.v.position.y=q.y0+Math.sin(t*1.1+q.ph)*0.06;q.v.rotation.z=Math.sin(t*0.8+q.ph)*0.025;q.v.rotation.x=Math.sin(t*0.7+q.ph+1)*0.015;}
+  if(DKFX.gil&&DKFX.shop)DKFX.gil.y=DKFX.shop.position.y+DKFX.shop.userData.dy;
+}
+// ---- harbor folk: Gil the fishmonger, and dock workers hauling cargo between the piers and town ----
+function makeHarborFolk(){
+  const sp=()=>makeSprite(512,512,256,472,2);
+  const gil={x:-53.1,z:4.7,y:0.3,tx:-53.1,tz:4.7,vx:-1,pause:1e9,anim:0,col:'#3a6a8a',hat:1,skin:'#d9a07a',face:-1,fx:0,fz:-1,rm:'mage',tint:'#bcd0e0',tall:1.74,keeper:true,gil:true,spr:sp()};S.npcs.push(gil);DKFX.gil=gil;
+  const R=[[[-31,-6.2],[-36.6,2.2],[-41.5,2.2],[-42.6,3.6],[-42.6,12.3],[-53.5,12.3]],
+           [[-25,-6.2],[-36.6,1.9],[-41.5,1.9],[-42.4,0.6],[-42.4,-8.3],[-53.5,-8.3]],
+           [[-22,6.4],[-36.6,2.5],[-56.5,2.5]]];
+  R.forEach((route,i)=>{const p=route[0];S.npcs.push({x:p[0],z:p[1],tx:p[0],tz:p[1],vx:1,pause:ri(0,200),anim:ri(0,99),col:'#7a5a3a',hat:0,skin:'#c98a62',face:1,fx:1,fz:0,
+    rm:['guard','mage','guard'][i],tint:['#c8a888','#a8a090','#9aa8b0'][i],tall:[1.78,1.7,1.82][i],pace:[1,0.92,1.06][i],route,ri:1,dir:1,carry:false,load:i===1?'sack':'crate',keeper:true,spr:sp()});});
+}
+function workerTick(n){const p=n.route[n.ri],dx=p[0]-n.x,dz=p[1]-n.z,d=Math.hypot(dx,dz);
+  if(d<0.2){n.ri+=n.dir;if(n.ri<0||n.ri>=n.route.length){n.dir=-n.dir;n.ri+=2*n.dir;n.pause=ri(90,220);n.carry=n.dir<0;}return;} // turn round at each end: load up at the pier, drop off in town
+  n.fx=dx/d;n.fz=dz/d;const sp=0.03*(n.pace||1);n.x+=n.fx*Math.min(sp,d);n.z+=n.fz*Math.min(sp,d);}
+function cargoShow(n,R){if(!R.cargo){const c=new THREE.Group(),k=(n.tall||1.75)/1.75;
+    if(n.load==='sack'){const s=mesh(new THREE.SphereGeometry(0.2,10,8),new THREE.MeshStandardMaterial({color:0x8a7448,roughness:1}),0.17*k,1.48*k,-0.1);s.scale.set(0.85,0.7,1.35);s.rotation.x=0.4;c.add(s);}
+    else{c.add(mesh(new THREE.BoxGeometry(0.55,0.5,0.32),M.wood,0,1.15*k,-0.3));c.add(mesh(new THREE.BoxGeometry(0.06,0.55,0.36),new THREE.MeshStandardMaterial({color:0x4a3424}),0.18,1.15*k,-0.29));}
+    R.root.add(c);R.cargo=c;}R.cargo.visible=!!n.carry;}
 function makeMotes(grp,col,n,b){const p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=rnd(b.x0,b.x1);p[i*3+1]=rnd(b.y0,b.y1);p[i*3+2]=rnd(b.z0,b.z1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));const pts=new THREE.Points(g,new THREE.PointsMaterial({color:col,size:0.09,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false}));grp.add(pts);return {pts,b,ph:[...Array(n)].map(()=>Math.random()*6)};}
 
@@ -2244,7 +2330,7 @@ function addGem(pu,t,lv,n=1){const k=t+lv;pu.gems[k]=(pu.gems[k]||0)+n;if(pu.gem
 function bounds(){return S.level==='town'?TOWN:S.level==='house'?ROOM:MZ?{minX:0.5,maxX:MZ.W*TS-0.5,minZ:0.5,maxZ:MZ.H*TS-0.5}:{minX:DUN.minX,maxX:Math.min(DUN.maxX,S.wallX),minZ:DUN.minZ,maxZ:DUN.maxZ};}
 function clampPos(o,r=0.3){
   const b=bounds();
-  if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX){if(o.z>1.3&&o.z<3.1)o.x=Math.max(o.x,-49.6);else o.x=b.minX;}o.x=Math.min(o.x,b.maxX);
+  if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
     const dx=o.x-0,dz=o.z-1,d=Math.hypot(dx,dz),R=3.55+r;if(d<R&&d>0.001){o.x=dx/d*R;o.z=1+dz/d*R;}
     pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);}
   else if(S.level==='house'){o.x=clamp(o.x,b.minX,b.maxX);o.z=clamp(o.z,b.minZ,b.maxZ);pushOut(o,(houseGroups[S.house]||{}).cols||[],r);}
@@ -2759,6 +2845,7 @@ function makeNpcs(){
   for(let i=0;i<9;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
     n.rm=['girl','mage','smith','guard','girl','mage','smith','girl','guard'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94][i];
     clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
+  makeHarborFolk();
 }
 function npcOpen(ax,az,bx,bz){const r=0.5;for(const c of TOWN_COL.concat(TOWN_JUMP)){const o={x0:c[0]-r,x1:c[1]+r,z0:c[2]-r,z1:c[3]+r};if(ax>o.x0&&ax<o.x1&&az>o.z0&&az<o.z1)continue;if(segBox(ax,az,bx,bz,o))return false;}
   const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1,t=clamp(((0-ax)*dx+(1-az)*dz)/l2,0,1);return Math.hypot(ax+dx*t,az+dz*t-1)>4.3;}
@@ -2767,6 +2854,7 @@ function pickNpcTarget(n){for(let k=0;k<40;k++){const tx=rnd(-36,48),tz=Math.ran
 const townPanic=()=>[1,0.65,0.3,0,0][Math.min(4,INV.deepest||0)];
 function updNpc(n){
   n.anim++;if(n.pause>0){n.pause--;return;}
+  if(n.route){workerTick(n);return;}
   const dx=n.tx-n.x,dz=n.tz-n.z,d=Math.hypot(dx,dz),P=townPanic();
   if(d<0.3){n.pause=P>0.5?ri(8,40):ri(60,240);pickNpcTarget(n);return;}
   n.fx=dx/d;n.fz=dz/d;const ox=n.x,oz=n.z,sp=(0.025+0.04*P)*(n.pace||1);n.x+=n.fx*sp;n.z+=n.fz*sp;
@@ -2824,8 +2912,8 @@ function addPants(R){
 function realNpc(n,tall){const rm=SET.style==='real'&&n.rm;if(!rm||loadReal(null,rm)!=='ready'||animState!=='ready')return false;
   if(n.spr.fig){disposeMon(n.spr.fig);n.spr.fig=null;}if(!n.spr.rfig){n.spr.rfig=buildRealMon(n,{f:rm,tall:n.tall||tall});if(rm==='smith')sheathSword(n.spr.rfig);
     if(n.tint&&n.tint!=='#ffffff'){const tc=new THREE.Color(n.tint);for(const m of n.spr.rfig.mats)if(m.color)m.color.multiply(tc);}}const R=n.spr.rfig,dt=Math.min(0.05,R.clock.getDelta());
-  R.root.position.set(n.x,0,n.z);let dd=Math.atan2(n.fx,n.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.15;R.root.rotation.y=R.yaw;
-  if(n.pause>0||S.level==='house')R.play('idle');else R.play('run',false,(0.42+0.65*townPanic())*(n.pace||1));R.mixer.update(dt);n.spr.mesh.visible=false;return true;}
+  R.root.position.set(n.x,n.y||0,n.z);let dd=Math.atan2(n.fx,n.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.15;R.root.rotation.y=R.yaw;
+  if(n.pause>0||S.level==='house')R.play('idle');else R.play('run',false,n.route?0.5*(n.pace||1):(0.42+0.65*townPanic())*(n.pace||1));R.mixer.update(dt);if(n.route)cargoShow(n,R);n.spr.mesh.visible=false;return true;}
 const sailorLoot=p=>{for(const n of ['Old Map Piece','Pearl String'])dropPickup('goods',p.x,p.z,0,goodsNamed(n));dropPickup('crystal',p.x,p.z,0,{t:'fireopal',lv:2});dropPickup('gear',p.x,p.z,0,gearFor(0.35));for(let i=0;i<6;i++)dropPickup('gold',p.x,p.z,10);};
 const emptyLoot=p=>{dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));dropPickup('crystal',p.x,p.z,0,{t:'amber',lv:1});dropPickup('gear',p.x,p.z,0,gearFor(0.5,'weapon'));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);};
 const HOUSE_PROPS={
@@ -2956,8 +3044,9 @@ function rest(){H.hp=H.maxHp;H.mp=H.maxMp;save();toast('You rest a while. Health
 function interactables(){
   const L=[];
   if(S.level==='town'){
-    for(const d of DOORS){if(walkable(d.id))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?goHouse(d.id):openPlace(d.id)});}
+    for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&!(ship&&ship.visible))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?goHouse(d.id):openPlace(d.id)});}
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
+    if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push({x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()});
     if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:6,y:2.7,label:'Talk to the guard',act:guardGift});}
     walkInteract(L);
   } else if(S.level==='dungeon'){if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
@@ -2988,6 +3077,14 @@ function closeDlg(){dlgEl.hidden=true;dlgKind=null;S.state='play';save();updateT
 dlgPanel.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled||!dlgHandler)return;const a=b.dataset.act;if(a==='close'){closeDlg();return;}dlgHandler(a,b);});
 const gemSpan=t=>`<span class="gem" style="--gc:${GEMS[t].c}"></span>`;
 function buyBtn(act,name,info,cost,ok,img,word){return `<button class="buy" type="button" data-act="${act}" ${ok?'':'disabled'}><span class="nm">${img?`<img src="${img}" alt="">`:''}<span><b>${esc(name)}</b><small>${esc(info)}</small></span></span><span class="cost">${cost===null?'Owned':(word||'')+cost+' gold'}</span></button>`;}
+// ---- Gil's fish boat: fish and sea ingredients (cooking and potion-making come later) ----
+const FISH=[{id:'trout',n:'Fresh trout',p:12,d:'Good eating. Cook it for a hearty meal.'},{id:'eel',n:'Silver eel',p:20,d:'Slippery, and makes a rich stew.'},
+  {id:'crab',n:'Rock crab',p:25,d:'Sweet meat under a hard shell.'},{id:'salt',n:'Sea salt',p:6,d:'For curing and cooking.'},
+  {id:'kelp',n:'Kelp bundle',p:8,d:'A common base for potions.'},{id:'glowfin',n:'Glowfin',p:60,d:'A rare fish that glows in the dark. Potion makers prize it.'}];
+function fishShop(msg){const I=INV.ingr||{};const rows=FISH.map(f=>{const p=upP(f.p);return `<div class="fishrow"><div><b>${f.n}</b> <span class="fdim">· you have ${I[f.id]||0}</span><br><span class="fdim">${f.d}</span></div><button class="btn alt" type="button" data-act="buy-${f.id}" ${INV.gold<p?'disabled':''}>Buy · ${p}</button></div>`;}).join('');
+  openDlg(`<h1 class="logo sm"><small>Gil's fish boat</small>Fresh from the sea</h1><p class="tag">${esc(msg||"Caught this morning! Fish for the pot, and odd things from the deep for your potions. Cooking and potion-making are coming soon, so stock up while it's fresh.")}</p>${goldLine()}<div class="fishlist">${rows}</div><div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'fish',
+  a=>{const f=FISH.find(x=>'buy-'+x.id===a);if(!f)return;const p=upP(f.p);if(INV.gold<p)return;INV.gold-=p;INV.ingr=INV.ingr||{};INV.ingr[f.id]=(INV.ingr[f.id]||0)+1;sfx('chest');save();fishShop('One '+f.n.toLowerCase()+', wrapped in paper. Anything else?');});}
+function ingrLine(){const I=INV.ingr||{},ks=FISH.filter(f=>I[f.id]);return ks.length?`<p class="tag" style="margin-top:8px">Ingredients: ${ks.map(f=>`${f.n} ×${I[f.id]}`).join(' · ')}</p>`:'';}
 function goldLine(){return `<div class="purses"><span>Your gold: <span class="coin"></span><b>${INV.gold}</b></span><span>Bag: <b>${INV.bag.length}/${BAG_MAX}</b></span></div>`;}
 function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickable?`<button class="sock full" type="button" style="--gc:${GEMS[s.t].c}" data-act="unsock-${kind}-${i}" title="Take out the ${GEM_LV[s.lv]} ${GEMS[s.t].n}">${gemSpan(s.t)}</button>`:`<span class="gem" style="--gc:${GEMS[s.t].c}" title="${GEM_LV[s.lv]} ${GEMS[s.t].n}"></span>`)
   :(clickable?`<button class="sock" type="button" data-act="sock-${kind}-${i}" title="Empty setting">${gemSel?'+':''}</button>`:'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>')).join(' ');}
@@ -3122,7 +3219,7 @@ function openInv(){
   openDlg(`<h1 class="logo sm"><small>${esc(HEROES[H.cls].name)}</small>Your Bag</h1>${goldLine()}
     <div class="inv"><div class="scard">${heroPic(170)}
       <div class="stats3" style="justify-content:center"><span>Health <b>${Math.round(H.hp)}/${H.maxHp}</b></span><span>Mana <b>${Math.round(H.mp)}/${H.maxMp}</b></span><span>Damage <b>×${dmgMult().toFixed(2)}</b></span><span>Protection <b>${armorPct()}%</b></span>${H.rune?`<span>Rune <b>${esc(RUNES[H.rune].n)}</b></span>`:''}</div>
-      <button class="btn alt" type="button" data-act="hero" style="font-size:18px">Hero sheet${H.pts||H.sp?` · ${H.pts+H.sp} points to spend`:''}</button>
+      <button class="btn alt" type="button" data-act="hero" style="font-size:18px">Hero sheet${H.pts||H.sp?` · ${H.pts+H.sp} points to spend`:''}</button>${ingrLine()}
       <p class="sub l">Wearing</p><div class="eq">${eq.map(([k,ic,label,col,item])=>`<div class="slotb"><img src="${iconURL(ic)}" alt=""><span style="min-width:0"><span style="color:${col}">${esc(label)}</span><small>${item?item.sockets.map(s=>s?gemSpan(s.t):'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>').join(' '):(SLOT_N[k]?'Find one or buy at the Armory':'Buy at Crystals & Jewels')}</small></span></div>`).join('')}</div>
       <p class="sub l">Potion belt</p><div class="stats3"><span>1 · Health <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana <b>${INV.belt.mp}/${BELT_MAX}</b></span></div></div>
     <div class="scard"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><div class="bag">${cells.join('')}</div>${det}
@@ -4394,7 +4491,7 @@ document.getElementById('joinCode').addEventListener('keydown',e=>{e.stopPropaga
 {const rq=new URLSearchParams(location.search).get('room');if(rq&&/^[A-Za-z]{4}$/.test(rq)){document.getElementById('joinCode').value=rq.toUpperCase();setTimeout(()=>netJoin(rq),600);}}
 document.getElementById('goBtn').addEventListener('click',()=>{
   if(H){killSprite(H.spr);}H=makeHero(S.cls);
-  Object.assign(INV,{gold:60,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{}});
+  Object.assign(INV,{gold:60,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{},ingr:{}});
   document.getElementById('start').hidden=true;goTown();sfx('go');startIntro();
 });
 // ================= opening story: washed up on the dock =================
