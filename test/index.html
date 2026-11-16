@@ -2587,6 +2587,7 @@ function goTown(spot){
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
 }
 function goDungeon(fi=0){
+  if(INV.rack)INV.rack=null; // the smith restocks while you're away
   clearLevel();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
@@ -2857,7 +2858,7 @@ function buyBtn(act,name,info,cost,ok,img,word){return `<button class="buy" type
 function goldLine(){return `<div class="purses"><span>Your gold: <span class="coin"></span><b>${INV.gold}</b></span><span>Bag: <b>${INV.bag.length}/${BAG_MAX}</b></span></div>`;}
 function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickable?`<button class="sock full" type="button" style="--gc:${GEMS[s.t].c}" data-act="unsock-${kind}-${i}" title="Take out the ${GEM_LV[s.lv]} ${GEMS[s.t].n}">${gemSpan(s.t)}</button>`:`<span class="gem" style="--gc:${GEMS[s.t].c}" title="${GEM_LV[s.lv]} ${GEMS[s.t].n}"></span>`)
   :(clickable?`<button class="sock" type="button" data-act="sock-${kind}-${i}" title="Empty setting">${gemSel?'+':''}</button>`:'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>')).join(' ');}
-const SHOP_T={smith:['Blacksmith','Forge your weapon into stronger metal and temper it to a higher grade'],armory:['Armory','Stronger armor for your hero'],
+const SHOP_T={smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
   gems:['Crystals & Jewels','Real crystals with real powers. Set them in your weapon, armor and jewelry, or combine three into a better one'],magic:['Runes & Magic','Runes power up your specials, elixirs make you stronger for good, and potions fill your belt']};
 const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25};
 const gemCost=t=>t==='amber'?COST.amber:COST.gem;
@@ -2867,12 +2868,23 @@ function sellCard(){
   return `<div class="scard"><h3>Sell from your bag</h3>${INV.bag.length?INV.bag.map((it,i)=>buyBtn('sell-'+i,itemLabel(it),it.type==='gear'?(isUpgrade(it)?'Better than yours! Maybe equip it instead':'Spare gear'):'Goods',itemValue(it),true,iconURL(it),'Sell for ')).join('')
     +(goods.length?`<button class="btn alt" type="button" data-act="sellgoods" style="font-size:18px">Sell all goods (${goods.reduce((a,b)=>a+b.v*(b.q||1),0)} gold)</button>`:''):'<p class="note l">Your bag is empty. Goods and spare gear you find can be sold here.</p>'}</div>`;
 }
+// blacksmith's weapon rack: three weapons for sale (cheap, middle, expensive), rerolled after every dungeon trip.
+// Never Epic or Legendary and never set pieces, so the best weapons still come from the dungeon.
+const RACK_N=['Cheap','Middle','Expensive'];
+function rackStock(){if(INV.rack&&INV.rack.cls===H.cls)return INV.rack.items;const b=H.weapon.tier,P=PRIM[H.cls]||'str';
+  const items=[0,1,2].map(r=>{const tier=Math.min(4,b+[1,1,2][r]),it={type:'gear',kind:'weapon',tier,grade:r,sockets:Array(r+1).fill(null),aff:[]};
+    if(r>=1)it.aff.push({s:P,v:AFF[P].v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=[80+60*tier,150+100*tier,200+200*tier][r];return it;});
+  INV.rack={cls:H.cls,items};return items;}
+function rackHtml(){const w=H.weapon,G0=INV.gold;return `<div class="scard"><h3>Weapons for sale</h3><p class="note l">New stock after every trip into the dungeon. Your old weapon goes into your bag.</p>`+
+  rackStock().map((it,i)=>{if(!it)return `<p class="note l">${RACK_N[i]}: sold. More after your next trip.</p>`;const rel=Math.round((Math.pow(1.25,it.tier-w.tier)*Math.pow(1.08,it.grade-w.grade)-1)*100);
+    const info=[(rel>0?'+':'')+rel+'% damage vs yours',...it.aff.map(affText),it.sockets.length+' crystal setting'+(it.sockets.length>1?'s':'')].join(' · ');
+    return buyBtn('rack-'+i,`${RACK_N[i]}: ${GRADES[it.grade].n} ${gearName({kind:'weapon',tier:it.tier})}`,info,it.price,G0>=it.price,iconURL({type:'gear',kind:'weapon',tier:it.tier,grade:it.grade}));}).join('')+`</div>`;}
 function renderShop3(id){
   const [title,sub]=SHOP_T[id],w=H.weapon,a=H.armor,G0=INV.gold;let card='',extra='';
   if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set}))}</b> ${socketsHtml(w,'weapon',false)}</div>`
       +buyBtn('wtier',w.tier<5?`Forge ${WEAPON_TIERS[w.tier+1]} ${HEROES[H.cls].weapon}`:'Best metal reached','+25% damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
-      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);}
+      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rackHtml();}
   else if(id==='armory'){const tc=a.tier<4?COST.atier(a.tier):null,gc=a.grade<4?COST.agrade(a.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'armor',tier:a.tier,grade:a.grade,set:a.set})}" width="40" height="40" alt=""><b style="color:${GRADES[a.grade].c}">${GRADES[a.grade].n} ${esc(gearName({kind:'armor',tier:a.tier,set:a.set}))}</b> ${socketsHtml(a,'armor',false)}</div>`
       +buyBtn('atier',a.tier<4?ARMOR_SETS[H.cls][a.tier+1]:'Best armor reached','Take about 9% less damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
@@ -2908,6 +2920,9 @@ function renderShop3(id){
     const [k,x,y]=act.split('-');const pay=c=>{if(INV.gold<c)return false;INV.gold-=c;sfx('chest');return true;};
     if(k==='bag'){openInv();return;}
     if(k==='craft'){showCraft();return;}
+    if(k==='rack'){const it=rackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.weapon;
+      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
+      toast('You bought the '+GRADES[it.grade].n+' '+gearName({kind:'weapon',tier:it.tier})+'. Your old weapon is in your bag.');}}}
     if(k==='wtier'&&H.weapon.tier<5&&pay(COST.wtier(H.weapon.tier)))H.weapon.tier++;
     if(k==='wgrade'&&H.weapon.grade<4&&pay(COST.wgrade(H.weapon.grade)))setGrade(H.weapon,H.weapon.grade+1);
     if(k==='atier'&&H.armor.tier<4&&pay(COST.atier(H.armor.tier)))H.armor.tier++;
