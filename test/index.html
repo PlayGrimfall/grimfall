@@ -1263,7 +1263,7 @@ let smokeFx=null,fountainFx=null, spray=null, motesT=null, motesD=null, waterMat
 // ================= real buildings (CGTrader medieval village pack) =================
 const BLD_SHOP={magic:{n:'c_hut_03',r:1,walk:1},gems:{n:'c_hut_01',r:3,walk:1},smith:{n:'z_hut_005',r:2,walk:1},armory:{n:'c_hut_06',r:3,walk:1},anchor:{n:'z_hut_004',r:1}};
 const BLD_HOME={home:{n:'c_hut_02',r:0,walk:1},baker:{n:'t_hut_003',r:1,walk:1},sailor:{n:'hut_004',r:3,walk:1},weaver:{n:'c_hut_04',r:0,walk:1},empty:{n:'village_cottage',r:3,s:0.22,walk:1}};
-const BLD_EXTRA=[{n:'z_hut_003',r:0,x:53,z:1.5,gate:true},{n:'v_hut_005',r:1,x:58,z:-24},{n:'viking_watchtower',r:1,x:55.5,z:-9},{n:'hut_001',r:3,x:-50,z:-22,dock:true},{n:'hut_003',r:1,x:-50,z:18,dock:true},{n:'hut_005',r:3,x:-48,z:30,dock:true}];
+const BLD_EXTRA=[{n:'viking_watchtower',r:1,x:53,z:-5.4,gate:true},{n:'viking_watchtower',r:1,x:53,z:8.4,gate:true},{n:'v_hut_005',r:1,x:58,z:-24},{n:'hut_001',r:3,x:-50,z:-22,dock:true},{n:'hut_003',r:1,x:-50,z:18,dock:true},{n:'hut_005',r:3,x:-48,z:30,dock:true}];
 const TOWN_BLD=[],TOWN_ROOFS=[],BLDM={},GATE={g:null,guards:[]},PAL_LINES=[[-40.2,-19,128,-19],[128,-19,128,20.5],[52,-10.5,52,-2.2],[52,5.2,52,20.5],[-40.2,-19,-40.2,0.9],[-40.2,3.5,-40.2,20.5]],PAL_FRONT=[[-40.2,20.5,128,20.5]];let TOWN_FB=null,TOWN_FF=null;let TOWN_GRP=null,bldState='none';
 function bldMat(key){if(BLDM[key])return BLDM[key];const T=window.BLDTEX&&BLDTEX[key];let m;
   if(!T)m=new THREE.MeshStandardMaterial({color:0x5a4a3c,roughness:0.9});
@@ -1287,7 +1287,7 @@ async function townUpgrade(){if(bldState!=='none'||SET.style!=='real'||!THREE.GL
     const need=[...new Set([...TOWN_BLD.map(t=>t.o.bld.n),...BLD_EXTRA.map(b=>b.n),'z_hut_002'])],scenes={};
     for(const n of need){try{scenes[n]=(await loadModelData('b_'+n)).scene;}catch(e){console.warn('building',n,e);}}
     for(const t of TOWN_BLD){const sc=scenes[t.o.bld.n];if(!sc)continue;placeBld(t.g,sc,t.o.bld,t.o.d||6,true);for(const m of t.g.userData.box)m.visible=false;}
-    for(const b of BLD_EXTRA){const sc=scenes[b.n];if(!sc)continue;const g=new THREE.Group();g.position.set(b.x,0,b.z);TOWN_GRP.add(g);placeBld(g,sc,b,0,false);if(b.gate){GATE.g=g;GATE.x=b.x;GATE.z=b.z;}}
+    for(const b of BLD_EXTRA){const sc=scenes[b.n];if(!sc)continue;const g=new THREE.Group();g.position.set(b.x,0,b.z);TOWN_GRP.add(g);placeBld(g,sc,b,0,false);if(b.gate){(GATE.towers=GATE.towers||[]).push({g,x:b.x,z:b.z});GATE.g=g;GATE.x=b.x;GATE.z=b.z;}}
     {const TL=new THREE.TextureLoader(),T=window.BLDTEX&&BLDTEX.d651130e;
       if(T)for(const r of TOWN_ROOFS){const mp=TL.load(T.bc);mp.encoding=THREE.sRGBEncoding;mp.wrapS=mp.wrapT=THREE.RepeatWrapping;mp.repeat.set(5,2);mp.anisotropy=4;let nm=null;if(T.n){nm=TL.load(T.n);nm.wrapS=nm.wrapT=THREE.RepeatWrapping;nm.repeat.set(5,2);}
         r.material=new THREE.MeshStandardMaterial({map:mp,normalMap:nm,color:0x8a7a6a,roughness:0.92});r.castShadow=true;}
@@ -1308,16 +1308,43 @@ function giveBow(R){const E=REALS.erika&&REALS.erika.gltf.scene;if(!E)return;let
   const geo=bow.geometry.clone();geo.deleteAttribute('skinIndex');geo.deleteAttribute('skinWeight');geo.applyMatrix4(new THREE.Matrix4().copy(bow.skeleton.boneInverses[li]).multiply(bow.bindMatrix));
   const mat=(Array.isArray(bow.material)?bow.material[0]:bow.material).clone();mat.skinning=false;const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.frustumCulled=false;
   let lh=null;R.model.traverse(o=>{if(!lh&&o.isBone&&/LeftHand(_\d+)?$/.test(o.name))lh=o;});if(lh){lh.add(m);R.mats.push(mat);}}
-function makeGateGuards(){const G=THREE,g=GATE.g;g.updateMatrixWorld(true);
-  const rc=new G.Raycaster(new G.Vector3(GATE.x,40,GATE.z),new G.Vector3(0,-1,0));let y=4;for(const h of rc.intersectObject(g,true)){const n=h.face&&h.face.normal.clone().transformDirection(h.object.matrixWorld);if(n&&Math.abs(n.y)>0.7){y=h.point.y;break;}}
-  for(const dz of [-1.4,1.4]){const e={x:GATE.x,y,z:GATE.z+dz,fx:1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{ranged:true,archer:true}};
-    const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*4000,aim:false});}}
+function makeGateGuards(){const G=THREE;
+  for(const T of GATE.towers||[]){const g=T.g;g.updateMatrixWorld(true);
+    const rc=new G.Raycaster(new G.Vector3(T.x,40,T.z),new G.Vector3(0,-1,0));let y=4;for(const h of rc.intersectObject(g,true)){const n=h.face&&h.face.normal.clone().transformDirection(h.object.matrixWorld);if(n&&n.y>0.7){y=h.point.y;break;}}
+    for(const dz of [-1.6,0,1.6]){const e={x:T.x+1.1,y,z:T.z+dz,fx:1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{ranged:true,archer:true}};
+      const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*3000,aim:false,tg:null});}}
+  GATE.guards.sort((a,b)=>Math.abs(a.e.z-1.5)-Math.abs(b.e.z-1.5));}  // guards[0] is the one by the road: he hands out the armor
+// the courtyard between town and castle: skeletons stagger out of the castle toward town and the crossbowmen shoot them down.
+// They ignore you, so you just run through them. Fewer come out as you clear deeper floors.
+const CY={sk:[],bolts:[],next:0};
+function cyPick(q){let best=null,bd=46;for(const s of CY.sk){if(s.e.state==='dead'||s.hidden)continue;const d=Math.hypot(s.e.x-q.e.x,s.e.z-q.e.z);if(d<bd&&!GATE.guards.some(o=>o!==q&&o.tg===s)){bd=d;best=s;}}return best;}
+function cyFire(q,s){let b=CY.bolts.find(x=>!x.live);if(!b){const m=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.75,5),new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:0.8}));m.geometry.rotateX(Math.PI/2);scene.add(m);b={m};CY.bolts.push(b);}
+  b.live=true;b.t=0;b.s=s;b.a=new THREE.Vector3(q.e.x+q.e.fx*0.6,q.e.y+1.45,q.e.z+q.e.fz*0.6);b.b=new THREE.Vector3(s.e.x,1.1,s.e.z);b.m.visible=true;b.m.position.copy(b.a);b.m.lookAt(b.b);
+  if(H&&Math.hypot(H.x-q.e.x,H.z-q.e.z)<28)playSample('shoot',0.35);}
+function cyReset(s){const e=s.e;Object.assign(e,{x:rnd(82,87),z:rnd(-12,14),y:0,state:'walk',moving:true,t:0,flash:0});s.stopX=rnd(59,66);s.spd=rnd(0.016,0.028);s.tz=rnd(-11,13);s.hidden=false;
+  for(const m of s.R.mats){m.opacity=1;if(m.transparent){m.transparent=false;m.needsUpdate=true;}}}
+function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null,'skeleton')==='ready';
+  for(const s of CY.sk)s.R.root.visible=town&&!s.hidden;for(const b of CY.bolts)if(!town){b.live=false;b.m.visible=false;}if(!town)return;
+  const want=Math.max(2,9-2*(INV.deepest||0)),now=performance.now();
+  if(CY.sk.length<want&&now>CY.next){CY.next=now+1500;const e={x:0,z:0,y:0,fx:-1,fz:0,state:'walk',moving:true,t:0,flash:0,def:{wind:30}},R=buildRealMon(e,{f:'skeleton',tall:1.8});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});const s={R,e};cyReset(s);CY.sk.push(s);}
+  CY.sk.forEach((s,i)=>{const e=s.e;if(i>=want){s.hidden=true;s.R.root.visible=false;return;}
+    if(s.hidden){if(now>s.back){cyReset(s);s.R.root.visible=true;}return;}
+    if(e.state==='dead'){if(--e.t<=0){s.hidden=true;s.R.root.visible=false;s.back=now+rnd(1500,4500);}}
+    else if(e.x>s.stopX){const dz=s.tz-e.z;e.x-=s.spd;e.z+=Math.sign(dz)*Math.min(Math.abs(dz),s.spd*0.4);e.fx=-1;e.fz=Math.sign(dz)*0.3;e.moving=true;e.state='walk';}
+    else{e.moving=false;e.fx=-1;e.fz=0;e.state=(now/700+i)%5<1?'wind':'idle';}
+    if(e.flash>0)e.flash--;poseRealMon(s.R,e);});
+  for(const b of CY.bolts){if(!b.live)continue;b.t+=0.06;b.m.position.lerpVectors(b.a,b.b,Math.min(1,b.t));
+    if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
-  const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;if(now>q.next){q.aim=!q.aim;q.next=now+(q.aim?2400:5000+Math.random()*6000);}q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);
+  cyTick();const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;
+    if(q.tg&&(q.tg.e.state==='dead'||q.tg.hidden)){q.tg=null;q.aim=false;}
+    if(now>q.next){if(q.aim&&q.tg){cyFire(q,q.tg);q.aim=false;q.tg=null;q.next=now+1400+Math.random()*2600;}else{const c=cyPick(q);if(c){q.tg=c;q.aim=true;q.next=now+600+Math.random()*600;}else q.next=now+800;}}
+    if(q.aim&&q.tg){const dx=q.tg.e.x-q.e.x,dz=q.tg.e.z-q.e.z,l=Math.hypot(dx,dz)||1;q.e.fx=dx/l;q.e.fz=dz/l;}
+    q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);
     if(!INV.gift&&q===GATE.guards[0]&&H){const d=Math.hypot(H.x-q.e.x,H.z-q.e.z);if(S.frame%90===0)floatText(q.e.x,3.2,q.e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<16){GATE.called=1;floatText(q.e.x,2.6,q.e.z,'Stranger! Over here!','#ffcf8a',20);}
-      if(!GATE.asked&&d<4.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
+      if(!GATE.asked&&d<6.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
 // walk straight into the real buildings: door gap in the walls, camera-side walls and upper floors cut away while inside
 const WALK={map:{},cur:null,pz:new THREE.Plane(new THREE.Vector3(0,0,-1),0),py:new THREE.Plane(new THREE.Vector3(0,-1,0),2.9)};
 const walkable=id=>bldState==='ready'&&!!WALK.map[id];
@@ -2826,7 +2853,7 @@ function interactables(){
   if(S.level==='town'){
     for(const d of DOORS){if(walkable(d.id))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?goHouse(d.id):openPlace(d.id)});}
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
-    if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:2.8,y:2.7,label:'Talk to the guard',act:guardGift});}
+    if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:6,y:2.7,label:'Talk to the guard',act:guardGift});}
     walkInteract(L);
   } else if(S.level==='dungeon'){if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
   else{const hd=HOUSES.find(h=>h.id===S.house);L.push({x:0,z:4.2,r:1.5,y:3,label:'Go outside',act:()=>goTown(hd.shop?{x:hd.x,z:-7.6,fx:0,fz:1,house:true}:{x:hd.x,z:11.9,fx:0,fz:-1,house:true})});
@@ -4260,7 +4287,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['Cold water. The creak of old wood. Gulls crying somewhere above.','You wake on a wooden dock, soaked to the bone, with no memory of how you got here.'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','The guards at the east gate are losing the fight. Go and see them first. They will not send you down there without armor.','Your house is the one marked Your House, if you need rest. Then follow the path east to the gate. The castle waits.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
