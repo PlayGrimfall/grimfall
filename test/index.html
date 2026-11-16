@@ -261,7 +261,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <button class="tbtn" id="bSet" type="button">Settings</button>
       <button class="tbtn" id="bSound" type="button">Sound: on</button>
       <button class="tbtn" id="bMusic" type="button">Music: on</button>
-      <button class="tbtn" id="bFull" type="button">Full screen</button>
+      <button class="tbtn" id="bFull" type="button">Full screen</button><button class="tbtn" id="bStore" type="button">Cash Store</button><button class="tbtn" id="bMaster" type="button" hidden>Master</button>
     </div>
   </div>
 </div>
@@ -2269,7 +2269,7 @@ function netMinions(p,s,vis){S.rminions=S.rminions||[];const want=vis&&s.mn?s.mn
 function hurtHero(dmg,dx,dz,kd){
   const h=H;if(h.proxy&&h.mref){minionHurt(h.mref,dmg,dx,dz);return;}if(h.proxy){const n=performance.now();if(n-(h.lastHurt||0)>300){h.lastHurt=n;netHurt(h.proxy,dmg,dx,dz,kd);}return;}if(h.state==='down'||h.inv>0||h.dash>0||S.exitOpen)return;
   if(pr('evade')&&Math.random()<0.05*pr('evade')){floatText(h.x,2,h.z,'Dodge!','#c9ffd4',17);h.inv=24;return;}
-  dmg=Math.max(1,Math.round(dmg*1.3*(1-drPct())*rnd(0.9,1.1)));if(pr('ward')){const m=Math.min(Math.floor(h.mp),Math.round(dmg*0.08*pr('ward')));h.mp-=m;dmg=Math.max(1,dmg-m);}h.hp-=dmg;floatText(h.x,2,h.z,'-'+dmg,'#ff8080',16);sfx('hurt');S.shake=Math.max(S.shake,0.12);
+  dmg=Math.max(1,Math.round(dmg*1.3*(1-drPct())*rnd(0.9,1.1)));if(pr('ward')){const m=Math.min(Math.floor(h.mp),Math.round(dmg*0.08*pr('ward')));h.mp-=m;dmg=Math.max(1,dmg-m);}if(S.godMode&&h===H)dmg=0;h.hp-=dmg;floatText(h.x,2,h.z,'-'+dmg,'#ff8080',16);sfx('hurt');S.shake=Math.max(S.shake,0.12);
   sparks(h.x,1,h.z,5,'#ffffff');h.swing=0;h.hitPending=false;h.castT=0;
   const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
   if(h.hp<=0&&!h.fairyUsed&&gemSum(h,'amber')>0){h.fairyUsed=true;h.hp=Math.round(h.maxHp*Math.min(0.8,0.2+0.2*gemSum(h,'amber')));h.inv=150;
@@ -4197,6 +4197,8 @@ function drawHUD(){
   g.font=`600 11px ${BF}`;g.fillStyle=GRADES[H.weapon.grade].c;g.fillText(`${GRADES[H.weapon.grade].n} ${WEAPON_TIERS[H.weapon.tier]} ${d.weapon}`,bx,py+66);
   g.textAlign='right';g.font=`800 26px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(String(INV.gold),HW-14,40);g.fillStyle='#ffd35c';g.fillText(String(INV.gold),HW-14,40);
   const gw=g.measureText(String(INV.gold)).width;ell(g,HW-gw-28,32,8,9);fillOut(g,'#ffcf3a',2);
+  if(DIA.n!=null){const ds=DIA.n.toLocaleString();g.font=`800 20px ${DF}`;g.strokeText(ds,HW-14,68);g.fillStyle='#9fe7ff';g.fillText(ds,HW-14,68);const dw=g.measureText(ds).width,cx=HW-dw-26,cy=61;
+    g.beginPath();g.moveTo(cx,cy-8);g.lineTo(cx+7,cy-2);g.lineTo(cx,cy+8);g.lineTo(cx-7,cy-2);g.closePath();fillOut(g,'#7fd8ff',2);}
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
   drawBelt(g);
   g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E or drag to turn · C to change':'Side view · C to change',px,py+106);
@@ -4288,7 +4290,48 @@ async function acctLib(){if(ACCT.sb)return ACCT.sb;if(window.SUPA_MOCK)return AC
   return ACCT.sb=window.supabase.createClient(CLOUD.url,CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true}});}
 async function acctInit(){acctUI();try{const sb=await acctLib();if(!sb)return;const {data}=await sb.auth.getSession();acctSet(data&&data.session&&data.session.user);
   sb.auth.onAuthStateChange((ev,ses)=>{const u=ses&&ses.user;if((u&&u.id)!==(ACCT.user&&ACCT.user.id)||ev==='USER_UPDATED')acctSet(u);});}catch(e){console.warn('accounts',e);}}
-function acctSet(u){const was=ACCT.user&&ACCT.user.id;ACCT.user=u||null;ACCT.md=(u&&u.user_metadata)||{};ACCT.age=ACCT.md.age_group||null;ACCT.name=ACCT.md.username||null;acctUI();if(u&&u.id!==was)cloudPull();}
+function acctSet(u){const was=ACCT.user&&ACCT.user.id;ACCT.user=u||null;ACCT.md=(u&&u.user_metadata)||{};ACCT.age=ACCT.md.age_group||null;ACCT.name=ACCT.md.username||null;acctUI();if(u&&u.id!==was)cloudPull();adminCheck();diaRefresh();}
+// Sumera Diamonds: the Cash Store money. The balance lives on the server (wallets table); only a real purchase or the owner's test grant adds to it,
+// and the server takes the pack's price from its own packs table, so the game can't fake either.
+const DIA={n:null,packs:null};
+async function diaRefresh(){DIA.n=null;try{if(ACCT.user){const sb=await acctLib();if(sb){const r=await sb.from('wallets').select('diamonds').eq('user_id',ACCT.user.id).maybeSingle();if(!r.error)DIA.n=r.data?r.data.diamonds:0;
+  const p=await sb.from('packs').select('id,name,diamonds').eq('active',true).order('diamonds');if(!p.error)DIA.packs=p.data;}}}catch(e){}}
+async function diaGrant(n){try{const sb=await acctLib();const r=await sb.rpc('admin_grant_diamonds',{p_amount:n});if(r.error)throw r.error;DIA.n=r.data;toast('+'+n.toLocaleString()+' test diamonds');}catch(e){toast('Could not add diamonds: '+(e.message||e));}}
+const PACKS={potions:{e:'Fills your potion belt with health and mana potions',give:()=>{INV.belt.hp=INV.belt.mp=BELT_MAX;}},
+  gold_s:{e:'5,000 gold',give:()=>{INV.gold+=5000;}},gold_l:{e:'30,000 gold',give:()=>{INV.gold+=30000;}},
+  crystals:{e:'5 random Flawless crystals',give:()=>{const ks=Object.keys(GEMS).filter(k=>k!=='amber');for(let i=0;i<5;i++){const k=ks[ri(0,ks.length-1)]+'3';INV.gems[k]=(INV.gems[k]||0)+1;}}},
+  weapon:{e:'An Epic weapon one metal above yours, with 2 bonus stats and 3 crystal settings. Goes into your bag.',bag:true,give:()=>{const t=Math.min(5,H.weapon.tier+1),P=PRIM[H.cls]||'str',it={type:'gear',kind:'weapon',tier:t,grade:3,sockets:[null,null,null],aff:[{s:P,v:AFF[P].v(t)}]};it.aff.push(rollAff(it));addToBag(it);}}};
+const DIA_BUY=[['$0.99',100],['$4.99',550],['$9.99',1200],['$19.99',2500]];
+function showStore(){if(!H)return;const dia=n=>`${n.toLocaleString()} 💎`;let body;
+  if(!ACCT.user)body=`<p class="tag">Sign in to use the Cash Store. Diamonds are kept safe on your account, not in this browser.</p><div class="row"><button class="btn" type="button" data-act="signin">Sign in or create account</button></div>`;
+  else if(DIA.n==null||!DIA.packs)body=`<p class="tag">The Cash Store isn't open yet.</p>`;
+  else body=`<p class="sub">Your diamonds: <b style="color:#9fe7ff">${dia(DIA.n)}</b></p><div class="shopgrid"><div class="scard"><h3>Packs</h3>`
+    +DIA.packs.map(p=>{const P=PACKS[p.id];if(!P)return '';return `<button class="buy" type="button" data-act="pack-${p.id}" ${DIA.n>=p.diamonds?'':'disabled'}><span class="nm"><span><b>${esc(p.name)}</b><small>${esc(P.e)}</small></span></span><span class="cost" style="color:#9fe7ff">${dia(p.diamonds)}</span></button>`;}).join('')
+    +`</div><div class="scard"><h3>Get diamonds</h3>`+DIA_BUY.map(([c,n])=>`<button class="buy" type="button" disabled><span class="nm"><span><b>${dia(n)}</b><small>Coming soon</small></span></span><span class="cost">${c}</span></button>`).join('')+`</div></div>`;
+  openDlg(`<h1 class="logo sm"><small>Sumera Diamonds</small>Cash Store</h1>${body}<div class="row"><button class="btn alt" type="button" data-act="close">Done</button></div>`,'store',async act=>{
+    if(act==='close'){closeDlg();return;}if(act==='signin'){closeDlg();acctOpen();return;}
+    if(act.startsWith('pack-')){const id=act.slice(5),P=PACKS[id];if(!P)return;if(P.bag&&INV.bag.length>=BAG_MAX){toast('Your bag is full. Make room first.');return;}
+      try{const sb=await acctLib();const r=await sb.rpc('buy_pack',{p_pack:id});if(r.error)throw r.error;DIA.n=r.data;P.give();recalc(H);save();sfx('chest');toast('Bought: '+DIA.packs.find(p=>p.id===id).name);}
+      catch(e){toast('The purchase did not go through: '+(e.message||e));}showStore();}});}
+// master account: the owner's sign-in is on a private admins list in Supabase (only editable from the Supabase dashboard, never from the game)
+let ADMIN=false;
+async function adminCheck(){ADMIN=false;try{if(ACCT.user){const sb=await acctLib();if(sb){const r=await sb.from('admins').select('user_id').eq('user_id',ACCT.user.id).maybeSingle();ADMIN=!!(r&&r.data);}}}catch(e){}
+  const b=document.getElementById('bMaster');if(b)b.hidden=!ADMIN;}
+function showMaster(){if(!ADMIN||!H)return;const b=(a,n,i)=>`<button class="buy" type="button" data-act="${a}"><span class="nm"><span><b>${esc(n)}</b><small>${esc(i)}</small></span></span></button>`;
+  openDlg(`<h1 class="logo sm"><small>Owner only</small>Master</h1><div class="shopgrid"><div class="scard"><h3>Give</h3>`
+    +b('gold','10,000 gold','Added to your purse')+b('gems','Every crystal ×10','All kinds, Rough, Polished and Flawless')+b('pots','Full potion belt','Health and mana')
+    +(typeof diaGrant==='function'?b('dia','1,000 test diamonds','For testing the Cash Store'):'')+`</div><div class="scard"><h3>Rune (free)</h3>`+Object.keys(RUNES).map(k=>b('rune-'+k,RUNES[k].n,RUNES[k].e)).join('')
+    +`</div><div class="scard"><h3>Testing</h3>`+b('god',S.godMode?'Can\'t-die mode: ON':'Can\'t-die mode: off','Monsters can\'t hurt you')+FLOORS.map((F,i)=>b('floor-'+i,'Go to '+F.sub,F.name)).join('')+b('town','Go to town','')+`</div></div>`
+    +`<div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'master',act=>{
+    if(act==='close'){closeDlg();return;}const [k,x]=act.split('-');
+    if(k==='gold'){INV.gold+=10000;toast('+10,000 gold');}
+    if(k==='gems'){for(const t in GEMS)for(let l=1;l<=3;l++)INV.gems[t+l]=(INV.gems[t+l]||0)+10;toast('Every crystal ×10 added to your pouch');}
+    if(k==='pots'){INV.belt.hp=INV.belt.mp=BELT_MAX;toast('Potion belt full');}
+    if(k==='dia'&&typeof diaGrant==='function')diaGrant(1000);
+    if(k==='rune'){H.rune=x;recalc(H);toast(RUNES[x].n+' equipped');}
+    if(k==='god'){S.godMode=!S.godMode;toast(S.godMode?'Can\'t-die mode on':'Can\'t-die mode off');}
+    if(k==='floor'){closeDlg();goDungeon(+x);return;}if(k==='town'){closeDlg();goTown();return;}
+    sfx('chest');save();showMaster();});}
 function acctUI(){const n=document.getElementById('acctNote'),b=document.getElementById('acctBtn');if(!n)return;
   if(ACCT.user){n.textContent=`Signed in as ${ACCT.name||'player'} (${AGE_N[ACCT.age]||'age not set'}). Your hero saves to the cloud.`;b.textContent='Account';}
   else{n.textContent=acctOn()?'Playing as a guest. Your hero saves in this browser only.':'Accounts are coming soon. For now your hero saves in this browser.';b.textContent='Sign in or create account';}
@@ -4366,6 +4409,7 @@ document.getElementById('townBtn').addEventListener('click',()=>{document.getEle
 function toggleMute(){muted=!muted;document.getElementById('bSound').textContent='Sound: '+(muted?'off':'on');}
 document.getElementById('bSound').addEventListener('click',toggleMute);
 {const bm=document.getElementById('bMusic');const lb=()=>bm.textContent='Music: '+(SET.music===false?'off':'on');lb();bm.addEventListener('click',()=>{SET.music=SET.music===false;saveSet();lb();musStart();});}
+document.getElementById('bMaster').addEventListener('click',()=>showMaster());document.getElementById('bStore').addEventListener('click',()=>showStore());
 document.getElementById('bFull').addEventListener('click',()=>{try{const p=document.fullscreenElement?document.exitFullscreen():(stage.requestFullscreen&&stage.requestFullscreen());if(p&&p.catch)p.catch(()=>{});}catch(e){}});
 const isTouch=(()=>{try{return matchMedia('(pointer: coarse) and (hover: none)').matches;}catch(e){return false;}})();
 if(isTouch)document.body.classList.add('phone');
