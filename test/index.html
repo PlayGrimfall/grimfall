@@ -253,7 +253,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map <kbd>T</kbd> town</span>
       <span><kbd>Q</kbd> <kbd>E</kbd> or drag to turn camera · <kbd>C</kbd> switch camera</span>
       <span>Online: <kbd>Enter</kbd> chat · <kbd>V</kbd> mute mic</span>
-      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town</span>
+      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party</span>
     </div>
     <div class="tools">
       <button class="tbtn" id="bBag" type="button">Bag</button>
@@ -776,7 +776,11 @@ function stepSnd(){if(muted||!AC)return;playSample(S.level==='dungeon'?'step_sto
 // background sounds under the music: cave in the dungeon, forest by day or night in town
 // ================= fireworks over Grimfall once the castle has fallen =================
 const FW={pts:null,n:900,pos:null,col:null,vel:null,life:null,next:0,party:0,i:0,rk:[]};
-function celebrating(){return S.level==='town'&&(INV.deepest||0)>=4&&(FW.party>0||(DN.day||0)<0.45);}
+function won(){return (INV.deepest||0)>=4||!!S.celebPreview;}
+function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<0.45);}
+// the crowd waiting outside the castle gate, in an arc facing the hero
+function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route),N=L.length;L.forEach((n,i)=>{const a=-1.15+i*2.3/Math.max(1,N-1),r=4.6+(i%2)*1.3;n.cspot=[GATE_SPOT.x-r*Math.cos(a),GATE_SPOT.z+r*Math.sin(a)];n.x=n.cspot[0];n.z=n.cspot[1];n.cheer=!n.dancer&&i%2===1;});}
+function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(GATE_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party at the castle gate (your progress is unchanged)':'The castle has fallen! Grimfall celebrates!'),900);}
 function fwInit(){if(FW.pts)return;const g=new THREE.BufferGeometry();FW.pos=new Float32Array(FW.n*3).fill(-999);FW.col=new Float32Array(FW.n*3);FW.vel=new Float32Array(FW.n*3);FW.life=new Float32Array(FW.n);
   g.setAttribute('position',new THREE.BufferAttribute(FW.pos,3));g.setAttribute('color',new THREE.BufferAttribute(FW.col,3));
   FW.pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.25,map:TX.glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));FW.pts.frustumCulled=false;scene.add(FW.pts);}
@@ -786,8 +790,8 @@ function fwBurst(x,y,z){const c=FWC[ri(0,FWC.length-1)],c2=Math.random()<0.4?FWC
   for(let j=0;j<n;j++){const u=Math.random()*2-1,a=Math.random()*6.283,r=Math.sqrt(1-u*u);fwSpark(x,y,z,r*Math.cos(a)*sp,u*sp,r*Math.sin(a)*sp,j%2?c:c2,ri(50,80));}
   if(H){const d=Math.hypot(x-H.x,z-H.z),v=Math.max(0.05,0.5-d/160);setTimeout(()=>playSample('boom',v),Math.min(900,d*6));}}
 function fwTick(){if(!FW.pts&&!celebrating())return;fwInit();const on=celebrating();FW.pts.visible=S.level==='town';
-  if(FW.party>0)FW.party--;const now=performance.now();
-  if(on&&now>FW.next){FW.next=now+(FW.party>0?rnd(350,900):rnd(1600,3800));FW.rk.push({x:rnd(-10,70),y:0.5,z:rnd(-14,16),vy:rnd(0.42,0.55),t:ri(38,52)});playSample('whoosh',0.12);}
+  if(FW.party>0&&!--FW.party&&S.celebPreview){S.celebPreview=false;FW.dirty=1;}const now=performance.now();
+  if(on&&now>FW.next){const p=FW.party>0;FW.next=now+(p?rnd(300,800):rnd(1600,3800));FW.rk.push(p?{x:rnd(78,93),y:0.5,z:(Math.random()<0.5?-1:1)*rnd(6,11)+1.5,vy:rnd(0.55,0.68),t:ri(40,52)}:{x:rnd(-10,70),y:0.5,z:rnd(-14,16),vy:rnd(0.3,0.4),t:ri(38,50)});playSample('whoosh',0.12);}
   for(const r of FW.rk){r.y+=r.vy;r.vy*=0.985;r.t--;fwSpark(r.x+rnd(-.1,.1),r.y,r.z+rnd(-.1,.1),0,-0.02,0,[1,0.7,0.3],14);if(r.t<=0)fwBurst(r.x,r.y,r.z);}FW.rk=FW.rk.filter(r=>r.t>0);
   for(let i=0;i<FW.n;i++){if(FW.life[i]<=0)continue;const k=i*3;FW.life[i]--;FW.vel[k]*=0.975;FW.vel[k+1]=FW.vel[k+1]*0.975-0.0028;FW.vel[k+2]*=0.975;FW.pos[k]+=FW.vel[k];FW.pos[k+1]+=FW.vel[k+1];FW.pos[k+2]+=FW.vel[k+2];
     if(FW.life[i]<22){const f=0.9;FW.col[k]*=f;FW.col[k+1]*=f;FW.col[k+2]*=f;}if(FW.life[i]<=0)FW.pos[k+1]=-999;}
@@ -1358,7 +1362,7 @@ function cyReset(s){const e=s.e;Object.assign(e,{x:rnd(82,87),z:rnd(-12,14),y:0,
   for(const m of s.R.mats){m.opacity=1;if(m.transparent){m.transparent=false;m.needsUpdate=true;}}}
 function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null,'skel2')==='ready';
   for(const s of CY.sk)s.R.root.visible=town&&!s.hidden;for(const b of CY.bolts)if(!town){b.live=false;b.m.visible=false;}if(!town)return;
-  const want=Math.max(2,9-2*(INV.deepest||0)),now=performance.now();
+  const want=won()?0:Math.max(2,9-2*(INV.deepest||0)),now=performance.now();
   if(CY.sk.length<want&&now>CY.next){CY.next=now+1500;const e={x:0,z:0,y:0,fx:-1,fz:0,state:'walk',moving:true,t:0,flash:0,def:{wind:30}},R=buildRealMon(e,{f:'skel2',tall:1.8});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});const s={R,e};cyReset(s);CY.sk.push(s);}
   CY.sk.forEach((s,i)=>{const e=s.e;if(i>=want){s.hidden=true;s.R.root.visible=false;return;}
     if(s.hidden){if(now>s.back){cyReset(s);s.R.root.visible=true;}return;}
@@ -1485,7 +1489,7 @@ const DOCK_W=[[-58,-39.3,1.15,3.25],[-44.4,-40.45,-17,19.4],[-55.3,-44.3,11.2,13
 function dockClamp(o,r,b){for(const q of DOCK_W)if(o.x>=q[0]+r&&o.x<=q[1]-r&&o.z>=q[2]+r&&o.z<=q[3]-r)return;
   let bx=b.minX,bz=clamp(o.z,b.minZ,b.maxZ),bd=Math.hypot(o.x-bx,o.z-bz);
   for(const q of DOCK_W){const x=clamp(o.x,q[0]+r,q[1]-r),z=clamp(o.z,q[2]+r,q[3]-r),d=Math.hypot(x-o.x,z-o.z);if(d<bd){bd=d;bx=x;bz=z;}}o.x=bx;o.z=bz;}
-function harborTier(){const d=INV.deepest||0;return d>=4?4:d;}
+function harborTier(){const d=S.celebPreview?4:INV.deepest||0;return d>=4?4:d;}
 function buildVessel(kind){
   const war=kind==='war',g=new THREE.Group(),big=kind==='merchant'||war,L=war?5.2:big?6.2:3.1,B=war?1.6:big?2.1:1.2,D=war?1.6:big?1.9:0.9,dy=war?0.9:big?1.0:0.42,wallH=big?0.6:0.3;
   const hullM=war?lam({map:TX.hull,color:0x8a8a9a}):lam({map:TX.hull}),trim=lam({color:0x3e2616}),hm=lam({map:TX.hull,side:THREE.DoubleSide});
@@ -2208,6 +2212,7 @@ addEventListener('keydown',e=>{
   if((e.code==='KeyB'&&!e.shiftKey||e.code==='Tab')&&(S.state==='play'||(S.state==='dialog'&&dlgKind==='inv'))){e.preventDefault();if(S.state==='play')openInv();else closeDlg();}
   if(e.code==='Escape'&&S.state==='dialog'&&dlgClosable)closeDlg();
   if(e.target&&e.target.tagName==='INPUT')return;
+  if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow((INV.deepest||0)<4);return;}
   if(S.state==='play'&&e.shiftKey&&/^Digit[0-4]$/.test(e.code)){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
     const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
@@ -2836,7 +2841,7 @@ function setLevel(lv){
 }
 function goTown(spot){
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
-  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;setTimeout(()=>toast('The castle has fallen! Grimfall celebrates with fireworks!'),1500);}
+  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('The castle has fallen! Grimfall celebrates!');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
@@ -2898,6 +2903,7 @@ const townPanic=()=>[1,0.65,0.3,0,0][Math.min(4,INV.deepest||0)];
 function updNpc(n){
   n.anim++;if(n.pause>0){n.pause--;return;}
   if(n.route){workerTick(n);return;}
+  if(FW.party>0&&n.cspot&&won()){n.x=n.cspot[0];n.z=n.cspot[1];n.fx=H.x-n.x;n.fz=H.z-n.z;n.dancing=!!n.dancer;return;}
   if(n.dancer){if(celebrating()){const sx=n.dspot[0]-n.x,sz=n.dspot[1]-n.z,sd=Math.hypot(sx,sz);if(sd>0.3){n.dancing=false;n.fx=sx/sd;n.fz=sz/sd;n.x+=n.fx*0.04;n.z+=n.fz*0.04;}else{n.dancing=true;n.fx=-n.dspot[0];n.fz=1-n.dspot[1];}return;}n.dancing=false;}
   const dx=n.tx-n.x,dz=n.tz-n.z,d=Math.hypot(dx,dz),P=townPanic();
   if(d<0.3){n.pause=P>0.5?ri(8,40):ri(60,240);pickNpcTarget(n);return;}
@@ -2958,7 +2964,7 @@ function realNpc(n,tall){const rm=SET.style==='real'&&n.rm;if(!rm||loadReal(null
     if(n.tint&&n.tint!=='#ffffff'){const tc=new THREE.Color(n.tint);for(const m of n.spr.rfig.mats)if(m.color)m.color.multiply(tc);}}const R=n.spr.rfig,dt=Math.min(0.05,R.clock.getDelta());
   R.root.position.set(n.x,n.y||0,n.z);let dd=Math.atan2(n.fx,n.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.15;R.root.rotation.y=R.yaw;
   const hasW=!!R.act.walk,P=townPanic();
-  if(n.dancing&&R.act.samba)R.play(n.dclip);else if(n.pause>0||S.level==='house')R.play('idle');else if(n.route&&n.carry&&n.load==='crate'&&R.act.carry)R.play('carry',false,(n.pace||1)*1.05);else if(hasW&&(n.route||P<0.35))R.play('walk',false,n.route?(n.pace||1)*1.05:(0.025+0.04*P)/0.026*(n.pace||1));else R.play('run',false,n.route?0.5*(n.pace||1):(0.42+0.65*P)*(n.pace||1));R.mixer.update(dt);if(n.route)cargoShow(n,R);n.spr.mesh.visible=false;return true;}
+  if(n.dancing&&R.act.samba)R.play(n.dclip);else if(FW.party>0&&n.cheer&&n.cspot&&won())R.play('jump',false,1.25);else if(n.pause>0||S.level==='house')R.play('idle');else if(n.route&&n.carry&&n.load==='crate'&&R.act.carry)R.play('carry',false,(n.pace||1)*1.05);else if(hasW&&(n.route||P<0.35))R.play('walk',false,n.route?(n.pace||1)*1.05:(0.025+0.04*P)/0.026*(n.pace||1));else R.play('run',false,n.route?0.5*(n.pace||1):(0.42+0.65*P)*(n.pace||1));R.mixer.update(dt);if(n.route)cargoShow(n,R);n.spr.mesh.visible=false;return true;}
 const sailorLoot=p=>{for(const n of ['Old Map Piece','Pearl String'])dropPickup('goods',p.x,p.z,0,goodsNamed(n));dropPickup('crystal',p.x,p.z,0,{t:'fireopal',lv:2});dropPickup('gear',p.x,p.z,0,gearFor(0.35));for(let i=0;i<6;i++)dropPickup('gold',p.x,p.z,10);};
 const emptyLoot=p=>{dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));dropPickup('crystal',p.x,p.z,0,{t:'amber',lv:1});dropPickup('gear',p.x,p.z,0,gearFor(0.5,'weapon'));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);};
 const HOUSE_PROPS={
@@ -3472,12 +3478,12 @@ function camRoom(d){if(S.level!=='dungeon'||!MZ)return d;const bx=-H.fx,bz=-H.fz
 function camUpdate(snap){
   if(!H)return;
   const mode=camMode(),side=mode==='side',dia=mode==='diablo';
-  const bh=mode==='behind';
-  const ty=bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
+  const bh=mode==='behind',pc=dia&&FW.party>0&&S.level==='town'&&H.x>76; // victory party: a low view from the crowd's side so the fireworks over the castle are in the sky
+  const ty=pc?-1.57:bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=pc?0.1:bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=pc?26:bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
   let tx=H.x,tz=H.z;if(side)tz=S.level==='town'?H.z-1.5:S.level==='house'?H.z*0.3:H.z*0.35;
   const k=snap?1:0.12;
   let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:bh?0.12:0.18);
-  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((bh?1.75:1.3)+H.y*0.35)-CAM.ty)*k;
+  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((pc?9:bh?1.75:1.3)+H.y*0.35)-CAM.ty)*k;
   const cp=Math.cos(CAM.pitchC),sh=S.shake;
   camera.position.set(CAM.tx+Math.sin(CAM.yawC)*cp*CAM.distC+rnd(-sh,sh),CAM.ty+Math.sin(CAM.pitchC)*CAM.distC+rnd(-sh,sh),CAM.tz+Math.cos(CAM.yawC)*cp*CAM.distC);
   camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
