@@ -781,27 +781,29 @@ function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<
 // the crowd waiting outside the castle gate, in an arc facing the hero
 // the party crowd: three groups lined up across the road facing the hero
 const PARTY={figs:[],want:false};
-const PGROUPS=[{z:-4.6,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{z:1.5,men:['paladin','paladin','paladin'],girls:['hero_f']},{z:7.6,men:['guard','guard','guard'],girls:['hero_f','girl']}];
+const PGROUPS=[{x:-26,z:2.2,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{x:16,z:1.5,men:['paladin','paladin','paladin'],girls:['hero_f']},{x:44,z:1.5,men:['guard','guard','guard'],girls:['hero_f','girl']}];
+const DOCK_SPOT={x:-54.6,z:12.3,fx:1,fz:0};
 function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
   if(!want){if(PARTY.figs.length){for(const f of PARTY.figs){scene.remove(f.R.root);}PARTY.figs=[];}return;}
   if(!PARTY.figs.length){let ready=animState==='ready';for(const g of PGROUPS)for(const m of g.men.concat(g.girls))if(loadReal(null,m)!=='ready')ready=false;if(!ready)return;
-    PGROUPS.forEach((g,gi)=>{const nm=g.men.length;g.men.forEach((m,j)=>{const e={x:84.2-(j%2)*0.9,z:g.z+(j-(nm-1)/2)*1.05,fx:1,fz:0};const R=buildRealMon(e,{f:m,tall:1.82+(j%3)*0.03});scene.add(R.root);PARTY.figs.push({R,e,kind:'cheer',ph:Math.random()});});
-      g.looks=g.looks||g.girls.map(m=>nextLook(m));g.girls.forEach((m,j)=>{const e={x:85.8,z:g.z+(j-(g.girls.length-1)/2)*1.3,fx:1,fz:0};const R=buildRealMon(e,{f:m,tall:1.72});applyOutfit(R,m,g.looks[j][0],g.looks[j][1]);scene.add(R.root);PARTY.figs.push({R,e,kind:(gi+j)%2?'gangnam':'samba'});});});}
+    PGROUPS.forEach((g,gi)=>{const nm=g.men.length;g.men.forEach((m,j)=>{const e={x:g.x+(j%2)*0.9,z:g.z+(j-(nm-1)/2)*1.05,fx:-1,fz:0};const R=buildRealMon(e,{f:m,tall:1.82+(j%3)*0.03});scene.add(R.root);PARTY.figs.push({R,e,kind:'cheer',ph:Math.random()});});
+      g.looks=g.looks||g.girls.map(m=>nextLook(m));g.girls.forEach((m,j)=>{const e={x:g.x-1.6,z:g.z+(j-(g.girls.length-1)/2)*1.3,fx:-1,fz:0};const R=buildRealMon(e,{f:m,tall:1.72});applyOutfit(R,m,g.looks[j][0],g.looks[j][1]);scene.add(R.root);PARTY.figs.push({R,e,kind:(gi+j)%2?'gangnam':'samba'});});});}
   for(const f of PARTY.figs){const R=f.R,dt=Math.min(0.05,R.clock.getDelta());R.root.position.set(f.e.x,0,f.e.z);const yaw=Math.atan2(H.x-f.e.x,H.z-f.e.z);R.root.rotation.y=yaw;
     if(f.kind==='cheer'){R.play('jump',false,1.15+f.ph*0.3);}else R.play(f.kind);R.mixer.update(dt);}}
-function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route),N=L.length;L.forEach((n,i)=>{const a=-0.9+i*1.8/Math.max(1,N-1),r=9.5+(i%2)*1.2;n.cspot=[GATE_SPOT.x-r*Math.cos(a),GATE_SPOT.z+r*Math.sin(a)];n.x=n.cspot[0];n.z=n.cspot[1];n.cheer=!n.dancer&&i%2===1;});}
-function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(GATE_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party at the castle gate (your progress is unchanged)':'The castle has fallen! Grimfall celebrates!'),900);}
+const FW_SPOTS=[[-33,4.5],[-18,-4.5],[-8,6.5],[-5,-4.2],[7,6.8],[24,-4.5],[30,5.2],[36,-3.5],[2,9]];
+function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route);L.forEach((n,i)=>{const p=FW_SPOTS[i%FW_SPOTS.length];n.cspot=[p[0],p[1]];n.x=p[0];n.z=p[1];n.dspot=n.dspot||[p[0],p[1]];n.dancer=true;n.dclip=i%2?'gangnam':'samba';n.cheer=false;});} // everyone dances, all through town
+function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'The castle has fallen! Grimfall celebrates as you set off from the docks!'),900);}
 function fwInit(){if(FW.pts)return;const g=new THREE.BufferGeometry();FW.pos=new Float32Array(FW.n*3).fill(-999);FW.col=new Float32Array(FW.n*3);FW.vel=new Float32Array(FW.n*3);FW.life=new Float32Array(FW.n);
   g.setAttribute('position',new THREE.BufferAttribute(FW.pos,3));g.setAttribute('color',new THREE.BufferAttribute(FW.col,3));
   FW.pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.9,map:TX.glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));FW.pts.frustumCulled=false;scene.add(FW.pts);}
 const FWC=[[1,0.25,0.15],[1,0.8,0.25],[0.3,1,0.4],[1,1,1],[0.7,0.4,1],[1,0.5,0.1]];
 function fwSpark(x,y,z,vx,vy,vz,c,life){const i=FW.i=(FW.i+1)%FW.n,k=i*3;FW.pos[k]=x;FW.pos[k+1]=y;FW.pos[k+2]=z;FW.vel[k]=vx;FW.vel[k+1]=vy;FW.vel[k+2]=vz;FW.col[k]=c[0];FW.col[k+1]=c[1];FW.col[k+2]=c[2];FW.life[i]=life;}
-function fwBurst(x,y,z,big){const c=FWC[ri(0,FWC.length-1)],c2=Math.random()<0.4?FWC[ri(0,FWC.length-1)]:c,n=big?ri(90,130):ri(55,85),sp=big?rnd(0.3,0.42):rnd(0.16,0.26);
+function fwBurst(x,y,z,big){const c=FWC[ri(0,FWC.length-1)],c2=Math.random()<0.4?FWC[ri(0,FWC.length-1)]:c,n=big?ri(110,150):ri(55,85),sp=big?rnd(0.45,0.62):rnd(0.16,0.26);
   for(let j=0;j<n;j++){const u=Math.random()*2-1,a=Math.random()*6.283,r=Math.sqrt(1-u*u);fwSpark(x,y,z,r*Math.cos(a)*sp,u*sp,r*Math.sin(a)*sp,j%2?c:c2,ri(50,80));}
   if(H){const d=Math.hypot(x-H.x,z-H.z),v=Math.max(0.05,0.5-d/160);setTimeout(()=>playSample('boom',v),Math.min(900,d*6));}}
-function fwTick(){partyCrowdTick();if(!FW.pts&&!celebrating())return;fwInit();const on=celebrating();FW.pts.visible=S.level==='town';
+function fwTick(){partyCrowdTick();if(!FW.pts&&!celebrating())return;fwInit();FW.pts.material.size=FW.party>0?3.4:1.9;const on=celebrating();FW.pts.visible=S.level==='town';
   if(FW.party>0&&!--FW.party&&S.celebPreview){S.celebPreview=false;FW.dirty=1;}const now=performance.now();
-  if(on&&now>FW.next){const p=FW.party>0;FW.next=now+(p?rnd(300,800):rnd(1600,3800));FW.rk.push(p?{x:rnd(84,100),y:0.5,z:rnd(-14,16),vy:rnd(0.82,1.0),t:ri(44,54),big:1}:{x:rnd(-10,70),y:0.5,z:rnd(-14,16),vy:rnd(0.3,0.4),t:ri(38,50)});playSample('whoosh',0.12);}
+  if(on&&now>FW.next){const p=FW.party>0;FW.next=now+(p?rnd(300,800):rnd(1600,3800));FW.rk.push(p?(Math.random()<0.6?{x:rnd(78,112),y:0.5,z:rnd(-14,16),vy:rnd(1.1,1.35),t:ri(46,56),big:1}:{x:rnd(-22,50),y:0.5,z:rnd(-14,16),vy:rnd(0.85,1.05),t:ri(44,54),big:1}):{x:rnd(-10,70),y:0.5,z:rnd(-14,16),vy:rnd(0.3,0.4),t:ri(38,50)});playSample('whoosh',0.12);}
   for(const r of FW.rk){r.y+=r.vy;r.vy*=0.985;r.t--;fwSpark(r.x+rnd(-.1,.1),r.y,r.z+rnd(-.1,.1),0,-0.02,0,[1,0.7,0.3],14);if(r.t<=0)fwBurst(r.x,r.y,r.z,r.big);}FW.rk=FW.rk.filter(r=>r.t>0);
   for(let i=0;i<FW.n;i++){if(FW.life[i]<=0)continue;const k=i*3;FW.life[i]--;FW.vel[k]*=0.975;FW.vel[k+1]=FW.vel[k+1]*0.975-0.0028;FW.vel[k+2]*=0.975;FW.pos[k]+=FW.vel[k];FW.pos[k+1]+=FW.vel[k+1];FW.pos[k+2]+=FW.vel[k+2];
     if(FW.life[i]<22){const f=0.9;FW.col[k]*=f;FW.col[k+1]*=f;FW.col[k+2]*=f;}if(FW.life[i]<=0)FW.pos[k+1]=-999;}
@@ -1179,7 +1181,8 @@ function fenceKit(){
 // ================= crystal fountain =================
 function buildFountain(T){
   const fo=new THREE.Group();fo.position.set(0,0,1);
-  const st=texRep(M.stone,2,0.5);st.color.setHex(0x7d766c);const pale=lam({color:0x8c8478}), pale2=lam({color:0x9e968a});
+  const brick=(rx,ry)=>{const d=photoTex('cobble_d',rx,ry),n=photoTex('cobble_n',rx,ry,false);return d?new THREE.MeshStandardMaterial({map:d,normalMap:n,roughness:0.92,color:0xe0dad0}):null;}; // the clean grey brick
+  const st=brick(9,0.55)||texRep(M.stone,2,0.5),stP=brick(3,0.6)||st;if(!(TP&&TP.cobble_d))st.color.setHex(0x7d766c);const pale=lam({color:0x8c8478}), pale2=lam({color:0x9e968a});
   fo.add(mesh(new THREE.CylinderGeometry(3.55,3.7,0.2,8),st,0,0.1,0));
   fo.add(mesh(new THREE.CylinderGeometry(3.0,3.15,0.85,8),st,0,0.5,0));
   const rim=mesh(new THREE.CylinderGeometry(3.25,3.25,0.16,8),pale2,0,0.98,0);fo.add(rim);
@@ -1191,9 +1194,9 @@ function buildFountain(T){
     if(i%2===0){const fl=mesh(new THREE.SphereGeometry(0.09,8,6),lam({color:0xf2a6c8,emissive:0x301020}),Math.cos(a)*d,0.9,Math.sin(a)*d,false,false);fo.add(fl);}}
   for(let i=0;i<8;i++){const a=i/8*Math.PI*2+Math.PI/8;const pl=new THREE.Group();pl.position.set(Math.cos(a)*3.95,0,Math.sin(a)*3.95);
     pl.add(mesh(new THREE.BoxGeometry(0.7,0.55,0.7),st,0,0.28,0));for(let k=0;k<5;k++)pl.add(mesh(new THREE.SphereGeometry(0.13,7,5),lam({color:[0xe85a7a,0xf2c84a,0xa46af2,0xf28a3a,0xffffff][(i+k)%5]}),(k%3-1)*0.18,0.64+(k%2)*0.08,((k>>1)%2-0.5)*0.24,false,false));
-    pl.add(mesh(new THREE.SphereGeometry(0.3,8,6),lam({color:0x3a6a42}),0,0.55,0,false,false));if(i%2===0)fo.add(pl);}
+    pl.add(mesh(new THREE.SphereGeometry(0.3,8,6),lam({color:0x3a6a42}),0,0.55,0,false,false));} // (the planters with coloured bulbs are no longer placed)
   const lathe=(pts,mat)=>{const m=new THREE.Mesh(new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),28),mat);m.castShadow=true;m.receiveShadow=true;return m;};
-  fo.add(mesh(new THREE.CylinderGeometry(0.75,0.95,0.9,8),st,0,1.2,0));
+  fo.add(mesh(new THREE.CylinderGeometry(0.75,0.95,0.9,8),stP,0,1.2,0));
   const col1=lathe([[0,0],[0.42,0],[0.32,0.2],[0.28,1.2],[0.38,1.4],[0,1.4]],pale);col1.position.y=1.6;fo.add(col1);
   const bowl1=lathe([[0,0],[0.4,0],[1.1,0.2],[1.7,0.5],[1.8,0.62],[1.7,0.66],[1.6,0.55],[0.3,0.32],[0,0.32]],pale2);bowl1.position.y=2.95;fo.add(bowl1);
   const w1=mesh(new THREE.CircleGeometry(1.62,28),poolMat,0,3.48,0,false,false);w1.rotation.x=-Math.PI/2;fo.add(w1);
@@ -2851,7 +2854,7 @@ function setLevel(lv){
 }
 function goTown(spot){
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
-  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('The castle has fallen! Grimfall celebrates!');}},60);}
+  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('The castle has fallen! Grimfall celebrates as you set off from the docks!');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
@@ -3514,13 +3517,13 @@ function camRoom(d){if(S.level!=='dungeon'||!MZ)return d;const bx=-H.fx,bz=-H.fz
 function camUpdate(snap){
   if(!H)return;
   const mode=camMode(),side=mode==='side',dia=mode==='diablo';
-  const bh=mode==='behind',pc=dia&&FW.party>0&&S.level==='town'&&H.x>76; // victory party: a low view from the crowd's side so the fireworks over the castle are in the sky
-  const pb=pc&&FW.party<60*45-60*8;
-  const ty=pc?-1.57:bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=pc?(pb?0.02:0.2):bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=pc?(pb?48:19):bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
+  const bh=mode==='behind',pc=dia&&FW.party>0&&S.level==='town'&&H.x<-44; // victory party: from the end of the pier, looking back over the town at the fireworks
+  const pb=false;
+  const ty=pc?-1.57:bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=pc?0.05:bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=pc?9:bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
   let tx=H.x,tz=H.z;if(side)tz=S.level==='town'?H.z-1.5:S.level==='house'?H.z*0.3:H.z*0.35;
   const k=snap?1:0.12;
   let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:bh?0.12:0.18);
-  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((pc?(pb?19:3.2):bh?1.75:mode==='free'?1.3+Math.max(0,0.45-CAM.pitch)*3:1.3)+H.y*0.35)-CAM.ty)*k;
+  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((pc?6:bh?1.75:mode==='free'?1.3+Math.max(0,0.45-CAM.pitch)*3:1.3)+H.y*0.35)-CAM.ty)*k;
   const cp=Math.cos(CAM.pitchC),sh=S.shake;
   camera.position.set(CAM.tx+Math.sin(CAM.yawC)*cp*CAM.distC+rnd(-sh,sh),CAM.ty+Math.sin(CAM.pitchC)*CAM.distC+rnd(-sh,sh),CAM.tz+Math.cos(CAM.yawC)*cp*CAM.distC);
   camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
