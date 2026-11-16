@@ -759,7 +759,11 @@ let AC=null, muted=false;
 // recorded sound effects (TomMusic Fantasy SFX pack); the code-made beeps below stay as the fallback until these load
 const SFXB={};let SFX_ST='none',AMB={k:null,s:null,g:null};
 function loadSfx(){if(SFX_ST!=='none'||!AC)return;SFX_ST='loading';fetch('sfx/list.json').then(r=>r.json()).then(L=>{for(const k in L){SFXB[k]=[];for(let i=0;i<L[k];i++)fetch('sfx/'+k+'_'+i+'.mp3').then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(buf=>SFXB[k].push(buf)).catch(()=>{});}SFX_ST='ready';}).catch(()=>{SFX_ST='fail';});}
-const SFX_VOL={swing:0.7,hit:0.75,hurt:0.7,block:0.6,shoot:0.7,magic:0.5,boom:0.55,chest:0.8,door:0.7,gate:0.7,boss:0.8,go:0.6,gem:0.6,tick:0.5,bagopen:0.6,bagclose:0.6,jump:0.4,land:0.4,step_dirt:0.32,step_stone:0.5,step_wood:0.35};
+const SFX_VOL={swing:0.7,hit:0.75,hurt:0.7,block:0.6,shoot:0.7,magic:0.5,boom:0.55,chest:0.8,door:0.7,gate:0.7,boss:0.8,go:0.6,gem:0.6,tick:0.5,bagopen:0.6,bagclose:0.6,jump:0.4,land:0.4,step_dirt:0.32,step_stone:0.5,step_wood:0.35,whoosh:0.6,thud:0.7,zap:0.45,spellhit:0.5,arrowhit:0.6,chop:0.6};
+// which swing and hit sounds fit each hero and monster: only bladed weapons clang
+const HERO_SWING={barbarian:'swing',archer:'shoot',elf:'whoosh',sorceress:'zap',healer:'whoosh'},HERO_HIT={barbarian:'hit',archer:'arrowhit',elf:'hit',sorceress:'spellhit',healer:'thud'};
+const BLADE_FOES=new Set(['skeleton','boneKing','deathRider','goblin','orc','warden']);
+const foeSwing=e=>e.def.ranged?(e.def.archer?'shoot':'zap'):BLADE_FOES.has(e.type)?'swing':'whoosh';
 function playSample(k,vol){const L=SFXB[k];if(!AC||!L||!L.length)return false;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[Math.floor(Math.random()*L.length)];s.playbackRate.value=0.94+Math.random()*0.12;g.gain.value=vol==null?(SFX_VOL[k]||0.5):vol;s.connect(g);g.connect(AC.destination);s.start();return true;}
 // footsteps: dirt in town, stone in the dungeon, wood inside houses
 function stepSnd(){if(muted||!AC)return;playSample(S.level==='dungeon'?'step_stone':S.level==='house'?'step_wood':'step_dirt');}
@@ -1847,7 +1851,7 @@ function updMaze(){
   // traps
   for(const tr of MZ.traps){const o=tr.obj,x0=tr.tx*TS,z0=tr.tz*TS,on=H.x>x0+0.1&&H.x<x0+2*TS-0.1&&H.z>z0+0.1&&H.z<z0+2*TS-0.1;
     if(tr.kind==='timed'){tr.t=(tr.t+1)%200;const up=tr.t>=140,warn=tr.t>=110&&!up;
-      if(o.spikes){const ty=up?0:warn?-0.62+Math.sin(S.frame*0.9)*0.03:-0.75;o.spikes.position.y+=(ty-o.spikes.position.y)*(up?0.6:0.2);if(up&&tr.t===140)sfx('swing');}
+      if(o.spikes){const ty=up?0:warn?-0.62+Math.sin(S.frame*0.9)*0.03:-0.75;o.spikes.position.y+=(ty-o.spikes.position.y)*(up?0.6:0.2);if(up&&tr.t===140)sfx('whoosh');}
       if(o.vent){o.glow.material.opacity=up?0.9:warn?0.35:0;if(up){for(let k=0;k<3;k++)addPart({x:o.G.position.x+rnd(-1.5,1.5),y:0.1,z:o.G.position.z+rnd(-1.5,1.5),vy:rnd(0.06,0.12),g:-0.001,life:ri(14,22),size:rnd(0.12,0.22),color:Math.random()<0.5?'#ffb04a':'#ff5a2a'});}
         else if(warn&&S.frame%4===0)addPart({x:o.G.position.x+rnd(-1.4,1.4),y:0.1,z:o.G.position.z+rnd(-1.4,1.4),vy:0.02,g:0,life:16,size:0.1,color:'#8a7a8a',kind:'smoke'});if(up&&tr.t===140)sfx('boom');}
       if(up&&on&&H.y<0.5)hurtHero(7+S.floor*3,0,0,false);}
@@ -2163,7 +2167,7 @@ function autoAim(range,props){
 function heroAttack(){
   const d=HEROES[H.cls];if(S.level==='dungeon')autoAim(d.shot||H.cls==='healer'?11:4.5,d.shot||H.cls==='healer'?7:2.6);
   if(H.cls==='archer')H.melee=S.level==='dungeon'&&enemyNear(d.range*U+0.45);
-  H.combo=H.comboT>0?(H.combo%3)+1:1;H.comboT=40;H.atkCD=Math.round(d.atkRate*(1-0.08*pr('quick')));H.swing=H.swingMax=d.swing;H.hitPending=true;sfx(d.shot?'shoot':'swing');
+  H.combo=H.comboT>0?(H.combo%3)+1:1;H.comboT=40;H.atkCD=Math.round(d.atkRate*(1-0.08*pr('quick')));H.swing=H.swingMax=d.swing;H.hitPending=true;sfx(HERO_SWING[H.cls]||(d.shot?'shoot':'swing'));
 }
 function healBeam(sx,sz,y,dmg){const L=9,fx=H.fx,fz=H.fz;let len=L;
   for(let t=0;t<L;t+=0.25)if(mzHit(sx+fx*t,sz+fz*t)){len=t;break;}
@@ -2228,7 +2232,7 @@ function raiseSkeletons(){const L=S.minions||(S.minions=[]),rk=spRank(2),life=18
 function minionDrop(m){killSprite(m.spr);if(m.aura){for(const s of m.aura.userData.eyes||[]){scene.remove(s);s.material.dispose();}scene.remove(m.aura);m.aura.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});m.aura=null;}}
 function minionHurt(m,dmg,dx,dz){if(m.state==='dead')return;dmg=Math.max(1,Math.round(dmg*0.8));m.hp-=dmg;m.flash=7;floatText(m.x,1.8,m.z,String(dmg),'#ffb0a0',14);sparks(m.x,1,m.z,4,'#efe7d2');
   const l=Math.hypot(dx,dz)||1;m.x+=dx/l*0.25;m.z+=dz/l*0.25;clampPos(m);if(m.hp<=0)minionCrumble(m);}
-function minionCrumble(m){if(m.state==='dead')return;m.state='dead';m.t=36;m.vx=m.vz=0;sfx('hit');for(let k=0;k<10;k++)addPart({x:m.x+rnd(-.3,.3),y:rnd(.2,1.2),z:m.z+rnd(-.3,.3),vy:rnd(.01,.05),life:30,size:rnd(.05,.1),color:'#efe7d2'});}
+function minionCrumble(m){if(m.state==='dead')return;m.state='dead';m.t=36;m.vx=m.vz=0;sfx('thud');for(let k=0;k<10;k++)addPart({x:m.x+rnd(-.3,.3),y:rnd(.2,1.2),z:m.z+rnd(-.3,.3),vy:rnd(.01,.05),life:30,size:rnd(.05,.1),color:'#efe7d2'});}
 function minionProxy(m){const o=m.px||(m.px={proxy:m.pid,mref:m,inv:0,dash:0,hp:1,maxHp:1,mp:0,rage:0,cls:'skeleton'});return Object.assign(o,{x:m.x,y:0,z:m.z,fx:m.fx,fz:m.fz,state:'ok'});}
 function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
   L.forEach((m,i)=>{
@@ -2289,7 +2293,7 @@ function hurtEnemy(e,dmg,dx,dz,kd){
   let crit=false;if(Math.random()<critPct()){dmg*=2;crit=true;}
   const fo=gemSum(H,'fireopal')+(H.cls==='sorceress'?pr('ember'):0);if(fo){e.burn=150+40*pr('ember');e.burnDmg=1+fo;}const em=gemSum(H,'emerald');if(em&&H.state!=='down')H.hp=Math.min(H.maxHp,H.hp+em*0.8);
   dmg=Math.max(1,Math.round(dmg));e.hp-=dmg;e.flash=7;if(e.ghost)netHit(e,dmg,dx,dz,kd);
-  floatText(e.x,1.4*e.scale+0.4,e.z,crit?dmg+' CRIT!':String(dmg),crit?'#bff3ff':dmg>=30?'#ffd35c':'#ffffff',crit||dmg>=30?22:17);sparks(e.x,0.9*e.scale,e.z,5);sfx('hit');
+  floatText(e.x,1.4*e.scale+0.4,e.z,crit?dmg+' CRIT!':String(dmg),crit?'#bff3ff':dmg>=30?'#ffd35c':'#ffffff',crit||dmg>=30?22:17);sparks(e.x,0.9*e.scale,e.z,5);sfx(HERO_HIT[H&&H.cls]||'hit');
   const l=Math.hypot(dx,dz);if(l<0.01){dx=e.x-H.x;dz=e.z-H.z;}const m=Math.hypot(dx,dz)||1;dx/=m;dz/=m;
   if(e.hp<=0){killEnemy(e,dx,dz);return true;}
   if(e.def.boss){e.x+=dx*0.06;e.z+=dz*0.06;if(kd==='big'){e.state='hurt';e.t=14;e.vx=dx*0.04;e.vz=dz*0.04;}return true;}
@@ -2338,7 +2342,7 @@ function updEnemy(e){
   if(!d.ranged&&dist<=reach+0.35&&e.cd<=0&&H.y<1&&attackersBusy()<(d.boss?9:2)){e.state='wind';e.t=d.wind;}
 }
 function enemyStrike(e){
-  const d=e.def;e.cd=d.cd*rnd(0.8,1.3);sfx(d.ranged?'shoot':'swing');
+  const d=e.def;e.cd=d.cd*rnd(0.8,1.3);sfx(foeSwing(e));
   const dx=H.x-e.x,dz=H.z-e.z,dist=Math.hypot(dx,dz)||1,dm=d.dmg*(1+0.12*S.floor);
   if(d.ranged){const a0=Math.atan2(dz,dx),lich=e.type==='lich';for(const a of (lich?[-0.25,0,0.25]:[0])){const sp=lich?0.13:0.11;
     S.eproj.push({kind:lich?'lbolt':e.def.archer?'cbolt':'efire',x:e.x+Math.cos(a0)*0.5,z:e.z+Math.sin(a0)*0.5,y:e.y+0.9*e.scale,vx:Math.cos(a0+a)*sp,vz:Math.sin(a0+a)*sp,dmg:dm,life:150,dead:false});}return;}
@@ -2434,8 +2438,8 @@ function makeProp(kind,x,z,grp,extra={}){
 }
 function hitProp(p){
   if(p.dead||p.stash)return;p.pop=8;
-  if(p.kind==='barrel'||p.kind==='pot'){if(--p.hp>0){sparks(p.x,0.6,p.z,3,'#d8b07a');sfx('hit');return;}
-    p.dead=true;sfx('hit');p.grp.remove(p.obj);if(p.key)INV.looted[p.key]=1;
+  if(p.kind==='barrel'||p.kind==='pot'){if(--p.hp>0){sparks(p.x,0.6,p.z,3,'#d8b07a');sfx('chop');return;}
+    p.dead=true;sfx('chop');p.grp.remove(p.obj);if(p.key)INV.looted[p.key]=1;
     for(let i=0;i<10;i++)addPart({x:p.x,y:rnd(.2,.8),z:p.z,vx:rnd(-.08,.08),vy:rnd(.04,.1),vz:rnd(-.08,.08),life:ri(24,36),size:rnd(.08,.14),color:p.kind==='pot'?(i%2?'#b8643a':'#7a3a22'):(i%2?'#8a5a32':'#5a3a1e'),kind:'chip',g:.008});
     if(p.kind==='pot'){const r=Math.random();if(r<0.45)dropPickup('goods',p.x,p.z,0,randGoods(0));else if(r<0.6)dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:1});for(let i=0;i<ri(1,4);i++)dropPickup('gold',p.x,p.z,4);}
     else{const r=Math.random();if(r<0.3)dropPickup('hp',p.x,p.z);else if(r<0.55)dropPickup('mp',p.x,p.z);else if(r<0.65)dropPickup('goods',p.x,p.z,0,randGoods(0));for(let i=0;i<ri(1,3);i++)dropPickup('gold',p.x,p.z,5);}}
@@ -3758,7 +3762,7 @@ const ARM_ICON={helm:{p:[['helm']],ry:0.5,rx:0.1},armor:{p:[['torso'],['waist'],
 function armShot(cls,kind,tier){if(!ARM_FIT[cls]||ARM_ST!=='ready'||!ARM_ICON[kind])return null;const I=ARM_ICON[kind];
   return studio('arm'+cls+kind+tier,(p,K)=>{const mt=armMat(tier,[]);mt.envMap=stuEnv();mt.envMapIntensity=1.1;mt.metalness=1;mt.roughness=1;mt.emissiveIntensity*=0.45;
     for(const [k,mir] of I.p)p.add(new THREE.Mesh(armGeo(k,!!mir),mt));setTimeout(()=>mt.dispose(),0);},{ry:I.ry,rx:I.rx});}
-var WBOW=[0,Math.PI,-1.5708];
+var WBOW=[Math.PI,0,-1.5708];
 const HAND_R=new THREE.Matrix4().set(0,0,1,0, 0,-1,0,0, 1,0,0,0, 0,0,0,1),HAND_L=new THREE.Matrix4().set(0,0,-1,0, 0,-1,0,0, -1,0,0,0, 0,0,0,1);
 function buildReal(h){
   const G=THREE,mi0=modelInfo(h.cls,h),mi=REALS[mi0.f]&&REALS[mi0.f].state==='ready'?mi0:MODEL_FOR[h.cls]||MODEL_FOR.barbarian,REAL=REALS[mi.f],g=REAL.gltf,model=h.remote&&THREE.SkeletonUtils?THREE.SkeletonUtils.clone(g.scene):g.scene,cls=h.cls,d=HEROES[cls],c=Object.assign({},d.col,h.look||{}),heavy=cls==='barbarian';
