@@ -781,7 +781,7 @@ function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<
 // the crowd waiting outside the castle gate, in an arc facing the hero
 // the party crowd: three groups lined up across the road facing the hero
 const PARTY={figs:[],want:false};
-const PGROUPS=[{z:-4.6,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{z:1.5,men:['paladin','paladin','paladin'],girls:['girl']},{z:7.6,men:['guard','guard','guard'],girls:['hero_f','girl']}];
+const PGROUPS=[{z:-4.6,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{z:1.5,men:['paladin','paladin','paladin'],girls:['hero_f']},{z:7.6,men:['guard','guard','guard'],girls:['hero_f','girl']}];
 function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
   if(!want){if(PARTY.figs.length){for(const f of PARTY.figs){scene.remove(f.R.root);}PARTY.figs=[];}return;}
   if(!PARTY.figs.length){let ready=animState==='ready';for(const g of PGROUPS)for(const m of g.men.concat(g.girls))if(loadReal(null,m)!=='ready')ready=false;if(!ready)return;
@@ -2900,7 +2900,7 @@ function enterDoorOld(d){
 function makeNpcs(){
   const cols=['#b85a4a','#4a7ab8','#8a6ab0','#c9a03a','#4a9a6a','#a87a4a','#6a6a8a','#c96a8a'];
   for(let i=0;i<9;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
-    n.rm=['girl','mage','smith','guard','girl','mage','smith','girl','guard'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94][i];
+    n.rm=['girl','mage','smith','guard','hero_f','mage','smith','girl','guard'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94][i];
     n.dancer=i%2===0;n.dclip=i%4===0?'samba':'gangnam';n.dspot=[Math.cos(i*0.75)*6.2,1+Math.sin(i*0.75)*6.2];
     clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
   makeHarborFolk();
