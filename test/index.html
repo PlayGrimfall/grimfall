@@ -3899,6 +3899,8 @@ function poseReal(R,h,blink){
 const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skel2',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skeleton',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
   REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
+const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
+function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
 function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(REAL.gltf.scene):REAL.gltf.scene,root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(REAL.s0*info.tall/REAL.h0);
   const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);o.material.skinning=!!o.isSkinnedMesh;o.userData.tr0=o.material.transparent;
     if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.3;}}});
@@ -4148,7 +4150,7 @@ function render3D(){
   for(const e of S.enemies.concat(S.minions||[],S.rminions||[])){
     e.face=screenFace(e.fx,e.fz,e.face);let rot=0,alpha=1;
     if(e.state==='dead'){alpha=Math.min(1,e.t/20);rot=-e.face*Math.min(1.4,(36-e.t)*0.08);}else if(e.state==='kd')rot=-e.face*(e.y>0?0.6:1.3);
-    const rmi=SET.style==='real'&&REALMON[e.type];
+    const rmi=SET.style==='real'&&rmInfo(e);
     if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig)e.spr.rfig=buildRealMon(e,rmi);poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
     else if(syncFig(e.spr,()=>buildMon(e)))poseMon(e.spr.fig,e);
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
@@ -4162,7 +4164,7 @@ function render3D(){
   if(lv==='house'&&S.hnpc){const n=S.hnpc;n.anim++;const dx=H.x-n.x,dz=H.z-n.z;if(Math.hypot(dx,dz)<4){n.fx=dx;n.fz=dz;}n.face=screenFace(n.fx,n.fz,n.face);
     if(realNpc(n,1.8)){}else if(syncFig(n.spr,()=>buildNpc(n)))poseNpc(n.spr.fig,Object.assign(n,{pause:1}));else paintSprite(n.spr,g=>drawNpc(g,{pause:1,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
   for(const p of S.pickups){p.spr.position.set(p.x,p.y+Math.sin((p.age+p.x*10)*0.12)*0.05+p.sz*0.35,p.z);if(p.spr.children[0])p.spr.children[0].rotation.y+=0.04;}
-  if(lv==='dungeon'&&SET.style==='real')for(const e of S.enemies)if(REALMON[e.type])loadReal(null,REALMON[e.type].f);
+  if(lv==='dungeon'&&SET.style==='real')for(const e of S.enemies)if(REALMON[e.type])loadReal(null,rmInfo(e).f);
   if(!heroLight){heroLight=new THREE.PointLight(0xffe2c4,0,9,1.6);scene.add(heroLight);}
   if(H){const cv=camVecs();heroLight.position.set(H.x-cv.fx*1.6,H.y+2.4,H.z-cv.fz*1.6);heroLight.intensity=lv==='dungeon'?1.25:lv==='house'?0.45:0;heroLight.distance=lv==='dungeon'?13:9;}
   // ambience
@@ -4305,7 +4307,7 @@ function introNext(){if(!INTRO||performance.now()-INTRO.t0<500)return;INTRO.t0=p
   if(INTRO.phase==='who'||INTRO.phase==='wake')return;
   if(++INTRO.i<INTRO_TALK.length){introShow();return;}endIntro();}
 function introPick(sx){if(!INTRO||INTRO.phase!=='who')return;INTRO.sex=sx;H.sex=sx;loadReal(H.cls);const el=introEl();el.querySelectorAll('[data-sex]').forEach(b=>b.classList.toggle('sel',b.dataset.sex===sx));el.querySelector('#introWake').disabled=false;}
-function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;
+function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;S.state='play';save();S.state='dialog';
   el.querySelector('.iwho').classList.remove('on');INTRO.phase='wake';INTRO.i=0;const t0=performance.now();
   // stay dark until the chosen body has loaded, so the old model never flashes up
   const go=()=>{if(!INTRO)return;if(performance.now()-t0<9000&&(loadReal(H.cls)!=='ready'||animState!=='ready')){setTimeout(go,250);return;}el.classList.remove('black');
