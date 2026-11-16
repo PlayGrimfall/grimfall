@@ -4307,7 +4307,7 @@ function introNext(){if(!INTRO||performance.now()-INTRO.t0<500)return;INTRO.t0=p
   if(INTRO.phase==='who'||INTRO.phase==='wake')return;
   if(++INTRO.i<INTRO_TALK.length){introShow();return;}endIntro();}
 function introPick(sx){if(!INTRO||INTRO.phase!=='who')return;INTRO.sex=sx;H.sex=sx;loadReal(H.cls);const el=introEl();el.querySelectorAll('[data-sex]').forEach(b=>b.classList.toggle('sel',b.dataset.sex===sx));el.querySelector('#introWake').disabled=false;}
-function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;S.state='play';save();S.state='dialog';
+function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;
   el.querySelector('.iwho').classList.remove('on');INTRO.phase='wake';INTRO.i=0;const t0=performance.now();
   // stay dark until the chosen body has loaded, so the old model never flashes up
   const go=()=>{if(!INTRO)return;if(performance.now()-t0<9000&&(loadReal(H.cls)!=='ready'||animState!=='ready')){setTimeout(go,250);return;}el.classList.remove('black');
