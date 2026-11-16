@@ -1323,10 +1323,10 @@ function cyFire(q,s){let b=CY.bolts.find(x=>!x.live);if(!b){const m=new THREE.Me
   if(H&&Math.hypot(H.x-q.e.x,H.z-q.e.z)<28)playSample('shoot',0.35);}
 function cyReset(s){const e=s.e;Object.assign(e,{x:rnd(82,87),z:rnd(-12,14),y:0,state:'walk',moving:true,t:0,flash:0});s.stopX=rnd(59,66);s.spd=rnd(0.016,0.028);s.tz=rnd(-11,13);s.hidden=false;
   for(const m of s.R.mats){m.opacity=1;if(m.transparent){m.transparent=false;m.needsUpdate=true;}}}
-function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null,'skeleton')==='ready';
+function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null,'skel2')==='ready';
   for(const s of CY.sk)s.R.root.visible=town&&!s.hidden;for(const b of CY.bolts)if(!town){b.live=false;b.m.visible=false;}if(!town)return;
   const want=Math.max(2,9-2*(INV.deepest||0)),now=performance.now();
-  if(CY.sk.length<want&&now>CY.next){CY.next=now+1500;const e={x:0,z:0,y:0,fx:-1,fz:0,state:'walk',moving:true,t:0,flash:0,def:{wind:30}},R=buildRealMon(e,{f:'skeleton',tall:1.8});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});const s={R,e};cyReset(s);CY.sk.push(s);}
+  if(CY.sk.length<want&&now>CY.next){CY.next=now+1500;const e={x:0,z:0,y:0,fx:-1,fz:0,state:'walk',moving:true,t:0,flash:0,def:{wind:30}},R=buildRealMon(e,{f:'skel2',tall:1.8});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});const s={R,e};cyReset(s);CY.sk.push(s);}
   CY.sk.forEach((s,i)=>{const e=s.e;if(i>=want){s.hidden=true;s.R.root.visible=false;return;}
     if(s.hidden){if(now>s.back){cyReset(s);s.R.root.visible=true;}return;}
     if(e.state==='dead'){if(--e.t<=0){s.hidden=true;s.R.root.visible=false;s.back=now+rnd(1500,4500);}}
@@ -3896,7 +3896,7 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skeleton',tall:1.8},skelArcher:{f:'skeleton',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skeleton',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
+const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skel2',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skeleton',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
   REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
 function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(REAL.gltf.scene):REAL.gltf.scene,root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(REAL.s0*info.tall/REAL.h0);
