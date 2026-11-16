@@ -772,7 +772,11 @@ function playSample(k,vol){const L=SFXB[k];if(!AC||!L||!L.length)return false;co
 // footsteps: dirt in town, stone in the dungeon, wood inside houses
 function stepSnd(){if(muted||!AC)return;playSample(S.level==='dungeon'?'step_stone':S.level==='house'?'step_wood':'step_dirt');}
 // background sounds under the music: cave in the dungeon, forest by day or night in town
-function ambTick(){let want=null;if(!muted&&H&&S.state!=='start')want=S.level==='dungeon'?'amb_cave':S.level==='house'?null:((DN.day||0)>(AMB.k==='amb_day'?0.3:0.45)?'amb_day':'amb_night');
+function seaTick(){const want=!muted&&H&&S.state!=='start'&&S.level==='town';const L=SFXB.amb_sea;
+  if(want&&!SEA.s&&L&&L.length){const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[0];s.loop=true;g.gain.value=0;s.connect(g);g.connect(AC.destination);s.start();SEA={s,g};}
+  if(SEA.g){const v=want?clamp((-28-H.x)/14,0,1)*0.85:0;SEA.g.gain.setTargetAtTime(v,AC.currentTime,0.5);if(!want&&SEA.s){const s=SEA.s;SEA={s:null,g:null};setTimeout(()=>{try{s.stop();}catch(e){}},2500);}}}
+let SEA={s:null,g:null};
+function ambTick(){seaTick();let want=null;if(!muted&&H&&S.state!=='start')want=S.level==='dungeon'?'amb_cave':S.level==='house'?null:((DN.day||0)>(AMB.k==='amb_day'?0.3:0.45)?'amb_day':'amb_night');
   if(AMB.k===want)return;if(AMB.g){const g=AMB.g,s=AMB.s;g.gain.setTargetAtTime(0,AC.currentTime,0.6);setTimeout(()=>{try{s.stop();}catch(e){}},3000);}AMB={k:null,s:null,g:null};
   const L=want&&SFXB[want];if(L&&L.length){const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[0];s.loop=true;g.gain.value=0;g.gain.setTargetAtTime({amb_cave:0.55,amb_day:0.7,amb_night:0.8}[want],AC.currentTime,0.8);s.connect(g);g.connect(AC.destination);s.start();AMB={k:want,s,g};}}
 function sfx(type){
@@ -1440,6 +1444,7 @@ function buildTown(){
   for(let x=-40.5;x>-50;x-=1.1){T.add(mesh(new THREE.BoxGeometry(1,0.2,2.4),M.wood,x,-0.08,2.2,true,true));}
   for(let x=-41;x>-50;x-=3)for(const z of [1,3.4])T.add(mesh(new THREE.CylinderGeometry(0.14,0.14,1.4,6),M.wood,x,-0.6,z));
   ship=buildShip();ship.rotation.y=Math.PI;ship.position.set(-48.5,-0.15,-1.4);ship.userData.baseY=-0.15;T.add(ship);
+  dockDeco(T);
   tree(-37.5,-8.6,T,0.9);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true);tree(-9,-17.5,T,1.3);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
   for(const [x,z] of [[-37.5,-8.6],[46,-7.4],[-38,10.5],[44,12],[-9,-17.5],[18,-17.5],[-24,-17.6],[48.5,17]])TOWN_COL.push([x-0.45,x+0.45,z-0.45,z+0.45]);
   // lights
@@ -1448,6 +1453,59 @@ function buildTown(){
   T.add(sun);T.add(sun.target);
   motesT=makeMotes(T,0xffd9a0,70,{x0:-38,x1:46,z0:-8,z1:10,y0:0.5,y1:5});
 }
+// ================= the dock: props, rowboat, gulls =================
+const DKFX={boat:null,gulls:[],t:0};
+function dockDeco(T){
+  const DK=new THREE.Group();T.add(DK);const er=rng(77),Y=0.02;
+  const darkW=new THREE.MeshStandardMaterial({color:0x4a3424,roughness:0.85}),rope=new THREE.MeshStandardMaterial({color:0xb89a6a,roughness:0.95}),
+    iron=new THREE.MeshStandardMaterial({color:0x34343a,metalness:0.6,roughness:0.5}),wet=new THREE.MeshStandardMaterial({color:0x6a5038,roughness:0.75});
+  const add=(m)=>{DK.add(m);return m;},col=(x0,x1,z0,z1)=>TOWN_COL.push([x0,x1,z0,z1]);
+  const crate=(x,z,sz,y=Y,ry=0)=>{const g=new THREE.Group();g.add(mesh(new THREE.BoxGeometry(sz,sz,sz),M.wood,0,sz/2,0));
+    for(const [a,b] of [[1,1],[1,-1],[-1,1],[-1,-1]])g.add(mesh(new THREE.BoxGeometry(0.07,sz+0.02,0.07),darkW,a*sz/2,sz/2,b*sz/2));
+    for(const yy of [0.035,sz-0.035])for(const b of [-1,1]){g.add(mesh(new THREE.BoxGeometry(sz+0.02,0.07,0.07),darkW,0,yy,b*sz/2));g.add(mesh(new THREE.BoxGeometry(0.07,0.07,sz+0.02),darkW,b*sz/2,yy,0));}
+    g.add(mesh(new THREE.BoxGeometry(0.06,sz*1.3,0.04),darkW,0,sz/2,sz/2+0.01)).rotation.z=0.78;g.position.set(x,y,z);g.rotation.y=ry;add(g);};
+  const bG=new THREE.LatheGeometry([...Array(9)].map((_,i)=>{const k=i/8;return new THREE.Vector2(0.27+0.06*Math.sin(k*Math.PI),k*0.86);}),14);
+  const barrel=(x,z,y=Y,lay=0)=>{const g=new THREE.Group();g.add(mesh(bG,M.wood,0,0,0));const cap=mesh(new THREE.CircleGeometry(0.28,14),darkW,0,0.85,0);cap.rotation.x=-Math.PI/2;g.add(cap);
+    for(const yy of [0.12,0.74]){const h=mesh(new THREE.TorusGeometry(0.305,0.02,4,16),iron,0,yy,0);h.rotation.x=Math.PI/2;g.add(h);}
+    if(lay){g.rotation.set(0,lay,Math.PI/2);g.position.set(x,y+0.31,z);}else g.position.set(x,y,z);add(g);};
+  const coil=(x,z,y=Y)=>{for(let i=0;i<4;i++){const c=mesh(new THREE.TorusGeometry(0.27-i*0.045,0.032,5,18),rope,x,y+0.035+i*0.045,z);c.rotation.x=Math.PI/2;add(c);}};
+  const bollard=(x,z)=>{add(mesh(new THREE.CylinderGeometry(0.1,0.13,0.42,9),iron,x,Y+0.21,z));add(mesh(new THREE.CylinderGeometry(0.15,0.15,0.06,9),iron,x,Y+0.42,z));};
+  const line=(a,b,sag)=>{const m=new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);m.y-=sag;add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a,m,b),16,0.025,5),rope));};
+  const basket=(x,z)=>{add(mesh(new THREE.CylinderGeometry(0.3,0.24,0.32,12,1,true),wet,x,Y+0.16,z));const f=new THREE.MeshStandardMaterial({color:0xaab4bc,metalness:0.5,roughness:0.35});
+    for(let i=0;i<6;i++){const fs=mesh(new THREE.SphereGeometry(0.06,6,4),f,x+(er()-0.5)*0.3,Y+0.3,z+(er()-0.5)*0.3);fs.scale.set(2.6,0.7,0.9);fs.rotation.y=er()*3;add(fs);}};
+  const lamp=(x,z,light)=>{add(mesh(new THREE.CylinderGeometry(0.07,0.09,2.4,7),darkW,x,Y+1.2,z));const arm=mesh(new THREE.BoxGeometry(0.5,0.06,0.06),darkW,x,Y+2.32,z);add(arm);
+    const lx=x,ly=Y+1.98,lz=z;add(mesh(new THREE.BoxGeometry(0.22,0.3,0.22),iron,lx,ly,lz)).material=iron;add(mesh(new THREE.BoxGeometry(0.16,0.22,0.16),M.lantern,lx,ly,lz,false,false));
+    const gl=new THREE.Sprite(M.glow);gl.scale.set(1.8,1.8,1);gl.position.set(lx,ly,lz);add(gl);if(light){const L=new THREE.PointLight(0xffb060,1.1,11,2);L.position.set(lx,ly,lz);add(L);}};
+  // the pier: lanterns and mooring posts along its edges, rope lines out to the ship
+  lamp(-42.2,3.55,true);lamp(-47.4,3.55,false);
+  for(const [x,z] of [[-43.6,1.05],[-47,1.05],[-45.4,3.35],[-49.2,3.35]])bollard(x,z);
+  line(new THREE.Vector3(-43.6,Y+0.4,1.05),new THREE.Vector3(-44.4,1.9,-0.1),0.25);line(new THREE.Vector3(-47,Y+0.4,1.05),new THREE.Vector3(-47.6,1.9,-0.1),0.25);
+  coil(-44.6,3.2);coil(-48.3,1.2);basket(-46.3,3.2);crate(-41.6,3.15,0.42,Y,0.3);
+  // the shore at the head of the pier: stacked crates and barrels, kept off the walkway
+  crate(-38.9,-0.4,0.8,Y,0.1);crate(-38.1,-0.9,0.7,Y,-0.25);crate(-38.7,-0.55,0.55,Y+0.8,0.5);barrel(-39.6,-1.2);barrel(-37.3,-0.2);barrel(-38.2,0.4,Y,0.6);col(-40,-36.8,-1.6,0.8);
+  barrel(-39.3,4.3);barrel(-38.6,4.75);barrel(-39.5,5.05,Y+0.86);crate(-38.2,5.5,0.62,Y,0.4);coil(-37.6,4.4);col(-39.9,-37.2,3.9,6);
+  // a rack of fishing nets drying in the sun, with cork floats
+  {const x=-38.8,z0=6.6,z1=9.2;for(const z of [z0,z1])add(mesh(new THREE.CylinderGeometry(0.07,0.08,2.1,7),darkW,x,Y+1.05,z));add(mesh(new THREE.CylinderGeometry(0.05,0.05,z1-z0+0.3,6),darkW,x,Y+2.02,(z0+z1)/2)).rotation.x=Math.PI/2;
+    const nt=canvasTex(128,128,(g,w,h)=>{g.clearRect(0,0,w,h);g.strokeStyle='rgba(70,62,48,0.95)';g.lineWidth=2;for(let i=-w;i<w*2;i+=16){g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();g.beginPath();g.moveTo(i,h);g.lineTo(i+h,0);g.stroke();}});nt.wrapS=nt.wrapT=THREE.RepeatWrapping;nt.repeat.set(3,2);
+    const ng=new THREE.PlaneGeometry(z1-z0,1.7,10,6),P=ng.attributes.position;for(let i=0;i<P.count;i++){const u=P.getX(i)/(z1-z0)+0.5,v=0.5-P.getY(i)/1.7;P.setY(i,P.getY(i)-Math.sin(u*Math.PI)*0.25*v);P.setZ(i,Math.sin(u*Math.PI*2)*0.06);}ng.computeVertexNormals();
+    const net=new THREE.Mesh(ng,new THREE.MeshStandardMaterial({map:nt,transparent:true,alphaTest:0.3,side:THREE.DoubleSide,roughness:1}));net.rotation.y=Math.PI/2;net.position.set(x,Y+1.15,(z0+z1)/2);net.castShadow=true;add(net);
+    const cork=new THREE.MeshStandardMaterial({color:0xc8763a,roughness:0.8});for(let z=z0+0.3;z<z1;z+=0.42)add(mesh(new THREE.SphereGeometry(0.07,7,5),cork,x,Y+1.98,z));col(x-0.3,x+0.3,z0-0.2,z1+0.2);}
+  // a rowboat tied up beside the pier
+  {const g=new THREE.Group(),hull=new THREE.SphereGeometry(1,16,8,0,Math.PI*2,Math.PI/2,Math.PI/2);const h=mesh(hull,new THREE.MeshStandardMaterial({color:0x5a3e28,roughness:0.8,side:THREE.DoubleSide}),0,0.32,0);h.scale.set(1.7,0.42,0.62);g.add(h);
+    const rim=mesh(new THREE.TorusGeometry(1,0.035,5,24),darkW,0,0.32,0);rim.rotation.x=Math.PI/2;rim.scale.set(1.7,0.62,1);g.add(rim);for(const sx of [-0.6,0.5])g.add(mesh(new THREE.BoxGeometry(0.18,0.05,1.0),M.wood,sx,0.24,0));
+    for(const s of [-1,1]){const o=mesh(new THREE.CylinderGeometry(0.025,0.025,2.2,5),M.wood,0.1,0.34,s*0.42);o.rotation.z=Math.PI/2;o.rotation.y=s*0.25;g.add(o);}
+    g.position.set(-45.6,-0.28,5.0);g.rotation.y=0.12;add(g);DKFX.boat=g;line(new THREE.Vector3(-45.4,Y+0.4,3.35),new THREE.Vector3(-44.1,0.1,4.9),0.15);}
+  // gulls circling over the water, and one resting on a post
+  {const wm=new THREE.MeshStandardMaterial({color:0xeef0f2,roughness:0.7,side:THREE.DoubleSide}),gm=new THREE.MeshStandardMaterial({color:0x8a9098,roughness:0.7,side:THREE.DoubleSide}),bk=new THREE.MeshStandardMaterial({color:0xe0a030});
+    const gull=()=>{const g=new THREE.Group();const b=mesh(new THREE.SphereGeometry(0.12,8,6),wm,0,0,0,false,false);b.scale.set(1,0.8,2.2);g.add(b);g.add(mesh(new THREE.SphereGeometry(0.08,7,5),wm,0,0.07,0.24,false,false));g.add(mesh(new THREE.ConeGeometry(0.025,0.1,5),bk,0,0.06,0.34,false,false)).rotation.x=Math.PI/2;
+      const wing=s=>{const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0.12,0,0,-0.1,s*0.55,0,-0.05,0,0,0.12,s*0.55,0,-0.05,s*0.3,0,0.08],3));wg.computeVertexNormals();const w=new THREE.Mesh(wg,s>0?gm:gm);g.add(w);return w;};
+      g.userData.wings=[wing(1),wing(-1)];return g;};
+    for(let i=0;i<4;i++){const g=gull();add(g);DKFX.gulls.push({g,r:5+er()*5,h:4.5+er()*3,sp:(0.25+er()*0.2)*(i%2?1:-1),ph:er()*6,cx:-47+er()*4,cz:4+er()*6});}
+    const sit=gull();sit.position.set(-42.2,Y+2.45,3.55);sit.rotation.y=1.2;sit.userData.wings.forEach(w=>w.scale.set(0.35,1,1));add(sit);}
+}
+function dockTick(){if(!DKFX.boat)return;const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
+  for(const q of DKFX.gulls){const a=q.ph+t*q.sp,g=q.g;g.position.set(q.cx+Math.cos(a)*q.r,q.h+Math.sin(t*0.7+q.ph)*0.4,q.cz+Math.sin(a)*q.r);g.rotation.y=-a+(q.sp>0?0:Math.PI);g.rotation.z=(q.sp>0?-1:1)*0.25;
+    const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}}
 function makeMotes(grp,col,n,b){const p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=rnd(b.x0,b.x1);p[i*3+1]=rnd(b.y0,b.y1);p[i*3+2]=rnd(b.z0,b.z1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));const pts=new THREE.Points(g,new THREE.PointsMaterial({color:col,size:0.09,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false}));grp.add(pts);return {pts,b,ph:[...Array(n)].map(()=>Math.random()*6)};}
 
@@ -2699,18 +2757,21 @@ function enterDoorOld(d){
 function makeNpcs(){
   const cols=['#b85a4a','#4a7ab8','#8a6ab0','#c9a03a','#4a9a6a','#a87a4a','#6a6a8a','#c96a8a'];
   for(let i=0;i<9;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
-    n.rm=['girl','guard','mage','guard'][i%4];clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
+    n.rm=['girl','mage','smith','guard','girl','mage','smith','girl','guard'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94][i];
+    clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
 }
 function npcOpen(ax,az,bx,bz){const r=0.5;for(const c of TOWN_COL.concat(TOWN_JUMP)){const o={x0:c[0]-r,x1:c[1]+r,z0:c[2]-r,z1:c[3]+r};if(ax>o.x0&&ax<o.x1&&az>o.z0&&az<o.z1)continue;if(segBox(ax,az,bx,bz,o))return false;}
   const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1,t=clamp(((0-ax)*dx+(1-az)*dz)/l2,0,1);return Math.hypot(ax+dx*t,az+dz*t-1)>4.3;}
-function pickNpcTarget(n){for(let k=0;k<40;k++){const tx=rnd(-36,48),tz=Math.random()<0.75?rnd(-7,9.5):rnd(-17,19),o={x:tx,z:tz};clampPos(o,0.5);if(Math.hypot(o.x-tx,o.z-tz)>0.01)continue;if(npcOpen(n.x,n.z,tx,tz)){n.tx=tx;n.tz=tz;n.stuck=0;return;}}n.tx=n.x+rnd(-1,1);n.tz=n.z+rnd(-1,1);n.stuck=0;}
+function pickNpcTarget(n){for(let k=0;k<40;k++){const tx=rnd(-36,48),tz=Math.random()<0.75?rnd(-7,9.5):rnd(-17,19),o={x:tx,z:tz};clampPos(o,0.5);if(Math.hypot(o.x-tx,o.z-tz)>0.01)continue;if(k<30&&S.npcs.some(m=>m!==n&&!m.keeper&&Math.hypot(m.tx-tx,m.tz-tz)<7))continue;if(npcOpen(n.x,n.z,tx,tz)){n.tx=tx;n.tz=tz;n.stuck=0;return;}}n.tx=n.x+rnd(-1,1);n.tz=n.z+rnd(-1,1);n.stuck=0;}
 // the town calms down as you beat the castle: panicked running at first, normal strolling once the deeper floors are cleared
 const townPanic=()=>[1,0.65,0.3,0,0][Math.min(4,INV.deepest||0)];
 function updNpc(n){
   n.anim++;if(n.pause>0){n.pause--;return;}
   const dx=n.tx-n.x,dz=n.tz-n.z,d=Math.hypot(dx,dz),P=townPanic();
   if(d<0.3){n.pause=P>0.5?ri(8,40):ri(60,240);pickNpcTarget(n);return;}
-  n.fx=dx/d;n.fz=dz/d;const ox=n.x,oz=n.z,sp=0.025+0.04*P;n.x+=n.fx*sp;n.z+=n.fz*sp;clampPos(n);
+  n.fx=dx/d;n.fz=dz/d;const ox=n.x,oz=n.z,sp=(0.025+0.04*P)*(n.pace||1);n.x+=n.fx*sp;n.z+=n.fz*sp;
+  for(const m of S.npcs){if(m===n||m.keeper)continue;const ax=n.x-m.x,az=n.z-m.z,ad=Math.hypot(ax,az);if(ad>0.01&&ad<1.6){n.x+=ax/ad*0.02;n.z+=az/ad*0.02;}} // keep some room between folks
+  clampPos(n);
   if(Math.hypot(n.x-ox,n.z-oz)<0.015){if(++n.stuck>12){n.pause=ri(30,90);pickNpcTarget(n);}}else n.stuck=0;
 }
 
@@ -2761,9 +2822,10 @@ function addPants(R){
   for(const [p,m] of add)p.add(m);
 }
 function realNpc(n,tall){const rm=SET.style==='real'&&n.rm;if(!rm||loadReal(null,rm)!=='ready'||animState!=='ready')return false;
-  if(n.spr.fig){disposeMon(n.spr.fig);n.spr.fig=null;}if(!n.spr.rfig){n.spr.rfig=buildRealMon(n,{f:rm,tall});if(rm==='smith')sheathSword(n.spr.rfig);}const R=n.spr.rfig,dt=Math.min(0.05,R.clock.getDelta());
+  if(n.spr.fig){disposeMon(n.spr.fig);n.spr.fig=null;}if(!n.spr.rfig){n.spr.rfig=buildRealMon(n,{f:rm,tall:n.tall||tall});if(rm==='smith')sheathSword(n.spr.rfig);
+    if(n.tint&&n.tint!=='#ffffff'){const tc=new THREE.Color(n.tint);for(const m of n.spr.rfig.mats)if(m.color)m.color.multiply(tc);}}const R=n.spr.rfig,dt=Math.min(0.05,R.clock.getDelta());
   R.root.position.set(n.x,0,n.z);let dd=Math.atan2(n.fx,n.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.15;R.root.rotation.y=R.yaw;
-  if(n.pause>0||S.level==='house')R.play('idle');else R.play('run',false,0.42+0.65*townPanic());R.mixer.update(dt);n.spr.mesh.visible=false;return true;}
+  if(n.pause>0||S.level==='house')R.play('idle');else R.play('run',false,(0.42+0.65*townPanic())*(n.pace||1));R.mixer.update(dt);n.spr.mesh.visible=false;return true;}
 const sailorLoot=p=>{for(const n of ['Old Map Piece','Pearl String'])dropPickup('goods',p.x,p.z,0,goodsNamed(n));dropPickup('crystal',p.x,p.z,0,{t:'fireopal',lv:2});dropPickup('gear',p.x,p.z,0,gearFor(0.35));for(let i=0;i<6;i++)dropPickup('gold',p.x,p.z,10);};
 const emptyLoot=p=>{dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));dropPickup('crystal',p.x,p.z,0,{t:'amber',lv:1});dropPickup('gear',p.x,p.z,0,gearFor(0.5,'weapon'));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);};
 const HOUSE_PROPS={
@@ -4218,6 +4280,7 @@ function render3D(){
     if(fountainFx)fountainFx.update(S.frame);
     if(smokeFx)smokeFx.update(S.frame);
     for(const w of WAVERS){const a=w.geometry.attributes.position,b=w.userData.base;for(let i=0;i<a.count;i++){const y=b[i*3+1];a.setZ(i,b[i*3+2]+(Math.sin(S.frame*0.09+y*1.6)*0.2+Math.sin(S.frame*0.17+y*3.1)*0.06)*(-y/2.8));}a.needsUpdate=true;}
+  if(S.level==='town')dockTick();
   if(S.level==='town')for(const s of SAILS){const a=s.geometry.attributes.position,b=s.userData.base,t=S.frame*0.045+s.userData.ph,W=s.userData.w,Hh=s.userData.h;for(let i=0;i<a.count;i++){const u=b[i*3]/W+0.5,v=b[i*3+1]/Hh+0.5;a.setZ(i,b[i*3+2]*(1+0.22*Math.sin(t+u*2.2))+Math.sin(t*1.8+u*5.5+v*3)*0.09*(0.3+v));}a.needsUpdate=true;s.geometry.computeVertexNormals();}
     if(waterMat)waterMat.map.offset.x=(S.frame*0.0006)%1;
     if(ship){ship.position.y=ship.userData.baseY+Math.sin(S.frame*0.03)*0.1;ship.rotation.x=Math.sin(S.frame*0.021)*0.025;ship.rotation.z=Math.sin(S.frame*0.017)*0.012;for(const f of ship.userData.flags)waveFlag(f,S.frame);}
