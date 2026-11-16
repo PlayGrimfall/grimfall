@@ -1100,7 +1100,7 @@ function townGround(T){
     for(const h of HOUSES.filter(h=>!h.shop))for(const s of [-1,1])add(h.x+s*1.75,12.1);
     for(const a of [0.785,2.356,3.927,5.498])add(Math.cos(a)*6.3,1+Math.sin(a)*6.3);
     const mk=(g,c,o={})=>{if(!g.length)return;const m=new THREE.Mesh(mergeGeo(g),new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:0.85},o)));m.castShadow=m.receiveShadow=true;T.add(m);};
-    DN.boxMat=new THREE.MeshStandardMaterial({color:0x7a5a3a,roughness:0.9});{const m=new THREE.Mesh(mergeGeo(pots),DN.boxMat);m.castShadow=m.receiveShadow=true;T.add(m);}mk(soil,0x3a2618);mk(leaf,0x1e4a18);mk(fl[0],0xe8506a,{emissive:0x3a0a12});mk(fl[1],0xf2d04a,{emissive:0x3a2a05});mk(fl[2],0xb07ae8,{emissive:0x200a3a});}
+    DN.boxMat=new THREE.MeshStandardMaterial({color:0x7a5a3a,roughness:0.9});{const m=new THREE.Mesh(mergeGeo(pots),DN.boxMat);m.castShadow=m.receiveShadow=true;T.add(m);}mk(soil,0x3a2618);}
   // low stone walls you can jump over
   {const wm=texRep(M.stone,1,1);const wall=(x0,z0,x1,z1)=>{const alongX=Math.abs(x1-x0)>Math.abs(z1-z0),L=alongX?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2,g=new THREE.Group();g.position.set(cx,0,cz);if(!alongX)g.rotation.y=Math.PI/2;
       const m=wm.clone();if(m.map){m.map=m.map.clone();m.map.needsUpdate=true;m.map.repeat.set(L/1.4,0.45);}const b=mesh(new THREE.BoxGeometry(L,0.58,0.42),m,0,0.29,0);g.add(b);
@@ -2154,7 +2154,6 @@ function updHero(inp){
     if(S.level==='dungeon'){if(inp.sp1)special(1);else if(inp.sp2)special(2);}
   }
   clampPos(h);
-  if(h.moving&&h.y<=0&&h.anim%10===0&&S.level!=='house')addPart({x:h.x-h.fx*0.2,y:0.05,z:h.z-h.fz*0.2,vx:rnd(-.01,.01),vy:0.008,vz:rnd(-.01,.01),g:0,life:26,size:0.1,grow:0.006,color:S.level==='town'?'#b8a088':'#8a8098',kind:'smoke'});
   if(S.level!=='town')for(const p of S.pickups){if(p.dead||p.age<14)continue;if(Math.hypot(p.x-h.x,p.z-h.z)<0.75&&h.y<1)collect(p);}
 }
 function eRad(e){return e.def.w*e.scale*U*0.5;}
