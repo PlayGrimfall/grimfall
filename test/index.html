@@ -282,6 +282,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
     <p class="note" id="saveNote">Your progress saves in this browser automatically.</p></div>
     <div id="acctBar"><p class="note" id="acctNote">Playing as a guest. Your hero saves in this browser only.</p><button class="btn alt" id="acctBtn" type="button">Sign in or create account</button></div>
     <div class="online"><p class="sub">Play online with friends (up to 4)</p><div class="row"><button class="btn alt" id="hostBtn" type="button">Host a room</button><input id="joinCode" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Room code"><button class="btn alt" id="joinBtn" type="button">Join</button></div><p class="note" id="netNote">Host a room and share the code, or type a friend's code to join.</p><div id="netInvite" class="row" hidden></div></div>
+    <p class="note">Music by Pegonthetrack &amp; ElvGames · Sound effects by TomMusic</p>
   </div>
 </div>
 
@@ -831,12 +832,21 @@ function musStep(k,t,step,sd){const sg=SONGS[k],bus=MUS.bus[k],nb=sg.chords.leng
     if(m&&b%2===1)musVoice(bus,t,mtof(m+12),sd*1.8,0.055,'flute');
     if(s===0||s===3||s===4)musDrum(bus,t,'taiko',s===0?0.32:0.22);if(s===6||s===7)musDrum(bus,t,'thump',0.14);if(s%2===1)musDrum(bus,t,'tap',0.06);}}
 function musWant(){if(!H||S.state==='start')return 'town';if(S.level==='dungeon'){const b=S.boss;return b&&b.state!=='dead'&&!b.remove?'boss':'dungeon';}return 'town';}
-function musTick(){if(!AC||!MUS.on)return;loadSfx();ambTick();const now=AC.currentTime,off=muted||SET.music===false;
+// recorded music (Complete Dark Fantasy Music Pack by Pegonthetrack & ElvGames): two streamed tracks that crossfade; the code-made music is the fallback
+const TRK={theme:['theme'],town:['town1','town2'],house:['house'],dungeon:['dungeon1','dungeon2','dungeon3'],boss:['boss1','boss2']},TRKV={theme:0.5,town:0.45,house:0.4,dungeon:0.5,boss:0.55};
+const MT={key:null,el:[null,null],i:0,fail:0};
+function trkUnlock(){if(MT.el[0])return;for(let j=0;j<2;j++){const e=new Audio();e.loop=true;e.preload='auto';e.tv=0;e.volume=0;e.addEventListener('error',()=>{if(e.getAttribute('src'))MT.fail++;});MT.el[j]=e;e.src='music/theme.mp3';e.play().then(()=>{if(e.tv===0)e.pause();}).catch(()=>{});}}
+function trkWant(){if(!H||S.state==='start')return 'theme';if(S.level==='house')return 'house';return musWant();}
+function trkPick(k){const L=TRK[k];return k==='dungeon'?L[(S.floor|0)%L.length]:L[Math.floor(Math.random()*L.length)];}
+function trkTick(){if(!MT.el[0])return;const off=muted||SET.music===false,w=off?null:trkWant(),key=w?w+(w==='dungeon'?(S.floor|0):''):null;
+  if(key!==MT.key){MT.key=key;MT.el[MT.i].tv=0;if(w){MT.i^=1;const e=MT.el[MT.i],src='music/'+trkPick(w)+'.mp3';if(!e.src.endsWith(src))e.src=src;try{e.currentTime=0;}catch(x){}e.tv=TRKV[w];e.volume=0;e.play().catch(()=>{});}}
+  for(const e of MT.el){const d=e.tv-e.volume;if(Math.abs(d)>0.001)e.volume=clamp(e.volume+Math.sign(d)*Math.min(Math.abs(d),0.008),0,1);else if(e.tv===0&&!e.paused)e.pause();}}
+function musTick(){if(!AC||!MUS.on)return;loadSfx();ambTick();trkTick();if(MT.el[0]&&MT.fail<2){MUS.master.gain.setTargetAtTime(0,AC.currentTime,0.1);return;}const now=AC.currentTime,off=muted||SET.music===false;
   MUS.master.gain.setTargetAtTime(off?0:(S.level==='house'?0.13:0.2),now,0.3);if(off){MUS.next=now+0.1;return;}
   const w=musWant();if(w!==MUS.cur){for(const k in MUS.bus)MUS.bus[k].gain.setTargetAtTime(k===w?SONGS[k].vol:0,now,k===w?0.6:0.35);MUS.cur=w;MUS.step=0;MUS.next=Math.max(MUS.next,now+0.15);}
   if(MUS.next<now)MUS.next=now+0.05;const sg=SONGS[MUS.cur],sd=60/sg.bpm/2;
   while(MUS.next<now+0.3){musStep(MUS.cur,MUS.next,MUS.step,sd);MUS.next+=sd;MUS.step++;}}
-function musStart(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();if(MUS.on)return;
+function musStart(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();trkUnlock();if(MUS.on)return;
   MUS.master=AC.createGain();MUS.master.gain.value=0;const comp=AC.createDynamicsCompressor();MUS.master.connect(comp);comp.connect(AC.destination);
   for(const k in SONGS){const g=AC.createGain();g.gain.value=0;g.connect(MUS.master);MUS.bus[k]=g;}MUS.on=true;MUS.next=AC.currentTime+0.2;setInterval(musTick,60);}catch(e){}}
 addEventListener('pointerdown',musStart);addEventListener('keydown',musStart);
