@@ -276,7 +276,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
     <p class="sub">Pick a camera (switch any time with C)</p>
     <div class="seg" id="camPick">
       <button class="opt" type="button" data-cam="diablo"><b>Overhead camera</b><span>Looks down at your hero from above and stays with you. Wheel to zoom. Always used in the dungeon.</span></button>
-      <button class="opt" type="button" data-cam="free"><b>Free camera</b><span>Turns around your hero. Q and E, or drag, to look around. Wheel to zoom.</span></button>
+      <button class="opt" type="button" data-cam="free"><b>Free camera</b><span>Turns around your hero. Q and E turn, R and F tilt up and down (or right-drag). Wheel to zoom.</span></button>
       <button class="opt" type="button" data-cam="side"><b>Side view</b><span>The camera stays side-on and follows you left to right.</span></button>
       <button class="opt" type="button" data-cam="behind"><b>Behind the hero</b><span>Right behind your hero's head. Left/Right arrows turn, A and D side-step, W and S walk. Wheel zooms in close. Works in the dungeon too.</span></button>
     </div>
@@ -2251,7 +2251,7 @@ function readInput(){
 let drag=null;
 glc.addEventListener('pointerdown',e=>{if(S.state!=='play')return;if(e.pointerType==='mouse'&&e.button!==2)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,mouse:e.pointerType==='mouse'};try{glc.setPointerCapture(e.pointerId);}catch(_){}});
 glc.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.mv+=Math.abs(dx)+Math.abs(dy);
-  if(camMode()==='free'){CAM.yaw-=dx*0.007;CAM.pitch=clamp(CAM.pitch+dy*0.004,0.22,1.15);}
+  if(camMode()==='free'){CAM.yaw-=dx*0.007;CAM.pitch=clamp(CAM.pitch+dy*0.004,0.06,1.15);}
   else if(camMode()==='behind'&&H&&H.swing<=0){const a=-dx*0.006,c=Math.cos(a),si=Math.sin(a),fx=H.fx*c+H.fz*si,fz=-H.fx*si+H.fz*c;H.fx=fx;H.fz=fz;}});
 const endDrag=e=>{if(drag&&drag.id===e.pointerId){if(drag.mouse&&e.type==='pointerup'&&drag.mv<6&&S.state==='play'){MS.sx=e.clientX;MS.sy=e.clientY;MS.sp1=true;}drag=null;}};
 glc.addEventListener('pointerup',endDrag);glc.addEventListener('pointercancel',endDrag);
@@ -3122,7 +3122,7 @@ function goHouse(id){
   (HOUSE_PROPS[id]||[]).forEach(([k,x,z,ex],i)=>{const key=`${id}-${i}`,looted=INV.looted[key];if(looted&&k!=='chest')return;
     const e=Object.assign({key},ex||{});if(k==='stash'){e.stash=true;e.fancy=true;e.key=null;k='chest';}if(looted)e.open=true;S.props.push(makeProp(k,x,z,houseGroups[id],e));});
   if(hd.npc){const n=Object.assign({fx:0,fz:1,face:1,anim:0,big:!!hd.shop,rm:NPC_RM[id]},hd.npc);n.spr=makeSprite(512,512,256,472,2);S.hnpc=n;S.talkI=0;}
-  if(SET.cam==='free'){CAM.yaw=0.25;CAM.pitch=Math.max(CAM.pitch,0.6);}
+  if(SET.cam==='free'){CAM.yaw=0.25;CAM.pitch=0.34;}
   S.banner={top:'Grimfall',text:hd.name,t:150};S.state='play';camUpdate(true);updateTouch();
 }
 function talkNpc(){const n=S.hnpc;toast(`${n.name}: "${n.lines[S.talkI%n.lines.length]}"`);S.talkI++;}
@@ -3474,6 +3474,7 @@ function step(){
   if(S.state!=='play')return;
   const inp=readInput();
   if(camMode()==='free'&&inp.rot)CAM.yaw-=inp.rot*0.035;
+  if(camMode()==='free'&&S.state==='play'){if(keys.KeyR)CAM.pitch=Math.min(1.15,CAM.pitch+0.012);if(keys.KeyF&&!keys.ShiftLeft&&!keys.ShiftRight)CAM.pitch=Math.max(0.06,CAM.pitch-0.012);} // R raises, F lowers
   else if(camMode()==='behind'&&inp.rot&&H&&H.swing<=0){const a=-inp.rot*0.045,c=Math.cos(a),si=Math.sin(a),fx=H.fx*c+H.fz*si,fz=-H.fx*si+H.fz*c;H.fx=fx;H.fz=fz;}
   camUpdate(false);
   if(S.hitStop>0){S.hitStop--;return;}
@@ -3519,7 +3520,7 @@ function camUpdate(snap){
   let tx=H.x,tz=H.z;if(side)tz=S.level==='town'?H.z-1.5:S.level==='house'?H.z*0.3:H.z*0.35;
   const k=snap?1:0.12;
   let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:bh?0.12:0.18);
-  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((pc?(pb?19:3.2):bh?1.75:1.3)+H.y*0.35)-CAM.ty)*k;
+  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((pc?(pb?19:3.2):bh?1.75:mode==='free'?1.3+Math.max(0,0.45-CAM.pitch)*3:1.3)+H.y*0.35)-CAM.ty)*k;
   const cp=Math.cos(CAM.pitchC),sh=S.shake;
   camera.position.set(CAM.tx+Math.sin(CAM.yawC)*cp*CAM.distC+rnd(-sh,sh),CAM.ty+Math.sin(CAM.pitchC)*CAM.distC+rnd(-sh,sh),CAM.tz+Math.cos(CAM.yawC)*cp*CAM.distC);
   camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
@@ -4544,7 +4545,7 @@ function drawHUD(){
     g.beginPath();g.moveTo(cx,cy-8);g.lineTo(cx+7,cy-2);g.lineTo(cx,cy+8);g.lineTo(cx-7,cy-2);g.closePath();fillOut(g,'#7fd8ff',2);}
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
   drawBelt(g);
-  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E or drag to turn · C to change':SET.cam==='behind'?'Behind the hero · arrows turn · A / D side-step · C to change':'Side view · C to change',px,py+106);
+  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E turn · R / F up and down · C to change':SET.cam==='behind'?'Behind the hero · arrows turn · A / D side-step · C to change':'Side view · C to change',px,py+106);
   if(S.level==='dungeon'&&MZ)drawMaze(g);
   // boss bar
   const b=S.boss;if(S.level==='dungeon'&&b&&b.state!=='dead'&&b.hp>0){const bw2=420,bx2=HW/2-bw2/2,by=40;g.textAlign='center';g.font=`800 22px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(b.def.name,HW/2,by-6);g.fillStyle='#f2e7cf';g.fillText(b.def.name,HW/2,by-6);
@@ -4570,8 +4571,8 @@ function buildStart(){
   document.getElementById('speedOpt').querySelector('b').textContent='Speed: '+({auto:'Auto',fast:'Fast',quality:'Sharp'}[SET.speed]||'Auto');
   document.getElementById('styleOpt').querySelector('b').textContent='Characters: '+({'3d':'3D toy figures',real:'Realistic heroes','2d':'2D storybook'}[SET.style]||'Realistic heroes');
 }
-function setCam(m){if(SET.cam!==m){SET.cam=m;if(m==='free'){CAM.yaw=CAM.yawC;}saveSet();}buildStart();}
-function toggleCam(){setCam({diablo:'free',free:'side',side:'behind',behind:'diablo'}[SET.cam]||'diablo');if(SET.cam==='behind'){toast('Behind the hero. Arrows turn, A / D side-step, W / S walk, wheel zooms in.');return;}toast((S.level==='dungeon'?'In town: ':'')+(SET.cam==='diablo'?'Overhead camera. Wheel to zoom.':SET.cam==='free'?'Free camera. Q / E or drag to turn, wheel to zoom.':'Side view.')+(S.level==='dungeon'?' The dungeon always uses the Overhead camera.':''));}
+function setCam(m){if(SET.cam!==m){SET.cam=m;if(m==='free'){CAM.yaw=CAM.yawC;CAM.pitch=0.34;}saveSet();}buildStart();}
+function toggleCam(){setCam({diablo:'free',free:'side',side:'behind',behind:'diablo'}[SET.cam]||'diablo');if(SET.cam==='behind'){toast('Behind the hero. Arrows turn, A / D side-step, W / S walk, wheel zooms in.');return;}toast((S.level==='dungeon'?'In town: ':'')+(SET.cam==='diablo'?'Overhead camera. Wheel to zoom.':SET.cam==='free'?'Free camera. Q / E turn, R / F tilt up and down, wheel to zoom.':'Side view.')+(S.level==='dungeon'?' The dungeon always uses the Overhead camera.':''));}
 document.querySelectorAll('#camPick .opt,#camSet .opt').forEach(o=>o.addEventListener('click',()=>setCam(o.dataset.cam)));
 document.getElementById('hostBtn').addEventListener('click',()=>netHost());
 document.getElementById('joinBtn').addEventListener('click',()=>netJoin(document.getElementById('joinCode').value));
