@@ -277,6 +277,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <button class="opt" type="button" data-cam="diablo"><b>Overhead camera</b><span>Looks down at your hero from above and stays with you. Wheel to zoom. Always used in the dungeon.</span></button>
       <button class="opt" type="button" data-cam="free"><b>Free camera</b><span>Turns around your hero. Q and E, or drag, to look around. Wheel to zoom.</span></button>
       <button class="opt" type="button" data-cam="side"><b>Side view</b><span>The camera stays side-on and follows you left to right.</span></button>
+      <button class="opt" type="button" data-cam="behind"><b>Behind the hero</b><span>Right behind your hero's head. A and D turn, W and S walk. Wheel zooms in close. Works in the dungeon too.</span></button>
     </div>
     <div class="go"><div class="row"><button class="btn" id="goBtn" type="button">Begin</button><button class="btn alt" id="contBtn" type="button" hidden>Continue</button></div>
     <p class="note" id="saveNote">Your progress saves in this browser automatically.</p></div>
@@ -296,6 +297,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <button class="opt" type="button" data-cam="diablo"><b>Overhead camera</b><span>Fixed, above your hero</span></button>
       <button class="opt" type="button" data-cam="free"><b>Free camera</b><span>Turns around your hero</span></button>
       <button class="opt" type="button" data-cam="side"><b>Side view</b><span>Follows you left to right</span></button>
+      <button class="opt" type="button" data-cam="behind"><b>Behind the hero</b><span>Follows your hero's head</span></button>
     </div>
     <p class="sub">Graphics</p>
     <div class="seg">
@@ -307,6 +309,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
     <div class="keylist">
       <b>WASD / Arrows</b><span>Move (in free camera, up means away from the camera)</span>
       <b>Shift</b><span>Hold while moving to run</span>
+      <b>Mouse</b><span>Click the ground to walk (hold to follow the cursor). Click a monster to attack it, hold to keep fighting. Shift+click attacks where you point. Right-click uses your special</span>
       <b>J</b><span>Attack, or enter a door when its sign lights up</span>
       <b>K</b><span>Jump. Attack in the air for a heavy hit</span>
       <b>L / I</b><span>Special and big special (cost mana)</span>
@@ -1977,8 +1980,8 @@ function screenFace(fx,fz,cur){const d=fx*Math.cos(CAM.yawC)-fz*Math.sin(CAM.yaw
 const S={floor:0,eproj:[],level:'town',state:'start',frame:0,enemies:[],npcs:[],pickups:[],props:[],proj:[],parts:[],texts:[],fx:[],timers:[],queue:[],
   wave:0,waves:[],gold:0,banner:null,boss:null,shake:0,hitStop:0,exitOpen:false,kills:0,near:null,cls:'barbarian'};
 let H=null;
-const CAM={yaw:0.35,pitch:0.48,dist:12.5,distD:14,yawC:0,pitchC:0.4,distC:13,tx:0,ty:1.3,tz:0};
-function camMode(){return S.level==='dungeon'?'diablo':SET.cam;}
+const CAM={yaw:0.35,pitch:0.48,dist:12.5,distD:14,distB:4.6,yawC:0,pitchC:0.4,distC:13,tx:0,ty:1.3,tz:0};
+function camMode(){return S.level==='dungeon'&&SET.cam!=='behind'?'diablo':SET.cam;}
 const U=0.019;
 const EN={
  mushroom:{look:'mushroom',hp:38,spd:1.0,dmg:8,reach:44,wind:26,cd:85,gold:[2,4],w:32},
@@ -2041,17 +2044,50 @@ function readInput(){
   try{const gp=navigator.getGamepads&&navigator.getGamepads()[0];if(gp){const ax=gp.axes[0]||0,ay=gp.axes[1]||0,b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
     if(Math.abs(ax)>0.35)r.mx=sgn(ax);if(Math.abs(ay)>0.35)r.my=sgn(ay);r.attack=r.attack||b(2);r.jump=r.jump||b(0);r.sp1=r.sp1||b(1);r.sp2=r.sp2||b(3);r.run=r.run||b(10);
     const rx=gp.axes[2]||0;if(Math.abs(rx)>0.3)r.rot=rx;if(b(4))r.rot=-1;if(b(5))r.rot=1;}}catch(e){}
-  const o={mx:r.mx,my:r.my,attack:r.attack,attackP:r.attack&&!prevIn.attack,jump:r.jump&&!prevIn.jump,sp1:r.sp1&&!prevIn.sp1,sp2:r.sp2&&!prevIn.sp2,rot:r.rot,run:r.run};
+  msInput(r);
+  const o={mx:r.mx,my:r.my,attack:r.attack,attackP:r.attack&&!prevIn.attack,jump:r.jump&&!prevIn.jump,sp1:r.sp1&&!prevIn.sp1,sp2:r.sp2&&!prevIn.sp2,rot:r.rot,run:r.run,mv:r.mv,face:r.face};
   prevIn=r;return o;
 }
 // drag to turn, wheel to zoom
 let drag=null;
-glc.addEventListener('pointerdown',e=>{if(S.state!=='play')return;drag={id:e.pointerId,x:e.clientX,y:e.clientY};try{glc.setPointerCapture(e.pointerId);}catch(_){}});
-glc.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
-  if(camMode()==='free'){CAM.yaw-=dx*0.007;CAM.pitch=clamp(CAM.pitch+dy*0.004,0.22,1.15);}});
-const endDrag=e=>{if(drag&&drag.id===e.pointerId)drag=null;};
+glc.addEventListener('pointerdown',e=>{if(S.state!=='play')return;if(e.pointerType==='mouse'&&e.button!==2)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,mouse:e.pointerType==='mouse'};try{glc.setPointerCapture(e.pointerId);}catch(_){}});
+glc.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.mv+=Math.abs(dx)+Math.abs(dy);
+  if(camMode()==='free'){CAM.yaw-=dx*0.007;CAM.pitch=clamp(CAM.pitch+dy*0.004,0.22,1.15);}
+  else if(camMode()==='behind'&&H&&H.swing<=0){const a=-dx*0.006,c=Math.cos(a),si=Math.sin(a),fx=H.fx*c+H.fz*si,fz=-H.fx*si+H.fz*c;H.fx=fx;H.fz=fz;}});
+const endDrag=e=>{if(drag&&drag.id===e.pointerId){if(drag.mouse&&e.type==='pointerup'&&drag.mv<6&&S.state==='play'){MS.sx=e.clientX;MS.sy=e.clientY;MS.sp1=true;}drag=null;}};
 glc.addEventListener('pointerup',endDrag);glc.addEventListener('pointercancel',endDrag);
-glc.addEventListener('wheel',e=>{const m=camMode();if(m==='side'||S.state!=='play')return;e.preventDefault();if(m==='diablo')CAM.distD=clamp(CAM.distD+e.deltaY*0.01,11,24);else CAM.dist=clamp(CAM.dist+e.deltaY*0.01,6,19);},{passive:false});
+// ================= mouse: click to move / attack, right-click special =================
+const MS={down:false,sx:0,sy:0,tx:null,tz:null,foe:null,hold:false,inPlace:false,sp1:false,last:null,stuck:0,hov:0};
+const MRC=new THREE.Raycaster(),MV2=new THREE.Vector2(),MPL=new THREE.Plane(new THREE.Vector3(0,1,0),0),MP3=new THREE.Vector3(),MPV=new THREE.Vector3();
+function msGround(sx,sy){const r=glc.getBoundingClientRect();MV2.set((sx-r.left)/r.width*2-1,-((sy-r.top)/r.height)*2+1);MRC.setFromCamera(MV2,camera);return MRC.ray.intersectPlane(MPL,MP3)?[MP3.x,MP3.z]:null;}
+function msFoe(sx,sy){if(S.level==='town')return null;const r=glc.getBoundingClientRect();let best=null,bd=48;
+  for(const e of S.enemies){if(e.state==='dead'||e.mine||e.remove)continue;for(const hy of [0.4,1.0,1.6]){MPV.set(e.x,(e.y||0)+hy*(e.scale||1),e.z).project(camera);if(MPV.z>1)continue;
+    const d=Math.hypot((MPV.x+1)/2*r.width+r.left-sx,(1-MPV.y)/2*r.height+r.top-sy);if(d<bd){bd=d;best=e;}}}return best;}
+function msOrder(){MS.stuck=0;MS.last=null;if(MS.inPlace){MS.foe=null;MS.tx=null;return;}const f=msFoe(MS.sx,MS.sy);
+  if(f){MS.foe=f;MS.tx=null;return;}MS.foe=null;const p=msGround(MS.sx,MS.sy);if(p){MS.tx=p[0];MS.tz=p[1];ring(p[0],p[1],'#ffe39a',0.25,0.05,18);}}
+glc.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||S.state!=='play')return;MS.sx=e.clientX;MS.sy=e.clientY;
+  if(e.button===0){MS.down=true;MS.inPlace=e.shiftKey;msOrder();}});
+glc.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;MS.sx=e.clientX;MS.sy=e.clientY;
+  if(S.state==='play'&&++MS.hov%4===0){const c=msFoe(MS.sx,MS.sy)?'crosshair':'';if(glc.style.cursor!==c)glc.style.cursor=c;}});
+addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')return;if(e.button===0){MS.down=false;MS.inPlace=false;}});
+glc.addEventListener('contextmenu',e=>e.preventDefault());
+function msInput(r){
+  if(S.state!=='play'||!H||H.state==='down'){MS.foe=null;MS.tx=null;return;}
+  if(r.mx||r.my){MS.foe=null;MS.tx=null;return;} // keys take over
+  const h=H,aim=()=>{const p=msGround(MS.sx,MS.sy);if(p&&Math.hypot(p[0]-h.x,p[1]-h.z)>0.2)r.face=[p[0]-h.x,p[1]-h.z];};
+  if(MS.sp1){MS.sp1=false;aim();r.sp1=true;return;}
+  if(MS.inPlace&&MS.down){aim();r.attack=true;return;}
+  if(MS.foe){const e=MS.foe;if(e.state==='dead'||e.remove||!S.enemies.includes(e)){MS.foe=null;return;}
+    const d=HEROES[h.cls],dx=e.x-h.x,dz=e.z-h.z,dist=Math.hypot(dx,dz)||0.01,reach=d.shot?8.5:(d.range||60)*U*0.95+eRad(e)+0.35;
+    if(dist>reach){r.mv=[dx/dist,dz/dist];}else{r.face=[dx,dz];r.attack=true;if(!MS.down&&h.swing>0)MS.foe=null;} // one click = one hit; hold to keep fighting
+    return;}
+  if(MS.down){const p=msGround(MS.sx,MS.sy);if(p){MS.tx=p[0];MS.tz=p[1];}}
+  if(MS.tx!=null){const dx=MS.tx-h.x,dz=MS.tz-h.z,dist=Math.hypot(dx,dz);
+    const moved=MS.last?Math.hypot(h.x-MS.last[0],h.z-MS.last[1]):1;MS.last=[h.x,h.z];MS.stuck=moved<0.01?MS.stuck+1:0;
+    if(dist<0.3||MS.stuck>12){if(!MS.down){MS.tx=null;if(S.near&&dist<3.5)r.attack=true;}return;} // arrived: use a door or talk if one is right here
+    r.mv=[dx/dist,dz/dist];}
+}
+glc.addEventListener('wheel',e=>{const m=camMode();if(m==='side'||S.state!=='play')return;e.preventDefault();if(m==='behind')CAM.distB=clamp(CAM.distB+e.deltaY*0.006,2.2,9);else if(m==='diablo')CAM.distD=clamp(CAM.distD+e.deltaY*0.01,11,24);else CAM.dist=clamp(CAM.dist+e.deltaY*0.01,6,19);},{passive:false});
 
 // ================= fx helpers =================
 function addPart(o){const p=Object.assign({x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0.006,life:30,size:0.06,color:'#fff',kind:'dot',drag:0.96,grow:0},o);p.max=p.life;S.parts.push(p);}
@@ -2176,9 +2212,11 @@ function updHero(inp){
     for(const e of S.enemies){if(e.state==='dead'||h.dashHit.has(e))continue;if(Math.hypot(e.x-h.x,e.z-h.z)<0.7+eRad(e)){h.dashHit.add(e);hurtEnemy(e,spDmg(24,1),h.fx,h.fz,true);}}
   } else {
     const cv=camVecs(), mx=inp.mx?sgn(inp.mx):0, my=inp.my?sgn(inp.my):0;
-    let vx=cv.rx*mx-cv.fx*my, vz=cv.rz*mx-cv.fz*my; const l=Math.hypot(vx,vz);
+    let vx=cv.rx*mx-cv.fx*my, vz=cv.rz*mx-cv.fz*my,bk=false;
+    if(camMode()==='behind'&&!inp.mv){if(mx&&h.swing<=0){const a=-mx*0.042,c=Math.cos(a),si=Math.sin(a),fx=h.fx*c+h.fz*si,fz=-h.fx*si+h.fz*c;h.fx=fx;h.fz=fz;}vx=-h.fx*my;vz=-h.fz*my;bk=my>0;} // A/D turn, W/S forward/back
+    if(inp.mv){vx=inp.mv[0];vz=inp.mv[1];}else if(inp.face&&h.swing<=0){const fl=Math.hypot(inp.face[0],inp.face[1]);if(fl>0.01){h.fx=inp.face[0]/fl;h.fz=inp.face[1]/fl;}} const l=Math.hypot(vx,vz);
     const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
-    if(l>0.01){vx/=l;vz/=l;h.x+=vx*spd;h.z+=vz*spd;h.moving=true;if(h.swing<=0){h.fx=vx;h.fz=vz;}
+    if(l>0.01){vx/=l;vz/=l;const sp2=bk?spd*0.6:spd;h.x+=vx*sp2;h.z+=vz*sp2;h.moving=true;if(h.swing<=0&&!bk){h.fx=vx;h.fz=vz;}
       if(h===H&&h.y<=0){h.stepD=(h.stepD||0)+spd;if(h.stepD>1.05){h.stepD=0;stepSnd();}}}
     if(inp.jump&&h.y<=0&&h.castT<=0){h.vy=0.24;sfx('jump');}
     if(inp.attack&&h.atkCD<=0&&h.castT<=0&&!S.near)heroAttack();
@@ -3191,6 +3229,7 @@ function step(){
   if(S.state!=='play')return;
   const inp=readInput();
   if(camMode()==='free'&&inp.rot)CAM.yaw-=inp.rot*0.035;
+  else if(camMode()==='behind'&&inp.rot&&H&&H.swing<=0){const a=-inp.rot*0.045,c=Math.cos(a),si=Math.sin(a),fx=H.fx*c+H.fz*si,fz=-H.fx*si+H.fz*c;H.fx=fx;H.fz=fz;}
   camUpdate(false);
   if(S.hitStop>0){S.hitStop--;return;}
   const tm=S.timers;S.timers=[];for(const t of tm){if(--t.t<=0)t.fn();else S.timers.push(t);}
@@ -3224,14 +3263,17 @@ function step(){
 }
 
 // ================= camera =================
+// behind camera: pull in so a dungeon wall never sits between the camera and the hero
+function camRoom(d){if(S.level!=='dungeon'||!MZ)return d;const bx=-H.fx,bz=-H.fz;for(let r=0.6;r<=d;r+=0.3){if(mzSolid(Math.floor((H.x+bx*r)/TS),Math.floor((H.z+bz*r)/TS)))return Math.max(1.4,r-0.5);}return d;}
 function camUpdate(snap){
   if(!H)return;
   const mode=camMode(),side=mode==='side',dia=mode==='diablo';
-  const ty=side||dia?0:CAM.yaw, tp=dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
+  const bh=mode==='behind';
+  const ty=bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
   let tx=H.x,tz=H.z;if(side)tz=S.level==='town'?H.z-1.5:S.level==='house'?H.z*0.3:H.z*0.35;
   const k=snap?1:0.12;
-  let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:0.18);
-  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=((1.3+H.y*0.35)-CAM.ty)*k;
+  let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:bh?0.12:0.18);
+  CAM.pitchC+=(tp-CAM.pitchC)*k;CAM.distC+=(td-CAM.distC)*k;CAM.tx+=(tx-CAM.tx)*k;CAM.tz+=(tz-CAM.tz)*k;CAM.ty+=(((bh?1.75:1.3)+H.y*0.35)-CAM.ty)*k;
   const cp=Math.cos(CAM.pitchC),sh=S.shake;
   camera.position.set(CAM.tx+Math.sin(CAM.yawC)*cp*CAM.distC+rnd(-sh,sh),CAM.ty+Math.sin(CAM.pitchC)*CAM.distC+rnd(-sh,sh),CAM.tz+Math.cos(CAM.yawC)*cp*CAM.distC);
   camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
@@ -4254,7 +4296,7 @@ function drawHUD(){
     g.beginPath();g.moveTo(cx,cy-8);g.lineTo(cx+7,cy-2);g.lineTo(cx,cy+8);g.lineTo(cx-7,cy-2);g.closePath();fillOut(g,'#7fd8ff',2);}
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
   drawBelt(g);
-  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E or drag to turn · C to change':'Side view · C to change',px,py+106);
+  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E or drag to turn · C to change':SET.cam==='behind'?'Behind the hero · A / D turn · C to change':'Side view · C to change',px,py+106);
   if(S.level==='dungeon'&&MZ)drawMaze(g);
   // boss bar
   const b=S.boss;if(S.level==='dungeon'&&b&&b.state!=='dead'&&b.hp>0){const bw2=420,bx2=HW/2-bw2/2,by=40;g.textAlign='center';g.font=`800 22px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(b.def.name,HW/2,by-6);g.fillStyle='#f2e7cf';g.fillText(b.def.name,HW/2,by-6);
@@ -4274,14 +4316,14 @@ function buildStart(){
     if(SET.style!=='2d'&&drawCard3d(b.querySelector('canvas'),cls,0.45))continue;
     const g=b.querySelector('canvas').getContext('2d');g.fillStyle='rgba(0,0,0,.3)';ell(g,100,186,46,10);g.fill();g.save();g.translate(100,186);g.scale(1.3,1.3);drawHero(g,{cls,face:1,anim:0,moving:false,swing:0,swingMax:1,castT:0,weapon:1,armor:cls==='barbarian'?2:1,dash:0,z:0});g.restore();}
   for(const id of ['camPick','camSet'])document.querySelectorAll('#'+id+' .opt').forEach(o=>o.classList.toggle('sel',o.dataset.cam===SET.cam));
-  document.getElementById('bCam').textContent='Camera: '+({diablo:'overhead',free:'free',side:'side'}[SET.cam]||'Diablo');
+  document.getElementById('bCam').textContent='Camera: '+({diablo:'overhead',free:'free',side:'side',behind:'behind hero'}[SET.cam]||'Diablo');
   document.getElementById('shadowOpt').querySelector('b').textContent='Sun shadows: '+(SET.shadows?'on':'off');
   document.getElementById('glowOpt').querySelector('b').textContent='Glow effects: '+(SET.glow?'on':'off');
   document.getElementById('speedOpt').querySelector('b').textContent='Speed: '+({auto:'Auto',fast:'Fast',quality:'Sharp'}[SET.speed]||'Auto');
   document.getElementById('styleOpt').querySelector('b').textContent='Characters: '+({'3d':'3D toy figures',real:'Realistic heroes','2d':'2D storybook'}[SET.style]||'Realistic heroes');
 }
 function setCam(m){if(SET.cam!==m){SET.cam=m;if(m==='free'){CAM.yaw=CAM.yawC;}saveSet();}buildStart();}
-function toggleCam(){setCam({diablo:'free',free:'side',side:'diablo'}[SET.cam]||'diablo');toast((S.level==='dungeon'?'In town: ':'')+(SET.cam==='diablo'?'Overhead camera. Wheel to zoom.':SET.cam==='free'?'Free camera. Q / E or drag to turn, wheel to zoom.':'Side view.')+(S.level==='dungeon'?' The dungeon always uses the Overhead camera.':''));}
+function toggleCam(){setCam({diablo:'free',free:'side',side:'behind',behind:'diablo'}[SET.cam]||'diablo');if(SET.cam==='behind'){toast('Behind the hero. A / D turn, W / S walk, wheel zooms in.');return;}toast((S.level==='dungeon'?'In town: ':'')+(SET.cam==='diablo'?'Overhead camera. Wheel to zoom.':SET.cam==='free'?'Free camera. Q / E or drag to turn, wheel to zoom.':'Side view.')+(S.level==='dungeon'?' The dungeon always uses the Overhead camera.':''));}
 document.querySelectorAll('#camPick .opt,#camSet .opt').forEach(o=>o.addEventListener('click',()=>setCam(o.dataset.cam)));
 document.getElementById('hostBtn').addEventListener('click',()=>netHost());
 document.getElementById('joinBtn').addEventListener('click',()=>netJoin(document.getElementById('joinCode').value));
