@@ -1315,7 +1315,9 @@ function makeGateGuards(){const G=THREE,g=GATE.g;g.updateMatrixWorld(true);
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
   const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;if(now>q.next){q.aim=!q.aim;q.next=now+(q.aim?2400:5000+Math.random()*6000);}q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);
-    if(!INV.gift&&!GATE.called&&H&&Math.hypot(H.x-q.e.x,H.z-q.e.z)<10){GATE.called=1;floatText(q.e.x,2.6,q.e.z,'Stranger! Over here!','#ffcf8a',20);}}}
+    if(!INV.gift&&q===GATE.guards[0]&&H){const d=Math.hypot(H.x-q.e.x,H.z-q.e.z);if(S.frame%90===0)floatText(q.e.x,3.2,q.e.z,'!','#ffd35c',34);
+      if(!GATE.called&&d<16){GATE.called=1;floatText(q.e.x,2.6,q.e.z,'Stranger! Over here!','#ffcf8a',20);}
+      if(!GATE.asked&&d<4.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
 // walk straight into the real buildings: door gap in the walls, camera-side walls and upper floors cut away while inside
 const WALK={map:{},cur:null,pz:new THREE.Plane(new THREE.Vector3(0,0,-1),0),py:new THREE.Plane(new THREE.Vector3(0,-1,0),2.9)};
 const walkable=id=>bldState==='ready'&&!!WALK.map[id];
@@ -2834,7 +2836,7 @@ function interactables(){
   return L;
 }
 // starter armor: the gate guard asks for help and hands over plain level-1 pieces, so the hero looks armored right away
-function guardGift(){openDlg(`<h1 class="logo sm"><small>Guard at the castle gate</small>We need your help</h1><p class="tag">Stranger! We are being overrun. Every night the Lich Queen's dead pour out of the castle, and there are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
+function guardGift(){openDlg(`<h1 class="logo sm"><small>Guard at the castle gate</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
 function giveStarter(){const g=k=>({type:'gear',kind:k,tier:0,grade:0,sockets:[null],aff:[]});for(const k of ['helm','hands','feet'])if(!H[k])H[k]=g(k);if(!H.armor||H.armor.tier<1)H.armor=Object.assign(g('armor'),{tier:1});
   INV.gift=1;recalc(H);save();sfx('go');sparks(H.x,1.4,H.z,14);toast('You put on the guard\'s armor: helmet, chest, gloves and boots. Press H to see your gear.');}
 function openPlace(id){
@@ -2860,6 +2862,8 @@ function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickabl
 const SHOP_T={smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
   gems:['Crystals & Jewels','Real crystals with real powers. Set them in your weapon, armor and jewelry, or combine three into a better one'],magic:['Runes & Magic','Runes power up your specials, elixirs make you stronger for good, and potions fill your belt']};
 const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25};
+// every shop price is 25% higher than the base numbers above
+const PRICE_UP=1.25,upP=v=>Math.round(v*PRICE_UP);for(const k in COST){const v=COST[k];COST[k]=typeof v==='function'?(...a)=>upP(v(...a)):upP(v);}
 const gemCost=t=>t==='amber'?COST.amber:COST.gem;
 let gemSel=null;
 function sellCard(){
@@ -2872,7 +2876,7 @@ function sellCard(){
 const RACK_N=['Cheap','Middle','Expensive'];
 function rackStock(){if(INV.rack&&INV.rack.cls===H.cls)return INV.rack.items;const b=H.weapon.tier,P=PRIM[H.cls]||'str';
   const items=[0,1,2].map(r=>{const tier=Math.min(4,b+[1,1,2][r]),it={type:'gear',kind:'weapon',tier,grade:r,sockets:Array(r+1).fill(null),aff:[]};
-    if(r>=1)it.aff.push({s:P,v:AFF[P].v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=[80+60*tier,150+100*tier,200+200*tier][r];return it;});
+    if(r>=1)it.aff.push({s:P,v:AFF[P].v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=upP([80+60*tier,150+100*tier,200+200*tier][r]);return it;});
   INV.rack={cls:H.cls,items};return items;}
 function rackHtml(){const w=H.weapon,G0=INV.gold;return `<div class="scard"><h3>Weapons for sale</h3><p class="note l">New stock after every trip into the dungeon. Your old weapon goes into your bag.</p>`+
   rackStock().map((it,i)=>{if(!it)return `<p class="note l">${RACK_N[i]}: sold. More after your next trip.</p>`;const rel=Math.round((Math.pow(1.25,it.tier-w.tier)*Math.pow(1.08,it.grade-w.grade)-1)*100);
@@ -2882,7 +2886,7 @@ function rackHtml(){const w=H.weapon,G0=INV.gold;return `<div class="scard"><h3>
 // never above the second-best metal and never Epic or Legendary
 function armRackStock(){if(INV.arack&&INV.arack.cls===H.cls)return INV.arack.items;const b=H.armor.tier,P=PRIM[H.cls]||'str';
   const items=[0,1,2].map(r=>{const tier=Math.min(3,b+[1,1,2][r]),it={type:'gear',kind:'armor',tier,grade:r,sockets:Array(r+1).fill(null),aff:[]};
-    if(r>=1)it.aff.push({s:'vit',v:AFF.vit.v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=[70+55*tier,140+90*tier,190+170*tier][r];return it;});
+    if(r>=1)it.aff.push({s:'vit',v:AFF.vit.v(tier)});while(it.aff.length<r)it.aff.push(rollAff(it));it.price=upP([70+55*tier,140+90*tier,190+170*tier][r]);return it;});
   INV.arack={cls:H.cls,items};return items;}
 function armRackHtml(){const a=H.armor,G0=INV.gold;return `<p class="sub l">Armor for sale</p><p class="note l">New stock after every trip into the dungeon. Your old armor goes into your bag.</p>`+
   armRackStock().map((it,i)=>{if(!it)return `<p class="note l">${RACK_N[i]}: sold. More after your next trip.</p>`;const dt=it.tier-a.tier;
@@ -2910,7 +2914,7 @@ function renderShop3(id){
     card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
       +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
       +`<p class="sub l">Rune: ${H.rune?esc(RUNES[H.rune].n):'none'}</p>`+Object.keys(RUNES).map(k=>buyBtn('rune-'+k,RUNES[k].n,RUNES[k].e,H.rune===k?null:COST.rune,H.rune!==k&&G0>=COST.rune)).join('')
-      +`<p class="sub l">Elixirs</p>`+buyBtn('vit','Elixir of Vitality','+20 max health for good',60+25*H.vit,G0>=60+25*H.vit)+buyBtn('foc','Elixir of Focus','+15 max mana for good',60+25*H.foc,G0>=60+25*H.foc);}
+      +`<p class="sub l">Elixirs</p>`+buyBtn('vit','Elixir of Vitality','+20 max health for good',upP(60+25*H.vit),G0>=upP(60+25*H.vit))+buyBtn('foc','Elixir of Focus','+15 max mana for good',upP(60+25*H.foc),G0>=upP(60+25*H.foc));}
   else{
     const line=(kind,label,col)=>`<div class="itemline"><span style="color:${col}">${esc(label)}</span> ${socketsHtml(itemOf(H,kind),kind,true)}</div>`;
     card=line('weapon',gearName({kind:'weapon',tier:w.tier,set:w.set}),GRADES[w.grade].c)+line('armor',gearName({kind:'armor',tier:a.tier,set:a.set}),GRADES[a.grade].c)+EXTRA.filter(k=>H[k]).map(k=>line(k,gearName({kind:k,tier:H[k].tier,set:H[k].set}),GRADES[H[k].grade].c)).join('')+`<p class="sub l">Jewelry · rings go two on each hand</p>`;
@@ -2921,7 +2925,7 @@ function renderShop3(id){
     card+=`<p class="sub l">Your crystal pouch</p>`+(owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<button class="chip ${gemSel===k?'sel':''}" type="button" data-act="pick-${k}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</button>`;}).join('')}</div>`:'<p class="note l">No crystals yet. Buy some here or find them in the dungeon.</p>')
       +`<p class="note l">${gemSel?`Now tap an empty setting to set the ${GEM_LV[+gemSel.slice(-1)]} ${GEMS[gemSel.slice(0,-1)].n}.`:'Tap a crystal, then an empty setting. Tap a set crystal to take it out.'}</p>`;
     const combos=owned.filter(k=>+k.slice(-1)<3&&INV.gems[k]>=3);
-    if(combos.length)card+=`<div class="chips">${combos.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<button class="chip" type="button" data-act="combine-${k}" ${G0>=25*lv?'':'disabled'}>Combine 3 → ${GEM_LV[lv+1]} ${GEMS[t].n} · ${25*lv}g</button>`;}).join('')}</div>`;
+    if(combos.length)card+=`<div class="chips">${combos.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<button class="chip" type="button" data-act="combine-${k}" ${G0>=upP(25*lv)?'':'disabled'}>Combine 3 → ${GEM_LV[lv+1]} ${GEMS[t].n} · ${upP(25*lv)}g</button>`;}).join('')}</div>`;
     extra=`<div class="scard"><h3>Crystals for sale</h3><div class="chips">${[1,2,3].map(q=>`<button class="chip ${gemQ===q?'sel':''}" type="button" data-act="gq-${q}">${RACK_N[q-1]}: ${GEM_LV[q]}</button>`).join('')}</div>${GEM_TYPES.map(t=>buyBtn('buygem-'+t,GEM_LV[gemQ]+' '+GEMS[t].n,GEMS[t].e,gemPrice(t,gemQ),G0>=gemPrice(t,gemQ),iconURL({type:'crystal',t}))).join('')}
       <p class="note l">A Polished crystal counts twice and a Flawless one three times. Crystals stack across your weapon, armor and jewelry.</p></div>`;
   }
@@ -2946,8 +2950,8 @@ function renderShop3(id){
     if(k==='xgrade'&&H[x]&&H[x].grade<4&&pay(COST.xgrade(H[x].grade)))setGrade(H[x],H[x].grade+1);
     if(k==='pot'&&INV.belt[x]<BELT_MAX&&pay(COST.potion))INV.belt[x]++;
     if(k==='rune'&&H.rune!==x&&pay(COST.rune))H.rune=x;
-    if(k==='vit'&&pay(60+25*H.vit)){H.vit++;recalc(H);H.hp=H.maxHp;}
-    if(k==='foc'&&pay(60+25*H.foc)){H.foc++;recalc(H);H.mp=H.maxMp;}
+    if(k==='vit'&&pay(upP(60+25*H.vit))){H.vit++;recalc(H);H.hp=H.maxHp;}
+    if(k==='foc'&&pay(upP(60+25*H.foc))){H.foc++;recalc(H);H.mp=H.maxMp;}
     if(k==='jbuy'&&!H.jewels[x]&&pay(COST.jbuy)){H.jewels[x]={tier:0,sockets:Array(JEWELS.find(j=>j.id===x).s).fill(null)};recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;}
     if(k==='jup'&&H.jewels[x]&&H.jewels[x].tier<3&&pay(COST.jup(H.jewels[x].tier))){H.jewels[x].tier++;recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;}
     if(k==='gq'){gemQ=clamp(+x,1,3);}
@@ -2955,7 +2959,7 @@ function renderShop3(id){
     if(k==='pick')gemSel=gemSel===x?null:x;
     if(k==='sock'&&gemSel&&INV.gems[gemSel]){itemOf(H,x).sockets[+y]={t:gemSel.slice(0,-1),lv:+gemSel.slice(-1)};addGem(INV,gemSel.slice(0,-1),+gemSel.slice(-1),-1);sfx('gem');if(!INV.gems[gemSel])gemSel=null;}
     if(k==='unsock'){const it=itemOf(H,x),s=it.sockets[+y];if(s){addGem(INV,s.t,s.lv);it.sockets[+y]=null;}}
-    if(k==='combine'){const t=x.slice(0,-1),lv=+x.slice(-1);if(INV.gems[x]>=3&&pay(25*lv)){addGem(INV,t,lv,-3);addGem(INV,t,lv+1);sfx('gem');}}
+    if(k==='combine'){const t=x.slice(0,-1),lv=+x.slice(-1);if(INV.gems[x]>=3&&pay(upP(25*lv))){addGem(INV,t,lv,-3);addGem(INV,t,lv+1);sfx('gem');}}
     if(k==='sell'){const it=INV.bag[+x];if(it){INV.gold+=itemValue(it);if(it.sockets)for(const s of it.sockets)if(s)addGem(INV,s.t,s.lv);INV.bag.splice(+x,1);sfx('coin');}}
     if(k==='sellgoods'){for(const it of INV.bag)if(it.type==='goods')INV.gold+=it.v*(it.q||1);INV.bag=INV.bag.filter(it=>it.type!=='goods');sfx('coin');}
     recalc(H);renderShop3(id);});
@@ -4256,7 +4260,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['Cold water. The creak of old wood. Gulls crying somewhere above.','You wake on a wooden dock, soaked to the bone, with no memory of how you got here.'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Rest at the house marked Your House. When you are ready, follow the path east through the gate. The castle waits.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','The guards at the east gate are losing the fight. Go and see them first. They will not send you down there without armor.','Your house is the one marked Your House, if you need rest. Then follow the path east to the gate. The castle waits.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
@@ -4280,7 +4284,7 @@ function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=
 function endIntro(){if(!INTRO)return;const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
   const n=INTRO.npc;if(n){killSprite(n.spr);if(n.spr.rfig)n.spr.rfig=null;S.npcs=S.npcs.filter(x=>x!==n);}INTRO=null;introWaves(false);
   Object.assign(H,{state:'ok',inv:30});S.state='play';S.banner={top:'Sumera',text:'Town of Grimfall',t:170};camUpdate(true);updateTouch();save();
-  schedule(120,()=>toast('Press H to change your name or look. Your house is the first one across the street.'));}
+  schedule(120,()=>toast(INV.gift?'Press H to change your name or look. Your house is the first one across the street.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
 function introWaves(on){try{if(!on){if(INTRO_W){const w=INTRO_W;INTRO_W=null;w.g.gain.setTargetAtTime(0,AC.currentTime,0.6);setTimeout(()=>{try{w.src.stop();}catch(e){}},2500);}return;}
   if(muted)return;musStart();const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();
   const b=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate),d=b.getChannelData(0);let v=0;for(let i=0;i<d.length;i++){v=v*0.97+(Math.random()*2-1)*0.03;d[i]=v*6;}src.buffer=b;src.loop=true;
