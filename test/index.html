@@ -1463,8 +1463,8 @@ function dockClamp(o,r,b){for(const q of DOCK_W)if(o.x>=q[0]+r&&o.x<=q[1]-r&&o.z
   for(const q of DOCK_W){const x=clamp(o.x,q[0]+r,q[1]-r),z=clamp(o.z,q[2]+r,q[3]-r),d=Math.hypot(x-o.x,z-o.z);if(d<bd){bd=d;bx=x;bz=z;}}o.x=bx;o.z=bz;}
 function harborTier(){const d=INV.deepest||0;return d>=4?4:d;}
 function buildVessel(kind){
-  const g=new THREE.Group(),big=kind==='merchant',L=big?6.2:3.1,B=big?2.1:1.2,D=big?1.9:0.9,dy=big?1.0:0.42,wallH=big?0.6:0.3;
-  const hullM=lam({map:TX.hull}),trim=lam({color:0x3e2616}),hm=lam({map:TX.hull,side:THREE.DoubleSide});
+  const war=kind==='war',g=new THREE.Group(),big=kind==='merchant'||war,L=war?5.2:big?6.2:3.1,B=war?1.6:big?2.1:1.2,D=war?1.6:big?1.9:0.9,dy=war?0.9:big?1.0:0.42,wallH=big?0.6:0.3;
+  const hullM=war?lam({map:TX.hull,color:0x8a8a9a}):lam({map:TX.hull}),trim=lam({color:0x3e2616}),hm=lam({map:TX.hull,side:THREE.DoubleSide});
   const h=mesh(new THREE.SphereGeometry(1,24,10,0,Math.PI*2,Math.PI/2,Math.PI/2),hullM,0,dy,0);h.scale.set(L,D,B);g.add(h);
   const w=mesh(new THREE.CylinderGeometry(1,1,wallH,24,1,true),hm,0,dy+wallH/2,0);w.scale.set(L,1,B);g.add(w);
   const rim=mesh(new THREE.TorusGeometry(1,big?0.07:0.05,5,30),trim,0,dy+wallH,0);rim.rotation.x=Math.PI/2;rim.scale.set(L,B,1);g.add(rim);
@@ -1472,7 +1472,7 @@ function buildVessel(kind){
   const mastH=big?11:5.6,mx=big?0.4:0.7;g.add(mesh(new THREE.CylinderGeometry(big?0.12:0.07,big?0.17:0.1,mastH,9),trim,mx,dy+mastH/2,0));
   const lp=[];const Ln=(a,b)=>lp.push(...a,...b);
   if(big){ // merchant cog: one big striped square sail, a raised stern castle, cargo on deck
-    const st=canvasTex(128,128,(c,W,H)=>{for(let i=0;i<8;i++){c.fillStyle=i%2?'#ece0c4':'#a8382c';c.fillRect(i*W/8,0,W/8,H);}c.fillStyle='rgba(60,40,20,.18)';for(let k=0;k<300;k++)c.fillRect(Math.random()*W,Math.random()*H,2,2);});
+    const st=canvasTex(128,128,(c,W,H)=>{for(let i=0;i<8;i++){c.fillStyle=i%2?'#ece0c4':war?'#2a4a7a':'#a8382c';c.fillRect(i*W/8,0,W/8,H);}c.fillStyle='rgba(60,40,20,.18)';for(let k=0;k<300;k++)c.fillRect(Math.random()*W,Math.random()*H,2,2);});
     const sw=4.2,sh=5.2,sg=new THREE.PlaneGeometry(sw,sh,10,8),a=sg.attributes.position;for(let i=0;i<a.count;i++){const u=a.getX(i)/sw+0.5,v=a.getY(i)/sh+0.5;a.setZ(i,Math.sin(Math.PI*u)*Math.sin(Math.PI*(0.1+v*0.8))*0.7);}sg.computeVertexNormals();
     const sl=new THREE.Mesh(sg,new THREE.MeshLambertMaterial({map:st,side:THREE.DoubleSide}));sl.rotation.y=Math.PI/2;sl.position.set(mx+0.15,dy+5.9,0);sl.castShadow=true;g.add(sl);
     for(const yy of [dy+8.5,dy+3.3]){const yd=mesh(new THREE.CylinderGeometry(0.07,0.07,sw+0.4,8),trim,mx,yy,0);yd.rotation.x=Math.PI/2;g.add(yd);}
@@ -1482,7 +1482,9 @@ function buildVessel(kind){
     const bs=mesh(new THREE.CylinderGeometry(0.06,0.11,3,7),trim,L+0.9,dy+1.1,0);bs.rotation.z=-1.25;g.add(bs);
     const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.1,0.55),new THREE.MeshLambertMaterial({map:TX.flag,side:THREE.DoubleSide}));fl.position.set(mx-0.55,dy+mastH+0.2,0);g.add(fl);
     for(const s of [-1,1]){Ln([mx,dy+mastH-0.4,0],[mx-1.2,dy+wallH,s*B*0.95]);Ln([mx,dy+mastH-0.4,0],[mx+1.2,dy+wallH,s*B*0.95]);}Ln([mx,dy+mastH,0],[L+2.1,dy+1.6,0]);Ln([mx,dy+mastH,0],[-L*0.95,dy+1.4,0]);
-    g.userData.cargo=[[1.6,0.6],[2.3,-0.5],[-1.2,0.7],[-1.8,-0.6],[2.9,0.4]];
+    g.userData.cargo=war?[[1.8,0.5],[-0.9,-0.5]]:[[1.6,0.6],[2.3,-0.5],[-1.2,0.7],[-1.8,-0.6],[2.9,0.4]];
+    if(war){const ir=lam({color:0x2a2a32});for(const x of [-1.6,0.2,2.0])for(const s of [-1,1]){const zz=s*B*Math.sqrt(Math.max(0,1-(x/L)**2))*0.98;const c=mesh(new THREE.CylinderGeometry(0.09,0.13,0.7,10),ir,x,dy+0.32,zz+s*0.18);c.rotation.x=Math.PI/2;g.add(c);}
+      const nf=canvasTex(64,32,(c,W,H)=>{c.fillStyle='#2a4a7a';c.fillRect(0,0,W,H);c.fillStyle='#e8d48a';c.beginPath();c.arc(W/2,H/2,8,0,7);c.fill();});const fl2=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.6),new THREE.MeshLambertMaterial({map:nf,side:THREE.DoubleSide}));fl2.position.set(-L*0.66,dy+3.0,0);g.add(fl2);g.add(mesh(new THREE.CylinderGeometry(0.04,0.04,1.7,6),trim,-L*0.66-0.6,dy+2.2,0));}
   } else { // fishing boat: one mast with a triangle sail, nets and baskets
     const ts=new THREE.Shape();ts.moveTo(0,0);ts.lineTo(0,4.3);ts.lineTo(-2.6,0.3);ts.lineTo(0,0);
     const sl=new THREE.Mesh(new THREE.ShapeGeometry(ts),new THREE.MeshLambertMaterial({map:TX.sailPlain,side:THREE.DoubleSide}));sl.position.set(mx-0.05,dy+0.9,0);sl.castShadow=true;g.add(sl);
@@ -1556,7 +1558,13 @@ function dockDeco(T){
   DKFX.ves=[];const V=(kind,x,z,ry,tier,opt={})=>{const v=buildVessel(kind);v.position.set(x,kind==='merchant'?-0.25:-0.15,z);v.rotation.y=ry;add(v);
     for(const [cx,cz] of v.userData.cargo){const q=new THREE.Group();q.position.set(cx,v.userData.dy,cz);v.add(q);if(er()<0.5){const b=mesh(bG,M.wood,0,0,0);b.scale.setScalar(0.8);q.add(b);}else q.add(mesh(new THREE.BoxGeometry(0.6,0.6,0.6),M.wood,0,0.3,0));}
     DKFX.ves.push(Object.assign({v,tier,y0:v.position.y,ph:er()*6},opt));return v;};
-  const shop=V('fish',-53,4.75,0,0,{shop:true});V('fish',-51,9.6,Math.PI,0);V('fish',-50.5,15.1,0.05,1);V('merchant',-50,-12.1,Math.PI,2);V('merchant',-70,9,0.5,3);V('fish',-80,0,0,3,{sail:{cx:-78,cz:2,r:14,sp:0.05}});
+  const shop=V('fish',-53,4.75,0,0,{shop:true});V('fish',-51,9.6,Math.PI,0);V('fish',-50.5,15.1,0.05,1);V('merchant',-50,-12.1,Math.PI,2);V('war',-50.2,-5.15,0,0);
+  for(const [x,z,r] of [[-47.6,-7.5,0.2],[-48.4,-7.55,-0.15],[-48,-7.5,0]])crate(x,z,0.5,Y+(r===0?0.5:0),r);
+  // the stack of arms the soldiers are building up beside the gate tower
+  {const ax=48.4,az=4.4;crate(ax,az,0.6,Y,0.1);crate(ax+0.7,az,0.6,Y,-0.1);crate(ax+0.35,az,0.55,Y+0.6,0.3);crate(ax-0.6,az+0.6,0.5,Y,0.5);
+   const sp=new THREE.MeshStandardMaterial({color:0x6a4a2a}),tip=new THREE.MeshStandardMaterial({color:0x9aa0aa,metalness:0.7,roughness:0.4});
+   for(let i=0;i<6;i++){const a=mesh(new THREE.CylinderGeometry(0.025,0.025,2.2,5),sp,ax+1.3+i*0.07,Y+1.05,az+0.4);a.rotation.z=0.12-i*0.04;add(a);add(mesh(new THREE.ConeGeometry(0.05,0.2,5),tip,ax+1.3+i*0.07-Math.sin(0.12-i*0.04)*1.15,Y+2.2,az+0.4));}col(ax-0.95,ax+1.6,az-0.4,az+0.95);}
+V('merchant',-70,9,0.5,3);V('fish',-80,0,0,3,{sail:{cx:-78,cz:2,r:14,sp:0.05}});
   // Gil's stall on the shop boat: a striped awning over a counter of fish on ice
   {const aw=canvasTex(64,64,(c,W,H)=>{for(let i=0;i<8;i++){c.fillStyle=i%2?'#e8e2d0':'#2f7a5a';c.fillRect(i*W/8,0,W/8,H);}});const dy=shop.userData.dy;
     for(const [x,z] of [[-1.2,-0.75],[1.2,-0.75],[-1.2,0.55],[1.2,0.55]])shop.add(mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,6),darkW,x,dy+1.05,z));
@@ -1581,15 +1589,20 @@ function makeHarborFolk(){
   const gil={x:-53.1,z:4.7,y:0.3,tx:-53.1,tz:4.7,vx:-1,pause:1e9,anim:0,col:'#3a6a8a',hat:1,skin:'#d9a07a',face:-1,fx:0,fz:-1,rm:'mage',tint:'#bcd0e0',tall:1.74,keeper:true,gil:true,spr:sp()};S.npcs.push(gil);DKFX.gil=gil;
   const R=[[[-31,-6.2],[-36.6,2.2],[-41.5,2.2],[-42.6,3.6],[-42.6,12.3],[-53.5,12.3]],
            [[-25,-6.2],[-36.6,1.9],[-41.5,1.9],[-42.4,0.6],[-42.4,-8.3],[-53.5,-8.3]],
-           [[-22,6.4],[-36.6,2.5],[-56.5,2.5]]];
+           [[-22,6.4],[-36.6,2.5],[-56.5,2.5]],
+           [[-49,-7.6],[-42.4,-7.6],[-42.3,1.4],[-41.5,1.6],[-36.6,1.6],[-8,1.6],[-5.5,7.2],[5.5,7.2],[8,1.6],[47.6,1.6],[48.2,3.4]],
+           [[-48.2,-8.4],[-42.6,-8.4],[-42.5,1.2],[-41.5,1.3],[-36.6,1.3],[-8,1.3],[-5.8,7.6],[5.8,7.6],[8,1.3],[47.2,1.3],[47.6,3.2]]];
   R.forEach((route,i)=>{const p=route[0];S.npcs.push({x:p[0],z:p[1],tx:p[0],tz:p[1],vx:1,pause:ri(0,200),anim:ri(0,99),col:'#7a5a3a',hat:0,skin:'#c98a62',face:1,fx:1,fz:0,
-    rm:['guard','mage','guard'][i],tint:['#c8a888','#a8a090','#9aa8b0'][i],tall:[1.78,1.7,1.82][i],pace:[1,0.92,1.06][i],route,ri:1,dir:1,carry:false,load:i===1?'sack':'crate',keeper:true,spr:sp()});});
+    rm:['guard','mage','guard','guard','guard'][i],tint:['#c8a888','#a8a090','#9aa8b0','#b8c4dc','#a8b8d4'][i],tall:[1.78,1.7,1.82,1.84,1.8][i],pace:[1,0.92,1.06,1.12,1.04][i],route,ri:1,dir:i>2?-1:1,ri0:0,carry:false,load:['crate','sack','crate','arms','bolts'][i],keeper:true,spr:sp()});});
+  for(const n of S.npcs)if(n.route&&n.dir<0){n.ri=n.route.length-2;n.x=n.route[n.route.length-1][0];n.z=n.route[n.route.length-1][1];} // the soldiers start at the gate
 }
 function workerTick(n){const p=n.route[n.ri],dx=p[0]-n.x,dz=p[1]-n.z,d=Math.hypot(dx,dz);
-  if(d<0.2){n.ri+=n.dir;if(n.ri<0||n.ri>=n.route.length){n.dir=-n.dir;n.ri+=2*n.dir;n.pause=ri(90,220);n.carry=n.dir<0;}return;} // turn round at each end: load up at the pier, drop off in town
+  if(d<0.2){n.ri+=n.dir;if(n.ri<0||n.ri>=n.route.length){n.dir=-n.dir;n.ri+=2*n.dir;n.pause=ri(90,220);n.carry=(n.load==='arms'||n.load==='bolts')?n.dir>0:n.dir<0;}return;} // turn round at each end: load up at the pier, drop off in town
   n.fx=dx/d;n.fz=dz/d;const sp=0.03*(n.pace||1);n.x+=n.fx*Math.min(sp,d);n.z+=n.fz*Math.min(sp,d);}
 function cargoShow(n,R){if(!R.cargo){const c=new THREE.Group(),k=(n.tall||1.75)/1.75;
-    if(n.load==='sack'){const s=mesh(new THREE.SphereGeometry(0.2,10,8),new THREE.MeshStandardMaterial({color:0x8a7448,roughness:1}),0.17*k,1.48*k,-0.1);s.scale.set(0.85,0.7,1.35);s.rotation.x=0.4;c.add(s);}
+    if(n.load==='arms'){c.add(mesh(new THREE.BoxGeometry(0.34,0.3,1.0),M.wood,0.22*k,1.4*k,0));c.add(mesh(new THREE.BoxGeometry(0.36,0.06,1.02),new THREE.MeshStandardMaterial({color:0x34343a,metalness:0.5}),0.22*k,1.56*k,0));}
+    else if(n.load==='bolts'){const sm=new THREE.MeshStandardMaterial({color:0x6a4a2a}),fm=new THREE.MeshStandardMaterial({color:0xd8d0c0});for(let j=0;j<7;j++){const b=mesh(new THREE.CylinderGeometry(0.02,0.02,1.1,4),sm,0.22*k+(j%3-1)*0.04,1.4*k+((j/3)|0)*0.04,0);b.rotation.x=Math.PI/2;c.add(b);}c.add(mesh(new THREE.TorusGeometry(0.08,0.02,4,10),new THREE.MeshStandardMaterial({color:0x3a2a1a}),0.22*k,1.42*k,0));}
+    else if(n.load==='sack'){const s=mesh(new THREE.SphereGeometry(0.2,10,8),new THREE.MeshStandardMaterial({color:0x8a7448,roughness:1}),0.17*k,1.48*k,-0.1);s.scale.set(0.85,0.7,1.35);s.rotation.x=0.4;c.add(s);}
     else{c.add(mesh(new THREE.BoxGeometry(0.55,0.5,0.32),M.wood,0,1.15*k,-0.3));c.add(mesh(new THREE.BoxGeometry(0.06,0.55,0.36),new THREE.MeshStandardMaterial({color:0x4a3424}),0.18,1.15*k,-0.29));}
     R.root.add(c);R.cargo=c;}R.cargo.visible=!!n.carry;}
 function makeMotes(grp,col,n,b){const p=new Float32Array(n*3);for(let i=0;i<n;i++){p[i*3]=rnd(b.x0,b.x1);p[i*3+1]=rnd(b.y0,b.y1);p[i*3+2]=rnd(b.z0,b.z1);}
