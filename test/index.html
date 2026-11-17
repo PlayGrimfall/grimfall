@@ -801,7 +801,7 @@ function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route);L.forEach((n,i)
 function lqPreview(){if(!S.lqKeep)S.lqKeep={d:INV.deepest||0,c:!!INV.cleared,f:INV.fwShown};goDungeon(3);if(!MZ)return;const BR=MZ.rooms.find(r=>r.kind==='boss');if(!BR)return;
   for(const i of BR.doors){const d=MZ.doors[i];d.lock=null;d.open=true;}mzRefreshBlk();const [cx,cz]=mzCenter(BR);H.x=cx;H.z=cz+TS;camUpdate(true);toast('Preview: the Lich Queen falls (your progress is put back afterwards)');
   let n=0;const iv=setInterval(()=>{n++;if(S.level!=='dungeon'||n>80){clearInterval(iv);return;}const b=S.enemies.find(e=>e.def&&e.def.boss&&e.state!=='dead');if(b){clearInterval(iv);b.spawnInv=0;b.inv=0;hurtEnemy(b,b.hp+99999,0,1,false);}},250);}
-function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.'),900);setTimeout(royalThanks,3500);}
+function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.'),900);}
 function fwInit(){if(FW.pts)return;const g=new THREE.BufferGeometry();FW.pos=new Float32Array(FW.n*3).fill(-999);FW.col=new Float32Array(FW.n*3);FW.vel=new Float32Array(FW.n*3);FW.life=new Float32Array(FW.n);
   g.setAttribute('position',new THREE.BufferAttribute(FW.pos,3));g.setAttribute('color',new THREE.BufferAttribute(FW.col,3));
   FW.pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.9,map:TX.glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));FW.pts.frustumCulled=false;scene.add(FW.pts);}
@@ -1952,7 +1952,7 @@ function buildMaze(fi){
   mzDecor(fi,theme);
   // portal (opens when the boss falls)
   const BR=D.rooms.find(r=>r.kind==='boss'),[bx]=mzCenter(BR);
-  const portal=new THREE.Group();portal.position.set(bx,0,(BR.z0+1.6)*TS);
+  const portal=new THREE.Group();portal.position.set(fi===3?bx+Math.min(5,(BR.x1-BR.x0+1)*TS/2-2.2):bx,0,(BR.z0+1.6)*TS);if(fi===3)buildLichThrone(bx,BR.z0*TS+1.25);
   // magic mirror portal: arched gold frame, swirling glass, stone base and candles
   const arch=(w,h,sh)=>{const r=w/2;sh.moveTo(-r,0);sh.lineTo(r,0);sh.lineTo(r,h-r);sh.absarc(0,h-r,r,0,Math.PI,false);sh.lineTo(-r,0);return sh;};
   const fr=arch(2.9,4.3,new THREE.Shape());fr.holes.push(arch(2.3,3.95,new THREE.Path()));
@@ -2117,7 +2117,7 @@ function updRooms(){
 }
 function updMaze(){
   if(!MZ)return;
-  if(S.frame%5===0)mzReveal();prisTick();gilTick();
+  if(S.frame%5===0)mzReveal();prisTick();gilTick();lichTick();
   for(const d of MZ.doors){const o=MZ.doorObjs[d.i];
     if(!d.open&&!d.lock&&!d.bar&&Math.hypot(H.x-o.cx,H.z-o.cz)<2.9){d.open=true;mzRefreshBlk();sfx('door');}
     const ta=d.open&&!d.lock?1:0;d.anim+=(ta-d.anim)*0.12;
@@ -2911,6 +2911,7 @@ function clearLevel(){
   if(S.hnpc){killSprite(S.hnpc.spr);S.hnpc=null;}
   if(S.pris){if(!S.pris.gone)killSprite(S.pris.spr);S.pris=null;}
   if(S.gilp){if(!S.gilp.gone)killSprite(S.gilp.spr);S.gilp=null;}
+  for(const R of LT.royals)scene.remove(R.root);LT.royals=[];LT.g=null;
   Object.assign(S,{proj:[],eproj:[],parts:[],texts:[],fx:[],timers:[],queue:[],boss:null,exitOpen:false,shake:0,hitStop:0,near:null});
 }
 function setLevel(lv){
@@ -2921,7 +2922,7 @@ function setLevel(lv){
 function goTown(spot){
   if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
-  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);setTimeout(royalThanks,3500);}
+  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
@@ -2957,7 +2958,7 @@ function bossDown(){
   INV.deepest=Math.max(INV.deepest||0,S.floor+1);if(S.floor>=3)INV.cleared=true;save();
   portal.visible=true;portal.userData.pl.intensity=1.8;
   schedule(150,()=>toast('A glowing portal opened in the boss room. Walk up to it and press J.'));
-  if(S.floor>=3)schedule(420,()=>toast('Beneath the shattered throne you find the King and Queen in chains, and set them free. They will meet you in town.'));
+  if(S.floor>=3)schedule(240,()=>{if(LT.g&&!LT.broken){if(freed().magic)lichBreak();else toast('Free Master Wren to break the last of the Lich Queen\'s spells.');}});
 }
 function enterDoorOld(d){
   sfx('door');
@@ -3071,7 +3072,7 @@ function realNpc(n,tall){const rm=SET.style==='real'&&n.rm;if(!rm||loadReal(null
     else if(n.tint&&n.tint!=='#ffffff'){const tc=new THREE.Color(n.tint);for(const m of n.spr.rfig.mats)if(m.color)m.color.multiply(tc);}}const R=n.spr.rfig,dt=Math.min(0.05,R.clock.getDelta());
   R.root.position.set(n.x,n.y||0,n.z);let dd=Math.atan2(n.fx,n.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.15;R.root.rotation.y=R.yaw;
   const hasW=!!R.act.walk,P=townPanic();
-  if(n.rush&&R.act.run)R.play('run',false,1.15);else if(n.home&&R.act.walk)R.play('walk');else if(n.dancing&&R.act.samba)R.play(n.dclip);else if(FW.party>0&&n.cheer&&n.cspot&&won())R.play('jump',false,1.25);else if(n.pause>0||S.level==='house')R.play('idle');else if(n.route&&n.carry&&n.load==='crate'&&R.act.carry)R.play('carry',false,(n.pace||1)*1.05);else if(hasW&&(n.route||P<0.35))R.play('walk',false,n.route?(n.pace||1)*1.05:(0.025+0.04*P)/0.026*(n.pace||1));else R.play('run',false,n.route?0.5*(n.pace||1):(0.42+0.65*P)*(n.pace||1));R.mixer.update(dt);if(n.route)cargoShow(n,R);n.spr.mesh.visible=false;return true;}
+  if(n.royal)R.play('idle');else if(n.rush&&R.act.run)R.play('run',false,1.15);else if(n.home&&R.act.walk)R.play('walk');else if(n.dancing&&R.act.samba)R.play(n.dclip);else if(FW.party>0&&n.cheer&&n.cspot&&won())R.play('jump',false,1.25);else if(n.pause>0||S.level==='house')R.play('idle');else if(n.route&&n.carry&&n.load==='crate'&&R.act.carry)R.play('carry',false,(n.pace||1)*1.05);else if(hasW&&(n.route||P<0.35))R.play('walk',false,n.route?(n.pace||1)*1.05:(0.025+0.04*P)/0.026*(n.pace||1));else R.play('run',false,n.route?0.5*(n.pace||1):(0.42+0.65*P)*(n.pace||1));R.mixer.update(dt);if(n.route)cargoShow(n,R);n.spr.mesh.visible=false;return true;}
 const sailorLoot=p=>{for(const n of ['Old Map Piece','Pearl String'])dropPickup('goods',p.x,p.z,0,goodsNamed(n));dropPickup('crystal',p.x,p.z,0,{t:'fireopal',lv:2});dropPickup('gear',p.x,p.z,0,gearFor(0.35));for(let i=0;i<6;i++)dropPickup('gold',p.x,p.z,10);};
 const emptyLoot=p=>{dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));dropPickup('crystal',p.x,p.z,0,{t:'amber',lv:1});dropPickup('gear',p.x,p.z,0,gearFor(0.5,'weapon'));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);};
 const HOUSE_PROPS={
@@ -3107,7 +3108,7 @@ function boardUp(){const g=new THREE.Group(),wd=lam({color:0x6a4a30,map:TX.plank
   const x1=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x1.rotation.z=0.62;g.add(x1);const x2=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x2.rotation.z=-0.62;g.add(x2);
   const t=canvasTex(256,96,(c,w,h)=>{c.fillStyle='#d8c6a0';c.fillRect(0,0,w,h);c.strokeStyle='#5a3a20';c.lineWidth=6;c.strokeRect(4,4,w-8,h-8);c.fillStyle='#8a1a1a';c.font='700 50px Georgia';c.textAlign='center';c.textBaseline='middle';c.fillText('CLOSED',w/2,h/2+3);});
   const sg=mesh(new THREE.PlaneGeometry(1.3,0.5),lam({map:t}),0,2.45,0.24,false,false);sg.rotation.z=-0.06;g.add(sg);return g;}
-function shutTick(){SHUT_COL.length=0;gilTankTick();msgTick();
+function shutTick(){SHUT_COL.length=0;gilTankTick();msgTick();if(DAIS.g){const w=won();DAIS.g.visible=w;if(w)SHUT_COL.push([DAIS.x-2.95,DAIS.x+2.95,DAIS.z-1.75,DAIS.z+1.75]);}
   for(const id of SHOP_IDS){const W=WALK.map[id],real=!!(W&&bldState==='ready');let B=SHOP_BOARDS[id];
     if(B&&B.userData.real!==real){townGroup.remove(B);B=SHOP_BOARDS[id]=null;}
     if(!B){const d=DOORS.find(q=>q.id===id);B=boardUp();B.userData.real=real;
@@ -3267,21 +3268,53 @@ function gilTick(){const g=MZ&&MZ.gil;if(!g||g.broken)return;const d=Math.hypot(
   if(S.frame%5===0)addPart({x:g.wx-g.s*0.05,y:rnd(1.2,3.4),z:g.wz+rnd(-1.4,1.4),vx:0,vy:-0.02,vz:0,g:0.004,life:30,size:0.05,color:'#9fe3ff'});
   if(!g.heard&&d<7&&S.gilp){g.heard=true;floatText(g.wx,3.2,g.wz,'You hear someone singing a sea shanty behind this wall...','#bfe8ff',22);}}
 // ================= the ending: a letter from Kemet =================
-function msgTick(){const n=DKFX.msgr;if(!n||!won()||H.onShip||S.level!=='town')return;
-  if(!INV.letter&&!n.rush&&!n.arrived&&FW.party<=0&&!S.celebPreview&&H.state==='ok'){n.rush=true;n.pause=0;n.stk=0;say(n,'Hero! Hero! Wait!',2600);if(!INV.msgNote){INV.msgNote=1;toast('A messenger from the King and Queen is running to find you!');}}
-  if(n.rush){const dx=H.x-n.x,dz=H.z-n.z,d=Math.hypot(dx,dz);
-    if(d>1.7){const ux=dx/d,uz=dz/d;if(n.sideT>0)n.sideT--;else n.side=0;let moved=false;
+function msgTick(){const n=DKFX.msgr;if(!n||!won()||S.level!=='town')return;
+  if(!INV.letter&&!n.rush&&!n.arrived&&H.state==='ok'&&(H.onShip?FW.party>0&&FW.party<60*45-420:FW.party<=0&&!S.celebPreview)){n.rush=true;n.pause=0;n.stk=0;n.tgt=H.onShip?{x:-51.3,z:1.8}:null;if(H.onShip){n.x=-37.5;n.z=2.2;}say(n,'Hero! Hero! Wait!',2600);if(!INV.msgNote){INV.msgNote=1;toast('A messenger from the King and Queen is running to find you!');}}
+  if(n.rush){const tg=n.tgt||H,dx=tg.x-n.x,dz=tg.z-n.z,d=Math.hypot(dx,dz);
+    if(d>(n.tgt?0.4:1.7)){const ux=dx/d,uz=dz/d;if(n.sideT>0)n.sideT--;else n.side=0;let moved=false;
       for(const a of [0,0.5,1.0,1.45,1.9]){for(const sg of (n.side?[n.side]:[1,-1])){const aa=a*sg,c=Math.cos(aa),sn=Math.sin(aa),fx=ux*c-uz*sn,fz=ux*sn+uz*c,p={x:n.x+fx*0.14,y:0,z:n.z+fz*0.14};clampPos(p);
         if(Math.hypot(p.x-n.x,p.z-n.z)>0.1&&(p.x-n.x)*ux+(p.z-n.z)*uz>-0.02){n.x=p.x;n.z=p.z;n.fx=fx;n.fz=fz;if(a&&!n.side){n.side=sg;n.sideT=50;}moved=true;break;}}if(moved)break;}
       if(!moved&&++n.stk>60){n.x+=ux*2.5;n.z+=uz*2.5;clampPos(n);n.stk=0;}
       if(S.frame%70===0)addPart({x:n.x,y:0.1,z:n.z,vy:0.02,g:0,life:20,size:0.15,color:'#b8a888'});}
-    else{n.rush=false;n.arrived=true;n.pause=1e9;n.fx=dx;n.fz=dz;say(n,'From the King and Queen! It came by ship from Kemet!',3200);schedule(110,()=>{if(!INV.letter&&S.level==='town'&&S.state==='play')showLetter();});}}
+    else{n.rush=false;n.arrived=true;n.pause=1e9;n.fx=H.x-n.x;n.fz=H.z-n.z;say(n,'From the King and Queen! It came by ship from Kemet!',3200);schedule(110,()=>{if(!INV.letter&&S.level==='town'&&S.state==='play')showLetter();});}}
   else if(n.arrived&&INV.letter){const dx=n.hx-n.x,dz=n.hz-n.z,d=Math.hypot(dx,dz);if(Math.hypot(H.x-n.x,H.z-n.z)<3&&!n.home)return;n.home=true;n.pause=0;
     if(d>0.25){n.fx=dx/d;n.fz=dz/d;n.x+=n.fx*0.035;n.z+=n.fz*0.035;clampPos(n);if(d>40){n.x=n.hx;n.z=n.hz;}}else{n.arrived=false;n.home=false;n.pause=1e9;n.fx=0;n.fz=1;}}}
+// ================= the Lich Queen's throne: black swords and skulls; it splits in half once her last spell breaks =================
+const LT={g:null,halves:[],broken:false,royals:[]};
+function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z);g.scale.setScalar(1.45);MZ.grp.add(g);LT.g=g;LT.broken=false;LT.halves=[];LT.royals=[];LT.x=x;LT.z=z;
+  const blk=new G.MeshStandardMaterial({color:0x0b0a10,roughness:0.55,metalness:0.4}),steel=new G.MeshStandardMaterial({color:0x6a6a78,metalness:0.85,roughness:0.3,emissive:0x140c1c}),
+    bone=lam({color:0xd8cfb4}),hole=new G.MeshBasicMaterial({color:0x0a0408}),glow=new G.MeshBasicMaterial({color:0xb070ff}),vel=new G.MeshStandardMaterial({color:0x1a0614,roughness:1});MZ.mats.push(blk,steel,vel);
+  const skull=(p,x,y,z,s=1,ry=0,rz=0)=>{const k=new G.Group();k.position.set(x,y,z);k.rotation.set(0,ry,rz);k.scale.setScalar(s);const c=mesh(new G.SphereGeometry(0.15,12,10),bone,0,0,0);c.scale.set(1,1.05,1.15);k.add(c);
+    k.add(mesh(new G.BoxGeometry(0.17,0.08,0.14),bone,0,-0.13,0.05));for(const sx of [-1,1])k.add(mesh(new G.SphereGeometry(0.04,8,6),hole,sx*0.055,0,0.155,false,false));p.add(k);return k;};
+  const sword=(p,x,y,a,len)=>{const s=new G.Group();s.position.set(x,y,0);s.rotation.z=a;s.add(mesh(new G.BoxGeometry(0.08,len,0.025),steel,0,len/2,0));
+    const tip=mesh(new G.ConeGeometry(0.057,0.16,4),steel,0,len+0.08,0);tip.scale.z=0.35;s.add(tip);s.add(mesh(new G.BoxGeometry(0.32,0.05,0.07),blk,0,0,0));p.add(s);};
+  for(const side of [-1,1]){const h=new G.Group();g.add(h);LT.halves.push(h);
+    h.add(mesh(new G.BoxGeometry(0.7,0.6,1.0),blk,side*0.35,0.3,0));h.add(mesh(new G.BoxGeometry(0.62,0.1,0.85),vel,side*0.33,0.63,0.03));
+    h.add(mesh(new G.BoxGeometry(0.18,0.5,0.95),blk,side*0.74,0.85,0.02));skull(h,side*0.74,1.17,0.36,0.9);skull(h,side*0.74,0.6,0.52,0.75);
+    const back=new G.Group();back.position.set(0,0.55,-0.46);h.add(back);back.add(mesh(new G.BoxGeometry(0.66,1.9,0.16),blk,side*0.33,0.95,-0.04));back.add(mesh(new G.BoxGeometry(0.5,1.5,0.04),vel,side*0.3,0.9,0.06));
+    for(let i=0;i<8;i++){const t=i/7,a=side*(0.05+t*0.75),len=2.5-t*0.9;sword(back,side*(0.04+t*0.5),0.3,a,len);}
+    for(const [sx,sy,sz] of [[0.42,1.95,0.12],[0.6,1.55,0.1],[0.3,1.25,0.1],[0.18,2.25,0.1]])skull(back,side*sx,sy,sz,0.95,0,side*-0.15);
+    for(let k=0;k<7;k++){const a=k/6*Math.PI*0.9;skull(h,side*(0.35+Math.cos(a)*0.55),0.12+(k%2)*0.12,0.55+Math.sin(a)*0.35,0.7+(k%3)*0.1,side*(k-3)*0.25);}}
+  // the big crowned skull on top, split down the middle with the throne
+  {const k=skull(LT.halves[0],0,0.55+2.75,-0.42,1.6);const k2=skull(LT.halves[1],0,0.55+2.75,-0.42,1.6);k.scale.x*=0.5;k.position.x-=0.12;k2.scale.x*=0.5;k2.position.x+=0.12;
+    for(const [hk,sd] of [[LT.halves[0],-1],[LT.halves[1],1]])for(let j=0;j<3;j++){const sp=mesh(new G.ConeGeometry(0.045,0.32,5),steel,sd*(0.06+j*0.11),3.62-j*0.04,-0.42,true,false);hk.add(sp);}}
+  loadReal(null,'king');loadReal(null,'queen');const L=new G.PointLight(0x9a50ff,1.2,7,1.6);L.position.set(0,2.2,0.8);g.add(L);LT.light=L;}
+function lichBreak(){if(!LT.g||LT.broken)return;LT.broken=true;LT.t=0;S.shake=Math.max(S.shake,0.9);sfx('door');sfx('hit');
+  toast('The Lich Queen\'s last spell breaks!');floatText(LT.x,4.6,LT.z,'CRACK!','#d8b0ff',30);
+  for(let k=0;k<40;k++)addPart({x:LT.x+rnd(-1,1),y:rnd(0.2,4),z:LT.z+rnd(-0.6,0.8),vx:rnd(-0.08,0.08),vy:rnd(0.02,0.12),vz:rnd(-0.02,0.08),life:ri(30,60),size:rnd(0.08,0.22),color:k%3?'#3a3442':'#b070ff'});
+  schedule(70,lichRoyals);}
+function lichTick(){if(!LT.g)return;if(LT.light)LT.light.intensity=LT.broken?Math.max(0,LT.light.intensity-0.01):1.0+Math.sin(S.frame*0.07)*0.3;
+  if(LT.broken&&LT.t<60){LT.t++;const k=Math.min(1,LT.t/45),e=1-(1-k)*(1-k);LT.halves.forEach((h,i)=>{const sd=i?1:-1;h.position.set(sd*0.55*e,-0.08*e,0.1*e);h.rotation.set(0.12*e,sd*0.25*e,sd*0.42*e);});}
+  for(const R of LT.royals){const dt=Math.min(0.05,R.clock.getDelta());R.root.rotation.y=Math.atan2(H.x-R.root.position.x,H.z-R.root.position.z);R.mixer.update(dt);}}
+function lichRoyals(){if(S.level!=='dungeon'||!LT.g)return;const mk=(f,t,dx)=>{if(loadReal(null,f)!=='ready'||animState!=='ready')return null;const o={x:LT.x+dx,z:LT.z+2.6,tall:t};
+    const R=buildRealMon({x:o.x,z:o.z,fx:0,fz:1},{f,tall:t});R.root.position.set(o.x,0,o.z);scene.add(R.root);R.play('idle');LT.royals.push(R);poof(o.x,0.8,o.z,1.4);return o;};
+  const k=mk('king',1.97,-1.2),q=mk('queen',1.86,1.2);if(!k||!q){schedule(30,lichRoyals);return;}
+  say(k,'Her spell is broken! We are free at last!',3600);schedule(230,()=>say(q,'She kept us chained beneath that throne for so long. Thank you, hero.',4200));
+  schedule(500,()=>say(k,'Go home now. Tonight all of Sumera celebrates you!',3800));schedule(760,()=>toast('Walk into the glowing portal and press J to go home.'));}
 // speech bubbles over anyone in town
 const SAYS=[];
-function say(o,t,ms=3500,dy){const i=SAYS.findIndex(q=>q.o===o);if(i>=0){bubbleKill(SAYS[i]);SAYS.splice(i,1);}const q={o,t:performance.now()+ms,dy:dy||((o.tall||1.8)+1.05)};q.bub=bubbleSpr(t);scene.add(q.bub);SAYS.push(q);}
-function sayTick(){const now=performance.now();for(let i=SAYS.length-1;i>=0;i--){const q=SAYS[i];if(now>q.t||S.level!=='town'){bubbleKill(q);SAYS.splice(i,1);continue;}q.bub.position.set(q.o.x,(q.o.y||0)+q.dy,q.o.z);}}
+function say(o,t,ms=3500,dy){const i=SAYS.findIndex(q=>q.o===o);if(i>=0){bubbleKill(SAYS[i]);SAYS.splice(i,1);}const q={o,t:performance.now()+ms,dy:dy||((o.tall||1.8)+1.05),lv:S.level};q.bub=bubbleSpr(t);scene.add(q.bub);SAYS.push(q);}
+function sayTick(){const now=performance.now();for(let i=SAYS.length-1;i>=0;i--){const q=SAYS[i];if(now>q.t||S.level!==q.lv){bubbleKill(q);SAYS.splice(i,1);continue;}q.bub.position.set(q.o.x,(q.o.y||0)+q.dy,q.o.z);}}
 // the King and Queen of Sumera return once the Fallen are beaten, and hold court beside the fountain
 const DAIS={x:6.6,z:-5.8,h:0.62};
 function makeRoyals(){const sp=()=>makeSprite(512,512,256,472,2);
@@ -3291,7 +3324,7 @@ function makeRoyals(){const sp=()=>makeSprite(512,512,256,472,2);
 function royalTalk(){const k=DKFX.king,q=DKFX.queen;if(!k||S.royalT>performance.now())return;S.royalT=performance.now()+9000;
   say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you.',3800);
   schedule(150,()=>say(q,INV.letter?'Kemet needs you now. Captain Brin will sail when you are ready.':'A letter came for you from across the sea. Our messenger is bringing it.',4200));}
-function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS.z);T.add(g);
+function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS.z);g.visible=false;T.add(g);
   const stone=lam({map:TX.stone,color:0xb8b0a8}),dark=lam({color:0x2a2630}),red=new G.MeshStandardMaterial({color:0x26030a,roughness:1}),green=new G.MeshStandardMaterial({color:0x123a1c,roughness:1}),carpet=new G.MeshStandardMaterial({roughness:0.95,map:canvasTex(64,256,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#c9a03a';c.fillRect(3,0,5,h);c.fillRect(w-8,0,5,h);c.fillStyle='#1e4a26';c.fillRect(11,0,4,h);c.fillRect(w-15,0,4,h);})}),banM=new G.MeshStandardMaterial({side:G.DoubleSide,roughness:0.95,map:canvasTex(128,384,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#1e4a26';c.fillRect(0,h*0.62,w,h*0.16);c.fillStyle='#c9a03a';c.fillRect(0,0,w,10);c.fillRect(0,h*0.6,w,6);c.fillRect(0,h*0.78,w,6);c.fillRect(6,0,6,h);c.fillRect(w-12,0,6,h);c.beginPath();c.moveTo(w/2,70);c.lineTo(w/2+30,130);c.lineTo(w/2,190);c.lineTo(w/2-30,130);c.closePath();c.fill();c.fillStyle='#1e4a26';c.beginPath();c.arc(w/2,130,12,0,7);c.fill();c.fillStyle='#5a0a14';c.beginPath();c.moveTo(0,h);c.lineTo(w/2,h-40);c.lineTo(w,h);c.fill();})}),gold=new G.MeshStandardMaterial({color:0xd4a83a,metalness:0.85,roughness:0.3}),
     steel=new G.MeshStandardMaterial({color:0xb8c0c8,metalness:0.9,roughness:0.28}),bone=lam({color:0xe8dfc6}),hole=new G.MeshBasicMaterial({color:0x140c0c});
   g.add(mesh(new G.BoxGeometry(5.8,DAIS.h,3.4),stone,0,DAIS.h/2,0));g.add(mesh(new G.BoxGeometry(6.1,0.12,3.7),stone,0,DAIS.h,0));
@@ -3319,7 +3352,7 @@ function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS
     const f=new G.Sprite(M.flame);f.scale.set(0.6,0.85,1);f.position.set(0,1.62,0);b.add(f);FLAMES.push({f,L:new G.PointLight(0,0,1),base:0,ph:Math.random()*9});
     const ban=mesh(new G.PlaneGeometry(0.7,2.2),banM,sx*0.45,0,-1.5,true,false);ban.position.set(sx*2.4,DAIS.h+1.6,-1.45);g.add(ban);
     g.add(mesh(new G.CylinderGeometry(0.04,0.04,2.6,6),dark,sx*2.4,DAIS.h+1.4,-1.5));g.add(mesh(new G.BoxGeometry(0.9,0.05,0.05),gold,sx*2.4,DAIS.h+2.72,-1.48));}
-  TOWN_COL.push([DAIS.x-2.95,DAIS.x+2.95,DAIS.z-1.75,DAIS.z+1.75]);occluder(g,DAIS.x-3,DAIS.x+3,DAIS.z-1.8,DAIS.z+1.8,false,'town');}
+  occluder(g,DAIS.x-3,DAIS.x+3,DAIS.z-1.8,DAIS.z+1.8,false,'town');}
 function showLetter(){const nm=esc(H.name||HEROES[H.cls].name);
   openDlg(`<h1 class="logo sm"><small>Sent by the King and Queen</small>A letter from Kemet</h1>
     <p class="tag">"The King and Queen sent me, hero! This letter came by ship from Kemet, across the sea. It is for you."</p>
@@ -3364,7 +3397,7 @@ function prisTick(){const P=S.pris;if(!P||P.gone)return;const d=Math.hypot(H.x-P
   if(!P.called&&d<9){P.called=true;floatText(P.x,2.6,P.z,'Help! Get me out of here!','#ffcf8a',22);}
   if(prisReady(P)&&!P.cheer){P.cheer=true;floatText(P.x,2.6,P.z,'You did it! Let me out!','#bfffcf',20);}}
 function freePris(P){P=P||S.pris;const K=P.K;if(P.cell){P.cell.open=true;mzRefreshBlk();}sfx('chest');
-  freed()[K.id]=1;P.gone=true;if(P.gil&&typeof gilGift==='function')gilGift();save();sparks(P.x,1.2,P.z,24,'#bfe8ff');sparks(P.x,2,P.z,16,'#ffe27a');sfx('potion');killSprite(P.spr);
+  freed()[K.id]=1;P.gone=true;if(P.gil&&typeof gilGift==='function')gilGift();save();if(K.id==='magic'&&LT.g&&!LT.broken)schedule(150,lichBreak);sparks(P.x,1.2,P.z,24,'#bfe8ff');sparks(P.x,2,P.z,16,'#ffe27a');sfx('potion');killSprite(P.spr);
   openDlg(`<h1 class="logo sm"><small>${esc(K.shop)}</small>${esc(K.name)} is free!</h1><p class="tag">"${esc(K.thanks)}"</p><p class="tag"><b>${esc(K.hintT||'About Gil the fishman:')}</b> "${esc(K.hint)}"</p><p class="note">${esc(K.name)} uses a homing charm and vanishes in a flash of light. ${esc(K.shop)} is open again in town.</p><div class="row"><button class="btn" type="button" data-act="ok">Good luck</button></div>`,'freed',()=>{closeDlg();toast(K.shop+' is open again in town.');},false);}
 const fogHouse=new THREE.Fog(0x120c10,20,44);
 TX.nightWin=canvasTex(128,112,(g,w,h)=>{g.fillStyle='#4a2e1c';g.fillRect(0,0,w,h);const gr=g.createLinearGradient(0,10,0,h-10);gr.addColorStop(0,'#1a2050');gr.addColorStop(1,'#4a5aa0');g.fillStyle=gr;g.fillRect(10,10,w-20,h-20);
@@ -4261,7 +4294,7 @@ function portraitInit(){if(PR)return true;try{PR=new THREE.WebGLRenderer({antial
   return true;}
 function portraitRender(mode,ang){
   if(!H||!portraitInit())return null;
-  const RC=cardReal(H.cls);if(RC){for(const k in CARDR)CARDR[k].root.visible=k===H.cls;if(PFIG)PFIG.root.visible=false;RC.root.rotation.y=ang;RC.mx.setTime((performance.now()/1000)%10);const hh=RC.h;
+  const RC=cardReal(H.cls,H);if(RC){for(const k in CARDR)CARDR[k].root.visible=CARDR[k]===RC;if(PFIG)PFIG.root.visible=false;RC.root.rotation.y=ang;RC.mx.setTime((performance.now()/1000)%10);const hh=RC.h;
     if(mode==='head'){PR.setSize(128,128,false);PC.aspect=1;PC.fov=20;PC.position.set(Math.sin(0.35)*1.25,hh*0.92,Math.cos(0.35)*1.25);PC.lookAt(0,hh*0.88,0);}else{PR.setSize(300,330,false);PC.aspect=300/330;PC.fov=27;PC.position.set(0,hh*0.56,hh*2.6);PC.lookAt(0,hh*0.5,0);}
     PC.updateProjectionMatrix();PR.render(PS,PC);RC.root.visible=false;if(PFIG)PFIG.root.visible=true;return PR.domElement;}
   if(SET.style==='real'&&THREE.SkeletonUtils){loadReal(H.cls);if(mode==='head')PR.setSize(128,128,false);PR.setClearColor(0,0);PR.clear();return PR.domElement;}
@@ -4283,11 +4316,11 @@ const CARDF={};let cardAng=0.5,cardTick=0;
 function cardHero(cls){return {cls,look:null,weapon:{tier:1,grade:0},armor:{tier:cls==='barbarian'?2:1,grade:0},jewels:{},off:null,helm:null,hands:null,feet:null,cape:null,
   x:0,y:0,z:0,fx:0,fz:1,anim:0,moving:false,swing:0,swingMax:1,castT:0,state:'ok',dash:0,rage:0,inv:0,melee:false};}
 const CARDR={};
-function cardReal(cls){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;if(CARDR[cls])return CARDR[cls];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
-  const mi=modelInfo(cls),REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
+function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;const ck=cls+(h&&h.sex==='f'?'_f':'');if(CARDR[ck])return CARDR[ck];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
+  const mi=modelInfo(cls,h||{cls,sex:'m'}),REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
   m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.material=o.material.clone();o.material.skinning=!!o.isSkinnedMesh;const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&role!=='shield';
     if(o.material.map){o.material.emissive=new THREE.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.18;}}});
-  const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[cls]={root,mx,h:mi.tall||1.62};}
+  const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[ck]={root,mx,h:mi.tall||1.62};}
 function drawCard3d(cv,cls,ang){if(!portraitInit())return false;
   const RC=cardReal(cls);if(RC){for(const k in CARDF)CARDF[k].root.visible=false;for(const k in CARDR)CARDR[k].root.visible=k===cls;if(PFIG)PFIG.root.visible=false;
     RC.root.rotation.y=ang;RC.mx.setTime((performance.now()/1000)%10);const hh=RC.h;PR.setPixelRatio(1);PR.setSize(cv.width,cv.height,false);PC.aspect=1;PC.fov=27;PC.position.set(0,hh*0.56,hh*2.75);PC.lookAt(0,hh*0.5,0);PC.updateProjectionMatrix();PR.render(PS,PC);
@@ -4818,7 +4851,7 @@ function render3D(){
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
   }
-  if(lv==='town')for(const n of S.npcs){if((n.gil&&!freed().gil)||((n.messenger||n.royal)&&(!won()||H.onShip))||(n.royal&&FW.party>0)){n.spr.grp.visible=n.spr.blob.visible=false;if(n.spr.rfig)n.spr.rfig.root.visible=false;continue;}if((n.gil||n.messenger||n.royal)&&n.spr.rfig)n.spr.rfig.root.visible=true;if(n.messenger&&!n.rush&&!n.home&&Math.hypot(H.x-n.x,H.z-n.z)<6){n.fx=H.x-n.x;n.fz=H.z-n.z;}n.face=screenFace(n.fx,n.fz,n.face);
+  if(lv==='town')for(const n of S.npcs){if((n.gil&&!freed().gil)||(n.royal&&(!won()||H.onShip||FW.party>0))||(n.messenger&&!won())){n.spr.grp.visible=n.spr.blob.visible=false;if(n.spr.rfig)n.spr.rfig.root.visible=false;continue;}if((n.gil||n.messenger||n.royal)&&n.spr.rfig)n.spr.rfig.root.visible=true;if(n.messenger&&!n.rush&&!n.home&&Math.hypot(H.x-n.x,H.z-n.z)<6){n.fx=H.x-n.x;n.fz=H.z-n.z;}n.face=screenFace(n.fx,n.fz,n.face);
     if(realNpc(n,1.75)){}
     else if(syncFig(n.spr,()=>buildNpc(n)))poseNpc(n.spr.fig,n);
     else if((S.frame+n.anim)%3===0)paintSprite(n.spr,g=>drawNpc(g,{pause:n.pause,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));
