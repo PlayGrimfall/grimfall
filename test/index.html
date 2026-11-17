@@ -1975,24 +1975,20 @@ function buildMaze(fi){
   const BR=D.rooms.find(r=>r.kind==='boss'),[bx]=mzCenter(BR);
   mzSkulls(fi);
   const portal=new THREE.Group();portal.position.set(fi===3?bx+Math.min(5,(BR.x1-BR.x0+1)*TS/2-2.2):bx,0,(BR.z0+1.6)*TS);if(fi===3)buildLichThrone(bx,BR.z0*TS+1.25);
-  // magic mirror portal: arched gold frame, swirling glass, stone base and candles
+  // the portal home: a standing ring of fire in the hero's own colors over a swirling glass, on a stone base
+  const pc=pcol();
   const arch=(w,h,sh)=>{const r=w/2;sh.moveTo(-r,0);sh.lineTo(r,0);sh.lineTo(r,h-r);sh.absarc(0,h-r,r,0,Math.PI,false);sh.lineTo(-r,0);return sh;};
-  const fr=arch(2.9,4.3,new THREE.Shape());fr.holes.push(arch(2.3,3.95,new THREE.Path()));
-  const frameG=new THREE.ExtrudeGeometry(fr,{depth:0.28,bevelEnabled:true,bevelThickness:0.06,bevelSize:0.06,bevelSegments:2,curveSegments:24});frameG.translate(0,0.55,-0.14);
   const gold=new THREE.MeshStandardMaterial({color:0xd9a93a,metalness:0.85,roughness:0.28,emissive:0x2a1a04});MZ.mats.push(gold);
-  portal.add(mesh(frameG,gold,0,0,0,true,false));
   const base=new THREE.MeshStandardMaterial({color:0x4a4250,roughness:0.8});MZ.mats.push(base);
   portal.add(mesh(new THREE.BoxGeometry(3.4,0.55,1.1),base,0,0.275,0));portal.add(mesh(new THREE.BoxGeometry(3.0,0.12,0.9),gold,0,0.6,0));
-  for(const sx of [-1,1]){portal.add(mesh(new THREE.SphereGeometry(0.2,10,8),gold,sx*1.45,4.25,0.05));portal.add(mesh(new THREE.CylinderGeometry(0.09,0.11,0.5,8),new THREE.MeshStandardMaterial({color:0xf2ead8,roughness:0.6}),sx*2.0,0.8,0.25));
-    const cf=new THREE.Sprite(M.flame);cf.scale.set(0.25,0.4,1);cf.position.set(sx*2.0,1.2,0.25);portal.add(cf);const cg=new THREE.Sprite(M.glow);cg.scale.set(1.2,1.2,1);cg.position.set(sx*2.0,1.15,0.25);portal.add(cg);}
-  const ring=mesh(new THREE.OctahedronGeometry(0.26,0),new THREE.MeshStandardMaterial({color:0x8fd3ff,emissive:0x3a7aff,emissiveIntensity:1.2,metalness:0.3,roughness:0.2}),0,5.0,0.12,false,false);ring.scale.y=1.4;portal.add(ring);
+  const ring=new THREE.Object3D();
   const swirl=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,w*0.7);gr.addColorStop(0,'#e8f4ff');gr.addColorStop(0.25,'#7fb6ff');gr.addColorStop(0.6,'#3a3ab8');gr.addColorStop(1,'#140a3a');g.fillStyle=gr;g.fillRect(0,0,w,h);
     g.lineCap='round';for(let k=0;k<5;k++){g.strokeStyle=['rgba(255,255,255,.45)','rgba(160,210,255,.4)','rgba(200,160,255,.35)'][k%3];g.lineWidth=6-k*0.8;g.beginPath();for(let a=0;a<12;a+=0.08){const rr=4+a*10;g.lineTo(w/2+Math.cos(a+k*1.26)*rr,h/2+Math.sin(a+k*1.26)*rr);}g.stroke();}});
   swirl.center.set(0.5,0.5);
-  const gl=new THREE.ShapeGeometry(arch(2.3,3.95,new THREE.Shape()),24);gl.translate(0,0.55,0.02);{const p=gl.attributes.position,uv=gl.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,(p.getX(i)+1.15)/2.3,(p.getY(i)-0.55)/3.95);}
-  const disc=mesh(gl,new THREE.MeshBasicMaterial({map:swirl,transparent:true,opacity:0.55}),0,0,0,false,false);disc.onBeforeRender=()=>{swirl.rotation-=0.012;};portal.add(disc);MZ.mats.push(disc.material);
-  const shine=mesh(new THREE.PlaneGeometry(0.25,2.6),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.18,blending:THREE.AdditiveBlending,depthWrite:false}),-0.5,2.4,0.05,false,false);shine.rotation.z=-0.35;portal.add(shine);
-  const pl=new THREE.PointLight(0x7fb0ff,0,12,2);pl.position.set(0,2,1);portal.add(pl);portal.userData={ring,disc,pl};portal.visible=false;G.add(portal);MZ.portal=portal;
+  const gl=new THREE.CircleGeometry(1.72,48);gl.translate(0,2.55,0);
+  const disc=mesh(gl,new THREE.MeshBasicMaterial({map:swirl,transparent:true,opacity:0.55,color:pc.tint}),0,0,0,false,false);disc.onBeforeRender=()=>{swirl.rotation-=0.012;};portal.add(disc);MZ.mats.push(disc.material);
+  const fire=new THREE.Mesh(new THREE.PlaneGeometry(4.6,4.6),fireMat(pc));fire.position.set(0,2.55,0.04);fire.renderOrder=2;portal.add(fire);
+  const pl=new THREE.PointLight(pc.light,0,12,2);pl.position.set(0,2,1);portal.add(pl);portal.userData={ring,disc,pl};portal.visible=false;G.add(portal);MZ.portal=portal;
   MZ.motes=makeMotes(G,F.mote,180,{x0:2,x1:W*TS-2,z0:2,z1:H2*TS-2,y0:0.5,y1:4});
   mzRefreshBlk();
   return MZ;
@@ -2113,7 +2109,7 @@ function mzRoamTick(){if(!MZ||!MZ.flow||S.aRoom!=null||S.exitOpen||!H||H.state==
 function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast('You are already in town.');return;}if(S.level==='house'){toast('Walk out the door to leave the house.');return;}if(S.portT>0)return;
   S.portT=90;H.castT=Math.max(H.castT||0,20);toast('Opening a portal to town…');sfx('magic');}
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
-  const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:Math.random()<0.5?'#7fb4ff':'#cfe2ff'});
+  const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:pcol().p[Math.random()<0.5?0:1]});
   if(--S.portT===0){sfx('go');goTown();}}
 function inRoomFoe(e,r){if(e.state==='dead'||e.mine)return false;const tx=Math.floor(e.x/TS),tz=Math.floor(e.z/TS);return tx>=r.x0-1&&tx<=r.x1+1&&tz>=r.z0-1&&tz<=r.z1+1;} // only foes inside the locked room count
 function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>inRoomFoe(e,ar)).length>1)return;
@@ -2160,7 +2156,7 @@ function updMaze(){
         schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+S.floor*3,life:40,dead:false});
           else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+S.floor*3,life:40,dead:false});}});}}}
   // torch flicker + nearest-torch light pool
-  for(const tc of MZ.torches){const k=0.85+Math.sin(S.frame*0.25+tc.ph)*0.08;tc.f.scale.set((tc.big?1:0.5)*k,(tc.big?1.4:0.75)*(2-k),1);}
+  for(const tc of MZ.torches){const k=0.85+Math.sin(S.frame*0.25+tc.ph)*0.08;tc.f.scale.set((tc.sw||(tc.big?1:0.5))*k,(tc.sh||(tc.big?1.4:0.75))*(2-k),1);}
   if(--MZ.lightT<=0){MZ.lightT=10;const near=MZ.torches.map(tc=>[Math.hypot(tc.x-H.x,tc.z-H.z),tc]).filter(a=>a[0]<26).sort((a,b)=>a[0]-b[0]);
     MZ.pool.forEach((L,k)=>{const n=near[k];L.userData.tc=n?n[1]:null;if(n)L.position.set(n[1].x,n[1].y,n[1].z);});}
   for(const L of MZ.pool){const tc=L.userData.tc;L.intensity=tc?(tc.big?2.2:1.6)*(0.88+Math.sin(S.frame*0.25+tc.ph)*0.1):0;}
@@ -3313,7 +3309,39 @@ function mzSkulls(fi){if(!THREE.GLTFLoader)return;const D=MZ,tok=D.grp;loadModel
     for(const [tx,tz,sx,sz] of cs.sort(()=>rr()-0.5)){if(made>=per)break;if(door(tx,tz))continue;const x=tx*TS+TS/2-sx*0.25,z=tz*TS+TS/2-sz*0.25;if(nearProp(x,z))continue;pile(x,z,5+Math.floor(rr()*3));(D.piles=D.piles||[]).push([x,z]);made++;}
     if(r.x1-r.x0>=3&&r.kind!=='boss'&&rr()<(fi>=2?0.85:0.55)){const tx=Math.round((r.x0+r.x1)/2)+(rr()<0.5?-1:1);if(!door(tx,r.z0-1)){const x=tx*TS+TS/2,z=r.z0*TS+0.17;
       D.grp.add(mesh(new G.BoxGeometry(1.25,0.1,0.34),shelfM,x,1.45,z));for(let i=-1;i<=1;i++)put(x+i*0.38,1.62,z+0.03,0.33,rr()*0.5-0.25,-0.1,0);}}}
+  mzCandles(fi);
   if(!mats.length)return;const im=new G.InstancedMesh(src.geometry,src.material,mats.length);mats.forEach((mm,i)=>im.setMatrixAt(i,mm));im.castShadow=true;im.receiveShadow=true;D.grp.add(im);}).catch(()=>{});}
+// ================= portal fire: a looping fire-ring video tinted to each hero's colors =================
+const PCOL={healer:{c:['#7a5a10','#ffd860','#ffffff'],tint:0xfff0c0,light:0xffe08a,p:['#ffe08a','#ffffff']},
+  sorceress:{c:['#3a0080','#9a50ff','#b8dcff'],tint:0xb090ff,light:0x9a60ff,p:['#a070ff','#7fb4ff']},
+  elf:{c:['#0a5020','#40e070','#eaffd0'],tint:0x90ffb0,light:0x50ff80,p:['#60f090','#d8ffd0']},
+  archer:{c:['#a01800','#ff7a10','#fff0b0'],tint:0xffb070,light:0xff8a30,p:['#ff9a40','#ffe0a0']},
+  barbarian:{c:['#5a0000','#ff2a10','#ffc080'],tint:0xff8070,light:0xff4020,p:['#ff4a30','#ffb080']}};
+const pcol=()=>PCOL[H&&H.cls]||PCOL.archer;
+const FIRE={vid:null,tex:null,still:null,mats:[]};
+function fireMat(pc){if(!FIRE.still)FIRE.still=new THREE.TextureLoader().load('fx/fr.jpg');
+  if(!FIRE.vid){const v=document.createElement('video');v.src='fx/firering.mp4';v.loop=true;v.muted=true;v.playsInline=true;v.setAttribute('playsinline','');v.preload='auto';FIRE.vid=v;
+    v.addEventListener('playing',()=>{if(!FIRE.tex)FIRE.tex=new THREE.VideoTexture(v);for(const m of FIRE.mats)m.uniforms.map.value=FIRE.tex;});}
+  const m=new THREE.ShaderMaterial({uniforms:{map:{value:FIRE.tex||FIRE.still},c1:{value:new THREE.Color(pc.c[0])},c2:{value:new THREE.Color(pc.c[1])},c3:{value:new THREE.Color(pc.c[2])}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+    vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform sampler2D map;uniform vec3 c1,c2,c3;varying vec2 v;void main(){float l=texture2D(map,v).r;vec3 c=mix(c1,c2,smoothstep(.1,.55,l));c=mix(c,c3,smoothstep(.6,1.,l));gl_FragColor=vec4(c*l*1.7,1.);}'});
+  FIRE.mats=[m];return m;}
+function fireRun(on){const v=FIRE.vid;if(!v)return;if(on&&v.paused){if(!FIRE.try||S.frame-FIRE.try>120){FIRE.try=S.frame;v.play().catch(()=>{});}}else if(!on&&!v.paused)v.pause();}
+// ================= skull candlesticks: by the portal, beside the Lich Queen's throne, and in quiet room corners =================
+function mzCandles(fi){if(!THREE.GLTFLoader)return;const D=MZ,tok=D.grp;loadModelData('skullcdl').then(gl=>{if(!MZ||MZ.grp!==tok)return;const src={};gl.scene.traverse(o=>{if(o.isMesh)src[o.name]=o;});if(!src.cdl2||!src.cdl4)return;
+  const TIPS={cdl2:[[0.186,0.875,0.025],[-0.186,0.875,0.023]],cdl4:[[0.12,0.919,0],[-0.12,0.919,0],[0,0.919,0.12],[0,0.919,-0.12]]},HT={cdl2:2.0,cdl4:2.6};
+  const mats={cdl2:[],cdl4:[]},m4=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
+  let seed=fi*577+29;const rr=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const flames=(par,k,x,z,ry,torch)=>{const h=HT[k],c=Math.cos(ry),sn=Math.sin(ry);for(const [tx,ty,tz] of TIPS[k]){const lx=tx*h,lz=tz*h,px=x+lx*c+lz*sn,pz=z-lx*sn+lz*c,py=ty*h+0.02;
+    const f=new THREE.Sprite(M.flame);f.scale.set(0.16,0.28,1);f.position.set(px,py,pz);par.add(f);const g=new THREE.Sprite(M.glow);g.scale.set(0.9,0.9,1);g.position.set(px,py,pz);par.add(g);if(torch)MZ.torches.push({x:px,y:py,z:pz,f,sw:0.16,sh:0.28,ph:rr()*9});}};
+  const put=(k,x,z,ry)=>{q.setFromAxisAngle(up,ry);v.set(x,-0.1,z);sc.setScalar(HT[k]);mats[k].push(m4.clone().compose(v,q,sc));flames(D.grp,k,x,z,ry,true);MZ.cols.push([x-0.22,x+0.22,z-0.22,z+0.22]);};
+  const P=D.portal;if(P)for(const sx of [-1,1]){const m=new THREE.Mesh(src.cdl2.geometry,src.cdl2.material);m.scale.setScalar(HT.cdl2);m.position.set(sx*2.15,-0.1,0.35);m.castShadow=true;P.add(m);flames(P,'cdl2',sx*2.15,0.35,0,false);}
+  if(fi===3&&LT.g)put('cdl4',LT.x-2.9,LT.z+0.5,0);
+  const door=(tx,tz)=>D.doors.some(d=>mzDoorTiles(d).some(([dx,dz])=>Math.abs(dx-tx)<=1&&Math.abs(dz-tz)<=1)),nearProp=(x,z)=>S.props.some(p=>Math.hypot(p.x-x,p.z-z)<1.1),piles=D.piles||[];
+  for(const r of D.rooms){if(r.kind==='start'||r.kind==='boss'||rr()>(fi>=2?0.75:0.6))continue;const [cx,cz]=mzCenter(r);
+    for(const [tx,tz,sx,sz] of [[r.x0,r.z0,1,1],[r.x1,r.z0,-1,1],[r.x0,r.z1,1,-1],[r.x1,r.z1,-1,-1]].sort(()=>rr()-0.5)){if(door(tx,tz))continue;const x=tx*TS+TS/2-sx*0.2,z=tz*TS+TS/2-sz*0.2;
+      if(nearProp(x,z)||piles.some(p=>Math.hypot(p[0]-x,p[1]-z)<1.3))continue;put(rr()<0.3?'cdl4':'cdl2',x,z,Math.atan2(cx-x,cz-z));break;}}
+  for(const k of ['cdl2','cdl4'])if(mats[k].length){const im=new THREE.InstancedMesh(src[k].geometry,src[k].material,mats[k].length);mats[k].forEach((mm,i)=>im.setMatrixAt(i,mm));im.castShadow=true;im.receiveShadow=true;D.grp.add(im);}}).catch(e=>console.warn('candles',e));}
 // ================= the Lich Queen's throne: black swords and skulls; it splits in half once her last spell breaks =================
 const LT={g:null,halves:[],broken:false,royals:[],sk:[]};
 function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z);g.scale.setScalar(1.45);MZ.grp.add(g);LT.g=g;LT.broken=false;LT.halves=[];LT.royals=[];LT.sk=[];LT.x=x;LT.z=z;
@@ -4915,6 +4943,7 @@ function render3D(){
     if(ship){ship.position.y=ship.userData.baseY+Math.sin(S.frame*0.03)*0.1;ship.rotation.x=Math.sin(S.frame*0.021)*0.025;ship.rotation.z=Math.sin(S.frame*0.017)*0.012;for(const f of ship.userData.flags)waveFlag(f,S.frame);}
     updDayNight();if(sun){const o=DN.sunOff||[-30,26,18];sun.position.set(H.x+o[0],o[1],H.z+o[2]);sun.target.position.set(H.x,0,H.z);sun.castShadow=SET.shadows;}
   }else if(portal&&portal.visible){portal.userData.ring.rotation.x+=0.03;portal.userData.disc.material.opacity=0.45+Math.sin(S.frame*0.1)*0.15;}
+  fireRun(lv==='dungeon'&&!!portal&&portal.visible);
   for(const mo of [lv==='town'?motesT:lv==='dungeon'?motesD:null]){if(!mo)continue;const a=mo.pts.geometry.attributes.position;for(let i=0;i<a.count;i++){mo.ph[i]+=0.01;a.setY(i,a.getY(i)+Math.sin(mo.ph[i])*0.004);a.setX(i,a.getX(i)+Math.cos(mo.ph[i]*0.7)*0.004);}a.needsUpdate=true;}
   renderer.shadowMap.enabled=SET.shadows&&SET.speed!=='fast';
   updOccluders();
