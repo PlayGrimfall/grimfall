@@ -782,7 +782,7 @@ function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<
 // the party crowd: three groups lined up across the road facing the hero
 const PARTY={figs:[],want:false};
 const PGROUPS=[{x:-26,z:2.2,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{x:16,z:1.5,men:['paladin','paladin','paladin'],girls:['hero_f']},{x:44,z:1.5,men:['guard','guard','guard'],girls:['hero_f','girl']}];
-const DOCK_SPOT={x:-41.35,z:-1.4,fx:1,fz:0,ship:true}; // the warship's raised stern deck, facing the town and castle
+const DOCK_SPOT={x:-45.65,z:-2.4,fx:1,fz:0,ship:true}; // the warship's raised stern deck, facing the town and castle
 function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
   if(!want){if(PARTY.figs.length){for(const f of PARTY.figs){scene.remove(f.R.root);}PARTY.figs=[];}return;}
   if(!PARTY.figs.length){let ready=animState==='ready';for(const g of PGROUPS)for(const m of g.men.concat(g.girls))if(loadReal(null,m)!=='ready')ready=false;if(!ready)return;
@@ -1485,7 +1485,7 @@ function buildTown(){
   // harbor: pier and ship
   for(let x=-40.5;x>-50;x-=1.1){T.add(mesh(new THREE.BoxGeometry(1,0.2,2.4),M.wood,x,-0.08,2.2,true,true));}
   for(let x=-41;x>-50;x-=3)for(const z of [1,3.4])T.add(mesh(new THREE.CylinderGeometry(0.14,0.14,1.4,6),M.wood,x,-0.6,z));
-  ship=buildShip();ship.rotation.y=Math.PI;ship.position.set(-48.5,-0.15,-1.4);ship.userData.baseY=-0.15;T.add(ship);
+  ship=buildShip();ship.rotation.y=Math.PI;ship.scale.setScalar(1.4);ship.position.set(-55.7,-0.15,-2.4);ship.userData.baseY=-0.15;T.add(ship); // bigger, stern backed up to the quay without touching it
   dockDeco(T);
   tree(-37.5,-8.6,T,0.9);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true);tree(-9,-17.5,T,1.3);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
   for(const [x,z] of [[-37.5,-8.6],[46,-7.4],[-38,10.5],[44,12],[-9,-17.5],[18,-17.5],[-24,-17.6],[48.5,17]])TOWN_COL.push([x-0.45,x+0.45,z-0.45,z+0.45]);
@@ -1600,7 +1600,7 @@ function dockDeco(T){
   DKFX.ves=[];const V=(kind,x,z,ry,tier,opt={})=>{const v=buildVessel(kind);v.position.set(x,kind==='merchant'?-0.25:-0.15,z);v.rotation.y=ry;add(v);
     for(const [cx,cz] of v.userData.cargo){const q=new THREE.Group();q.position.set(cx,v.userData.dy,cz);v.add(q);if(er()<0.5){const b=mesh(bG,M.wood,0,0,0);b.scale.setScalar(0.8);q.add(b);}else q.add(mesh(new THREE.BoxGeometry(0.6,0.6,0.6),M.wood,0,0.3,0));}
     DKFX.ves.push(Object.assign({v,tier,y0:v.position.y,ph:er()*6},opt));return v;};
-  const shop=V('fish',-53,4.75,0,0,{shop:true});V('fish',-51,9.6,Math.PI,0);V('fish',-50.5,15.1,0.05,1);V('merchant',-50,-12.1,Math.PI,2);V('war',-50.2,-5.15,0,0);
+  const shop=V('fish',-53,4.75,0,0,{shop:true});V('fish',-51,9.6,Math.PI,0);V('fish',-50.5,15.1,0.05,1);V('merchant',-50,-12.1,Math.PI,2);V('war',-50.2,-5.15,0,0,{until:3});
   for(const [x,z,r] of [[-47.6,-7.5,0.2],[-48.4,-7.55,-0.15],[-48,-7.5,0]])crate(x,z,0.5,Y+(r===0?0.5:0),r);
   // the stack of arms the soldiers are building up beside the gate tower
   {const ax=48.4,az=4.4;crate(ax,az,0.6,Y,0.1);crate(ax+0.7,az,0.6,Y,-0.1);crate(ax+0.35,az,0.55,Y+0.6,0.3);crate(ax-0.6,az+0.6,0.5,Y,0.5);
@@ -1617,10 +1617,14 @@ V('merchant',-70,9,0.5,3);V('fish',-80,0,0,3,{sail:{cx:-78,cz:2,r:14,sp:0.05}});
     const sg=canvasTex(256,64,(c,W,H)=>{c.fillStyle='#3a2616';c.fillRect(0,0,W,H);c.strokeStyle='#c9a03a';c.lineWidth=4;c.strokeRect(4,4,W-8,H-8);c.fillStyle='#f3e6c4';c.font='bold 30px Georgia,serif';c.textAlign='center';c.textBaseline='middle';c.fillText("Gil's Fresh Fish",W/2,H/2+2);});
     const sign=mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:sg,side:THREE.DoubleSide}),0,dy+2.4,-0.93,false,false);sign.rotation.y=Math.PI;shop.add(sign);DKFX.shop=shop;}
 }
-function dockTick(){if(!DKFX.boat)return;const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
+function shipCrew(){if(!ship||ship.userData.crew||loadReal(null,'paladin')!=='ready'||animState!=='ready')return;const c=[];
+  for(const [lx,lz,k] of [[-6.4,1.5,'cheer'],[-5.4,-1.7,'idle'],[-6.9,-1.2,'cheer'],[-5.0,1.9,'idle'],[-3.2,0.9,'idle']]){const e={x:0,z:0,fx:1,fz:0};const R=buildRealMon(e,{f:'paladin',tall:1.85});
+    R.root.scale.multiplyScalar(1/1.4);R.root.position.set(lx,2.65,lz);R.root.rotation.y=-Math.PI/2;ship.add(R.root);c.push({R,k,ph:Math.random()});}ship.userData.crew=c;} // dark-armoured paladins on the stern deck, facing the town
+function crewTick(){const c=ship&&ship.userData.crew;if(!c){if(ship&&ship.visible)shipCrew();return;}if(!ship.visible)return;for(const m of c){if(m.k==='cheer'&&FW.party>0)m.R.play('jump',false,1.1+m.ph*0.3);else m.R.play('idle');m.R.mixer.update(Math.min(0.05,m.R.clock.getDelta()));}}
+function dockTick(){if(!DKFX.boat)return;crewTick();const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
   for(const q of DKFX.gulls){const a=q.ph+t*q.sp,g=q.g;g.position.set(q.cx+Math.cos(a)*q.r,q.h+Math.sin(t*0.7+q.ph)*0.4,q.cz+Math.sin(a)*q.r);g.rotation.y=-a+(q.sp>0?0:Math.PI);g.rotation.z=(q.sp>0?-1:1)*0.25;
     const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}
-  const tr=harborTier();if(DKFX.tier!==tr){DKFX.tier=tr;for(const q of DKFX.ves)q.v.visible=q.tier<=tr;if(ship)ship.visible=tr>=4;}
+  const tr=harborTier();if(DKFX.tier!==tr){DKFX.tier=tr;for(const q of DKFX.ves)q.v.visible=q.tier<=tr&&!(q.until!==undefined&&tr>q.until);if(ship)ship.visible=tr>=4;}
   for(const q of DKFX.ves){if(!q.v.visible)continue;if(q.sail){const a=q.ph+t*q.sail.sp;q.v.position.x=q.sail.cx+Math.cos(a)*q.sail.r;q.v.position.z=q.sail.cz+Math.sin(a)*q.sail.r;q.v.rotation.y=-a-Math.PI/2;}
     q.v.position.y=q.y0+Math.sin(t*1.1+q.ph)*0.06;q.v.rotation.z=Math.sin(t*0.8+q.ph)*0.025;q.v.rotation.x=Math.sin(t*0.7+q.ph+1)*0.015;}
   if(DKFX.gil&&DKFX.shop)DKFX.gil.y=DKFX.shop.position.y+DKFX.shop.userData.dy;
@@ -2396,7 +2400,7 @@ function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
 }
 function pushOut(o,cols,r){for(const c of cols){const x0=c[0]-r,x1=c[1]+r,z0=c[2]-r,z1=c[3]+r;if(o.x>x0&&o.x<x1&&o.z>z0&&o.z<z1){const a=o.x-x0,b=x1-o.x,cc=o.z-z0,d=z1-o.z,m=Math.min(a,b,cc,d);if(m===a)o.x=x0;else if(m===b)o.x=x1;else if(m===cc)o.z=z0;else o.z=z1;}}}
 function camVecs(){const y=CAM.yawC;return {rx:Math.cos(y),rz:-Math.sin(y),fx:-Math.sin(y),fz:-Math.cos(y)};}
-function updHero(inp){if(H.onShip){if(inp.mx||inp.my||inp.mv||inp.jump||S.level!=='town'||!ship){H.onShip=false;if(ship&&ship.userData.lateen)ship.userData.lateen.visible=true;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;H.y=ship.position.y+2.69;H.vy=0;H.moving=false;H.fx=1;H.fz=0;return;}}
+function updHero(inp){if(H.onShip){if(inp.mx||inp.my||inp.mv||inp.jump||S.level!=='town'||!ship){H.onShip=false;if(ship&&ship.userData.lateen)ship.userData.lateen.visible=true;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;H.y=ship.position.y+3.75;H.vy=0;H.moving=false;H.fx=1;H.fz=0;return;}}
 if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
   const h=H,d=HEROES[h.cls];h.anim++;
   if(h.inv>0)h.inv--;if(h.noMpT>0)h.noMpT--;
@@ -3520,7 +3524,7 @@ function camUpdate(snap){
   const mode=camMode(),side=mode==='side',dia=mode==='diablo';
   const bh=mode==='behind',pc=FW.party>0&&S.level==='town'&&H.onShip; // victory party: just behind the hero on the ship's stern, looking over the town at the castle
   const pb=false;
-  const ty=pc?-1.22:bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=pc?-0.02:bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=pc?2.8:bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
+  const ty=pc?-1.22:bh?Math.atan2(-H.fx,-H.fz):side||dia?0:CAM.yaw, tp=pc?-0.02:bh?0.2+0.03*CAM.distB:dia?0.98:side?(S.level==='house'?0.5:0.32):CAM.pitch, td=pc?2.2:bh?camRoom(CAM.distB):dia?(S.level==='house'?Math.min(CAM.distD,12.5):CAM.distD):side?(S.level==='house'?11:15):(S.level==='house'?Math.min(CAM.dist,9.5):CAM.dist);
   let tx=H.x,tz=H.z;if(side)tz=S.level==='town'?H.z-1.5:S.level==='house'?H.z*0.3:H.z*0.35;
   const k=snap?1:0.12;
   let dy=ty-CAM.yawC;dy=Math.atan2(Math.sin(dy),Math.cos(dy));CAM.yawC+=dy*(snap?1:bh?0.12:0.18);
