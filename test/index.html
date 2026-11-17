@@ -2060,8 +2060,7 @@ function mzDecor(fi,theme){
     const corners=[[r.x0,r.z0],[r.x1,r.z0],[r.x0,r.z1],[r.x1,r.z1]].filter(([x,z])=>!nearDoor(x,z));
     const bx=x=>x*TS+TS/2,bz=r.z0*TS;
     if(theme==='castle'){for(let k=1;k<back.length&&r.kind!=='piece';k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),M.banner,bx(back[k]),2.6,bz+0.03,false,false));
-      for(const [x,z] of corners.slice(0,r.kind==='piece'?0:2)){if(z!==r.z0)continue;const st=new THREE.Group();st.position.set(bx(x),0,z*TS+0.9);st.add(mesh(new THREE.BoxGeometry(0.9,0.4,0.6),M.stone,0,0.2,0));st.add(mesh(new THREE.CylinderGeometry(0.28,0.22,1.0,10),M.metal,0,0.9,0));st.add(mesh(new THREE.SphereGeometry(0.26,10,8),M.metal,0,1.6,0));
-        st.add(mesh(new THREE.BoxGeometry(0.7,0.18,0.25),M.metal,0,1.25,0));st.add(mesh(new THREE.CylinderGeometry(0.03,0.03,2.4,5),M.dark,0.4,1.2,0));G.add(st);col(bx(x),z*TS+0.9,0.5,0.4);}}
+}
     if(theme==='crypt'){for(let k=1;k+1<back.length&&r.kind!=='piece';k+=5){const x=bx(back[k])+1,z=bz+0.8;const sg=new THREE.Group();sg.position.set(x,0,z);sg.add(mesh(new THREE.BoxGeometry(2.3,0.9,1.1),M.stone,0,0.45,0));sg.add(mesh(new THREE.BoxGeometry(2.45,0.18,1.25),M.stone,0,0.98,0));
         sg.add(mesh(new THREE.BoxGeometry(0.16,0.06,0.7),lam({color:0xc9a03a}),0,1.1,0,false,false));sg.add(mesh(new THREE.BoxGeometry(0.6,0.06,0.16),lam({color:0xc9a03a}),0,1.1,-0.08,false,false));G.add(sg);col(x,z,1.25,0.65);glowSpr(x-0.9,1.45,z+0.3,0xffb070,0.9);}
       for(let k=0;k<4;k++){const x=rnd(r.x0*TS+1,(r.x1+1)*TS-1),z=rnd(r.z0*TS+0.6,r.z0*TS+1.4);for(let j=0;j<3;j++)G.add(mesh(new THREE.SphereGeometry(0.13,8,6),lam({color:0xefe7d2}),x+j*0.22-0.2,0.12+(j===1?0.15:0),z,false,false));}}
@@ -2743,10 +2742,19 @@ const GEMG={},GEMM={};
 function gemMesh(t){if(!GEMG.a){GEMG.a=new THREE.OctahedronGeometry(0.2,0);GEMG.a.scale(1,1.7,1);GEMG.b=new THREE.OctahedronGeometry(0.11,0);GEMG.b.scale(1,1.6,1);}
   const c=new THREE.Color(GEMS[t].c),m=GEMM[t]||(GEMM[t]=new THREE.MeshStandardMaterial({color:c,emissive:c.clone().multiplyScalar(0.55),metalness:0.15,roughness:0.06,flatShading:true,transparent:true,opacity:0.9}));
   const g=new THREE.Group(),a=new THREE.Mesh(GEMG.a,m);g.add(a);for(const s of [-1,1]){const b=new THREE.Mesh(GEMG.b,m);b.position.set(s*0.17,-0.12,0.05);b.rotation.z=-s*0.5;g.add(b);}return g;}
-function dropPickup(kind,x,z,val=0,item=null){
+// ================= real loot: painted glass potion bottles and metal gold coins instead of flat neon pictures =================
+const POT={st:'none',m:{},icon:{}};
+function loadPotions(){if(POT.st!=='none'||!THREE.GLTFLoader)return;POT.st='loading';loadModelData('potions').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)POT.m[o.name]=o;});POT.st=POT.m.pot_hp&&POT.m.pot_mp?'ready':'fail';}).catch(()=>{POT.st='fail';});}
+const COIN={g:null,mat:null};
+function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,20);COIN.mat=new THREE.MeshStandardMaterial({color:0xb8892a,metalness:0.75,roughness:0.32,emissive:0x2a1a04});}
+  const g=new THREE.Group();[[0,0,0,0],[0.05,0.024,0.03,0.25],[-0.04,0.048,-0.02,-0.2]].forEach(([x,y,z,r])=>{const c=new THREE.Mesh(COIN.g,COIN.mat);c.position.set(x,y,z);c.rotation.set(r,0,r*0.6);c.castShadow=true;g.add(c);});return g;}
+function lootMesh(kind){if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
+function dropPickup(kind,x,z,val=0,item=null){loadPotions();
   const map=kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
+  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -2917,7 +2925,7 @@ function drawBelt(g){
   g.fillStyle='rgba(16,12,28,.8)';rrp(g,x,y,152,30,8);g.fill();g.strokeStyle='rgba(255,255,255,.15)';g.lineWidth=1;g.stroke();
   g.font=`800 12px ${BF}`;g.textAlign='left';
   for(const [k,i,c] of [['hp',0,'#ff4a5a'],['mp',1,'#4c9dff']]){const bx=x+8+i*72;g.fillStyle='rgba(255,255,255,.6)';g.fillText(String(i+1),bx,y+19);
-    g.save();g.translate(bx+22,y+24);g.scale(0.6,0.6);circ(g,0,-11,8.5);fillOut(g,c,2);rrp(g,-3.5,-24,7,7,2);fillOut(g,'#dfe8f0',2);g.restore();
+    {const pi=potIcon(k);if(pi)g.drawImage(pi,bx+8,y+1,28,28);else{loadPotions();g.save();g.translate(bx+22,y+24);g.scale(0.6,0.6);circ(g,0,-11,8.5);fillOut(g,c,2);rrp(g,-3.5,-24,7,7,2);fillOut(g,'#dfe8f0',2);g.restore();}}
     g.fillStyle=INV.belt[k]?'#f2e7cf':'rgba(242,231,207,.4)';g.font=`800 14px ${BF}`;g.fillText('×'+INV.belt[k],bx+34,y+20);g.font=`800 12px ${BF}`;}
 }
 
@@ -5092,8 +5100,8 @@ function drawHUD(){
   g.fillStyle='rgba(0,0,0,.5)';g.fillRect(bx,py+50,bw,4);g.fillStyle='#b89cff';g.fillRect(bx,py+50,bw*(H.lvl>=LV_MAX?1:H.xp/xpNeed(H.lvl)),4);
   for(const k of [1,2]){const c=spCost(k),mx=bx+bw*c/H.maxMp;g.fillStyle=H.mp>=c?'#fff':'rgba(255,255,255,.35)';g.fillRect(mx-1,py+38,2,10);}
   g.font=`600 11px ${BF}`;g.fillStyle=GRADES[H.weapon.grade].c;g.fillText(`${GRADES[H.weapon.grade].n} ${WEAPON_TIERS[H.weapon.tier]} ${d.weapon}`,bx,py+66);
-  g.textAlign='right';g.font=`800 26px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(String(INV.gold),HW-14,40);g.fillStyle='#ffd35c';g.fillText(String(INV.gold),HW-14,40);
-  const gw=g.measureText(String(INV.gold)).width;ell(g,HW-gw-28,32,8,9);fillOut(g,'#ffcf3a',2);
+  g.textAlign='right';g.font=`800 26px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(String(INV.gold),HW-14,40);g.fillStyle='#e0bd6a';g.fillText(String(INV.gold),HW-14,40);
+  const gw=g.measureText(String(INV.gold)).width;ell(g,HW-gw-28,32,8,9);fillOut(g,'#c9962e',2);
   if(DIA.n!=null){const ds=DIA.n.toLocaleString();g.font=`800 20px ${DF}`;g.strokeText(ds,HW-14,68);g.fillStyle='#9fe7ff';g.fillText(ds,HW-14,68);const dw=g.measureText(ds).width,cx=HW-dw-26,cy=61;
     g.beginPath();g.moveTo(cx,cy-8);g.lineTo(cx+7,cy-2);g.lineTo(cx,cy+8);g.lineTo(cx-7,cy-2);g.closePath();fillOut(g,'#7fd8ff',2);}
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
