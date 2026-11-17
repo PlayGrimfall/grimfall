@@ -2700,11 +2700,11 @@ function enemyStrike(e){
 }
 function bossThink(e,dist){
   e.sp++;const n=S.enemies.filter(x=>x.state!=='dead').length;
-  const summon=(types,txt)=>{floatText(e.x,3.9,e.z,txt,'#ffd39a',20);for(const s of [-1,1])spawnEnemy(types[ri(0,types.length-1)],...mzRoomClamp(e.x+s*2.5,e.z+s*2));};
+  const summon=(types,txt)=>{floatText(e.x,3.9,e.z,txt,'#ffd39a',20);voPlay(voText(txt));for(const s of [-1,1])spawnEnemy(types[ri(0,types.length-1)],...mzRoomClamp(e.x+s*2.5,e.z+s*2));};
   if(e.type==='warden'&&e.sp%520===0&&n<7)summon(['goblin'],'Guards! Guards!');
   if(e.type==='boneKing'&&e.sp%560===0&&n<7)summon(['skeleton'],'Rise, my bones!');
   if(e.type==='lich'&&e.sp%520===0&&n<7)summon(['skeleton','imp'],'Serve me!');
-  if((e.type==='troll'||e.type==='deathRider')&&e.sp%(e.type==='troll'?400:220)===0&&e.state==='walk'){e.state='chargeWind';e.t=50;e.cdx=(H.x-e.x)/(dist||1);e.cdz=(H.z-e.z)/(dist||1);floatText(e.x,3.9,e.z,e.type==='troll'?'RAAAH!':'CHARGE!','#ffcf8a',22);}
+  if((e.type==='troll'||e.type==='deathRider')&&e.sp%(e.type==='troll'?400:220)===0&&e.state==='walk'){e.state='chargeWind';e.t=50;e.cdx=(H.x-e.x)/(dist||1);e.cdz=(H.z-e.z)/(dist||1);floatText(e.x,3.9,e.z,e.type==='troll'?'RAAAH!':'CHARGE!','#ffcf8a',22);if(e.type==='deathRider')voPlay('b_rider');}
   if(e.tele>0)e.tele--;
   if(e.type==='lich'&&!(e.tele>0)&&dist<2.4&&e.state==='walk'){poof(e.x,e.y,e.z,1.5);{const p=mzRoomSpot(H.x,H.z,6);e.x=p[0];e.z=p[1];}poof(e.x,e.y,e.z,1.5);e.tele=200;e.cd=Math.min(e.cd,30);}
 }
@@ -3376,9 +3376,17 @@ function lichRoyals(){if(S.level!=='dungeon'||!LT.g)return;const mk=(f,t,dx)=>{i
   const k=mk('king',1.97,-1.2),q=mk('queen',1.86,1.2);if(!k||!q){schedule(30,lichRoyals);return;}
   say(k,'Her spell is broken! We are free at last!',3600);schedule(230,()=>say(q,'She kept us chained beneath that throne for so long. Thank you, hero.',4200));
   schedule(500,()=>say(k,'Go home now. Tonight all of Sumera celebrates you!',3800));schedule(760,()=>toast('Walk into the glowing portal and press J to go home.'));}
+// ================= voices: every character who talks has a recorded voice (files in vo/) =================
+const VO_TEXT={"So Old Maren sent you. Good!": "c1", "The Lich Queen's dead are pouring out of that castle.": "c2", "There are too few of us left to hold this gate.": "c3", "You look like you can fight. Take this armor!": "c4", "Now get in there, and good luck!": "c5", "Come back to me. I pay well for work.": "c6", "Come back when they are done.": "c_back", "Your jobs are on your list. Come back when they are done.": "c_list", "No work right now. Go deeper, then come see me.": "c_none", "Find the Bell of Last Rest in the Castle Halls.": "c_bell_a", "The Bell of Last Rest! One ring and the dead lie still.": "c_bell_t", "Bring me the Warding Chalice from the Ash Crypt.": "c_chal_a", "The Warding Chalice! Set in the wall, it keeps the dead out.": "c_chal_t", "The Eye of Ulvareth lies in the Fungal Deep. Get it!": "c_eye_a", "The Eye of Ulvareth! Now I can watch the whole castle.": "c_eye_t", "Hero! Hero! Wait!": "msg1", "From the King and Queen! It came by ship from Kemet!": "msg2", "Her spell is broken! We are free at last!": "king1", "She kept us chained beneath that throne for so long. Thank you, hero.": "queen1", "Go home now. Tonight all of Sumera celebrates you!": "king2", "You saved Sumera from the Fallen, hero. The whole kingdom owes you.": "king3", "Kemet needs you now. Captain Brin will sail when you are ready.": "queen2", "A letter came for you from across the sea. Our messenger is bringing it.": "queen3", "Guards! Guards!": "b_warden", "Rise, my bones!": "b_bking", "Serve me!": "b_lich", "CHARGE!": "b_rider"};
+const VOLEN={"b_bking":2.4,"b_lich":1.4,"b_rider":1.3,"b_warden":1.6,"c1":2.2,"c2":2.8,"c3":2.7,"c4":2.5,"c5":1.9,"c6":2.4,"c_back":1.8,"c_bell_a":2.8,"c_bell_t":3.9,"c_chal_a":2.4,"c_chal_t":3.5,"c_eye_a":3.1,"c_eye_t":3.2,"c_good":2.1,"c_list":3.0,"c_new":2.2,"c_none":3.2,"c_pay":2.1,"h_wake1_f":1.5,"h_wake1_m":1.4,"h_wake2_f":2.8,"h_wake2_m":2.6,"k_armory_h":9.3,"k_armory_t":8.8,"k_gems_h":7.7,"k_gems_t":6.6,"k_gil_h":11.6,"k_gil_t":6.6,"k_magic_h":11.3,"k_magic_t":9.4,"k_smith_h":7.5,"k_smith_t":5.9,"king1":2.6,"king2":2.9,"king3":3.5,"m1":6.3,"m10":8.9,"m2":6.5,"m3":3.8,"m4":8.3,"m5":11.0,"m6":10.9,"m7":9.0,"m8":6.0,"m9":3.4,"msg1":2.4,"msg2":3.5,"queen1":4.0,"queen2":3.5,"queen3":3.7};
+const VOA={cur:null,q:[]};
+function voStop(){VOA.q=[];if(VOA.cur){try{VOA.cur.pause();}catch(e){}VOA.cur=null;}}
+function voPlay(id,then){if(!id||muted)return;voStop();try{const a=new Audio('vo/'+id+'.mp3');a.volume=0.95;VOA.cur=a;a.onended=()=>{if(VOA.cur===a){VOA.cur=null;const n=VOA.q.shift();if(n){const rest=VOA.q;voPlay(n);VOA.q=rest;}}};const p=a.play();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+function voQueue(ids){ids=ids.filter(Boolean);if(!ids.length)return;voPlay(ids[0]);VOA.q=ids.slice(1);}
+const voText=t=>VO_TEXT[t]||null;
 // speech bubbles over anyone in town
 const SAYS=[];
-function say(o,t,ms=3500,dy){const i=SAYS.findIndex(q=>q.o===o);if(i>=0){bubbleKill(SAYS[i]);SAYS.splice(i,1);}const q={o,t:performance.now()+ms,dy:dy||((o.tall||1.8)+1.05),lv:S.level};q.bub=bubbleSpr(t);scene.add(q.bub);SAYS.push(q);}
+function say(o,t,ms=3500,dy){voPlay(voText(t));const i=SAYS.findIndex(q=>q.o===o);if(i>=0){bubbleKill(SAYS[i]);SAYS.splice(i,1);}const q={o,t:performance.now()+ms,dy:dy||((o.tall||1.8)+1.05),lv:S.level};q.bub=bubbleSpr(t);scene.add(q.bub);SAYS.push(q);}
 function sayTick(){const now=performance.now();for(let i=SAYS.length-1;i>=0;i--){const q=SAYS[i];if(now>q.t||S.level!==q.lv){bubbleKill(q);SAYS.splice(i,1);continue;}q.bub.position.set(q.o.x,(q.o.y||0)+q.dy,q.o.z);}}
 // the King and Queen of Sumera return once the Fallen are beaten, and hold court beside the fountain
 const DAIS={x:6.6,z:-5.8,h:0.62};
@@ -3462,8 +3470,8 @@ function prisTick(){const P=S.pris;if(!P||P.gone)return;const d=Math.hypot(H.x-P
   if(!P.called&&d<9){P.called=true;floatText(P.x,2.6,P.z,'Help! Get me out of here!','#ffcf8a',22);}
   if(prisReady(P)&&!P.cheer){P.cheer=true;floatText(P.x,2.6,P.z,'You did it! Let me out!','#bfffcf',20);}}
 function freePris(P){P=P||S.pris;const K=P.K;if(P.cell){P.cell.open=true;mzRefreshBlk();}sfx('chest');
-  freed()[K.id]=1;P.gone=true;if(P.gil&&typeof gilGift==='function')gilGift();save();if(K.id==='magic'&&LT.g&&!LT.broken)schedule(150,lichBreak);sparks(P.x,1.2,P.z,24,'#bfe8ff');sparks(P.x,2,P.z,16,'#ffe27a');sfx('potion');killSprite(P.spr);
-  openDlg(`<h1 class="logo sm"><small>${esc(K.shop)}</small>${esc(K.name)} is free!</h1><p class="tag">"${esc(K.thanks)}"</p><p class="tag"><b>${esc(K.hintT||'About Gil the fishman:')}</b> "${esc(K.hint)}"</p><p class="note">${esc(K.name)} uses a homing charm and vanishes in a flash of light. ${esc(K.shop)} is open again in town.</p><div class="row"><button class="btn" type="button" data-act="ok">Good luck</button></div>`,'freed',()=>{closeDlg();toast(K.shop+' is open again in town.');},false);}
+  freed()[K.id]=1;P.gone=true;voQueue(['k_'+K.id+'_t','k_'+K.id+'_h']);if(P.gil&&typeof gilGift==='function')gilGift();save();if(K.id==='magic'&&LT.g&&!LT.broken)schedule(150,lichBreak);sparks(P.x,1.2,P.z,24,'#bfe8ff');sparks(P.x,2,P.z,16,'#ffe27a');sfx('potion');killSprite(P.spr);
+  openDlg(`<h1 class="logo sm"><small>${esc(K.shop)}</small>${esc(K.name)} is free!</h1><p class="tag">"${esc(K.thanks)}"</p><p class="tag"><b>${esc(K.hintT||'About Gil the fishman:')}</b> "${esc(K.hint)}"</p><p class="note">${esc(K.name)} uses a homing charm and vanishes in a flash of light. ${esc(K.shop)} is open again in town.</p><div class="row"><button class="btn" type="button" data-act="ok">Good luck</button></div>`,'freed',()=>{closeDlg();voStop();toast(K.shop+' is open again in town.');},false);}
 const fogHouse=new THREE.Fog(0x120c10,20,44);
 TX.nightWin=canvasTex(128,112,(g,w,h)=>{g.fillStyle='#4a2e1c';g.fillRect(0,0,w,h);const gr=g.createLinearGradient(0,10,0,h-10);gr.addColorStop(0,'#1a2050');gr.addColorStop(1,'#4a5aa0');g.fillStyle=gr;g.fillRect(10,10,w-20,h-20);
   g.fillStyle='#fff';for(let i=0;i<8;i++){circ(g,16+((i*37)%96),16+((i*23)%40),1.2);g.fill();}g.fillStyle='#f2ead8';circ(g,90,30,9);g.fill();g.fillStyle='#4a2e1c';g.fillRect(w/2-4,10,8,h-20);g.fillRect(10,h/2-4,w-20,8);});
@@ -3605,7 +3613,7 @@ function interactables(){
 const CAP_LINES=['So Old Maren sent you. Good!','The Lich Queen\'s dead are pouring out of that castle.','There are too few of us left to hold this gate.','You look like you can fight. Take this armor!','Now get in there, and good luck!','Come back to me. I pay well for work.'];
 function capTalk(){if(GATE.talk||INV.gift)return;GATE.talk={i:-1,t:0};}
 function capTalkTick(c,vis){const T=GATE.talk;if(!T)return;const now=performance.now();
-  if(now>=T.t){T.i++;bubbleKill(T);const LN=T.lines||CAP_LINES;if(T.i>=LN.length){GATE.talk=null;return;}if(!T.lines&&T.i===3)giveStarter();if(T.cb&&T.cb[T.i])T.cb[T.i]();T.bub=bubbleSpr(LN[T.i]);scene.add(T.bub);T.t=now+3300;}
+  if(now>=T.t){T.i++;bubbleKill(T);const LN=T.lines||CAP_LINES;if(T.i>=LN.length){GATE.talk=null;return;}if(!T.lines&&T.i===3)giveStarter();if(T.cb&&T.cb[T.i])T.cb[T.i]();T.bub=bubbleSpr(LN[T.i]);scene.add(T.bub);const vid=T.lines?(T.vo&&T.vo[T.i]):'c'+(T.i+1);voPlay(vid);T.t=now+Math.max(3300,(VOLEN[vid]||0)*1000+500);}
   if(T.bub){T.bub.visible=vis;T.bub.position.set(c.e.x,(c.e.y||0)+3.05,c.e.z);}}
 // ================= the gate captain's jobs: take them all, do them on your dungeon runs, come back to get paid =================
 // relics are story items: they never go in the bag, so they can't be sold or used
@@ -3640,7 +3648,7 @@ function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=job
   if(fresh.length){cb[lines.length]=()=>{for(const j of fresh)INV.jobs[j.id]={r:INV.jobR[j.id]||0,p:0};save();toast('Your jobs are listed on the left of the screen.');};
     lines.push(fresh.length===1?'I have a new job for you.':`I have ${fresh.length} new jobs for you. Take them all!`);for(const j of fresh)if(j.kind==='relic')lines.push(j.ask);lines.push('Come back when they are done.');}
   else if(!ready.length)lines.push(Object.keys(INV.jobs).length?'Your jobs are on your list. Come back when they are done.':'No work right now. Go deeper, then come see me.');
-  GATE.talk={i:-1,t:0,lines,cb};}
+  GATE.talk={i:-1,t:0,lines,cb,vo:lines.map(t=>/^Good work/.test(t)?'c_good':/^Here is your pay/.test(t)?'c_pay':/new job/.test(t)?'c_new':voText(t))};}
 function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length)return;const show=list.slice(0,7);
   g.save();g.textAlign='left';const w=262,h=24+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
   g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Captain's jobs",x+10,y+16);
@@ -5127,29 +5135,30 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   document.getElementById('start').hidden=true;goTown();sfx('go');startIntro();
 });
 // ================= opening story: washed up on the dock =================
-const INTRO_BLACK=['Cold water. The creak of old wood. Gulls crying somewhere above.','You wake on a wooden dock, soaked to the bone, with no memory of how you got here.'];
+const INTRO_BLACK=['"Ugh... where am I?"','Cold water. The creak of old wood. Gulls crying somewhere above.','"How did I get here? I can\'t remember anything."'],INTRO_BLACK_VO=['h_wake1','','h_wake2'];
 const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
-function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
+function startIntro(){const el=introEl();INTRO={i:0,phase:'who',t0:performance.now()};S.state='intro';S.banner=null;
   Object.assign(H,{x:-44.6,z:2.2,y:0,fx:1,fz:0,state:'down'});if(SET.cam==='free')CAM.yaw=0.35;camUpdate(true);
   const n={x:-41.9,z:2.9,tx:-41.9,tz:2.9,vx:-1,pause:1e9,anim:0,col:'#5a6a7a',hat:0,skin:'#d9a07a',face:-1,fx:-1,fz:-0.2,rm:'girl',keeper:true,spr:makeSprite(512,512,256,472,2)};S.npcs.push(n);INTRO.npc=n;
-  el.hidden=false;el.classList.add('black');el.querySelector('.ibox').classList.remove('on');introWaves(true);introShow();}
+  el.hidden=false;el.classList.add('black');el.querySelector('.ibox').classList.remove('on');introWaves(true);setTimeout(()=>{if(INTRO&&INTRO.phase==='who')el.querySelector('.iwho').classList.add('on');},700);}
 function introShow(){const el=introEl(),tx=el.querySelector('.itxt'),bx=el.querySelector('.ibox');
-  if(INTRO.phase==='black'){tx.classList.remove('on');setTimeout(()=>{if(!INTRO)return;tx.textContent=INTRO_BLACK[INTRO.i];tx.classList.add('on');},INTRO.i?450:700);}
-  else{tx.classList.remove('on');bx.classList.add('on');bx.querySelector('p').textContent=INTRO_TALK[INTRO.i].replace('{n}',H.name||HEROES[H.cls].name);}}
+  if(INTRO.phase==='black'){tx.classList.remove('on');setTimeout(()=>{if(!INTRO)return;tx.textContent=INTRO_BLACK[INTRO.i];tx.classList.add('on');const v=INTRO_BLACK_VO[INTRO.i];if(v)voPlay(v+'_'+(H.sex==='f'?'f':'m'));},INTRO.i?450:700);}
+  else{tx.classList.remove('on');bx.classList.add('on');bx.querySelector('p').textContent=INTRO_TALK[INTRO.i].replace('{n}',H.name||HEROES[H.cls].name);voPlay('m'+(INTRO.i+1));}}
 function introNext(){if(!INTRO||performance.now()-INTRO.t0<500)return;INTRO.t0=performance.now();const el=introEl();
   if(INTRO.phase==='black'){if(++INTRO.i<INTRO_BLACK.length){introShow();return;}
-    INTRO.phase='who';el.querySelector('.itxt').classList.remove('on');setTimeout(()=>{if(INTRO&&INTRO.phase==='who')el.querySelector('.iwho').classList.add('on');},900);return;}
+    el.querySelector('.itxt').classList.remove('on');introWakeUp();return;}
   if(INTRO.phase==='who'||INTRO.phase==='wake')return;
   if(++INTRO.i<INTRO_TALK.length){introShow();return;}endIntro();}
 function introPick(sx){if(!INTRO||INTRO.phase!=='who')return;INTRO.sex=sx;H.sex=sx;loadReal(H.cls);const el=introEl();el.querySelectorAll('[data-sex]').forEach(b=>b.classList.toggle('sel',b.dataset.sex===sx));el.querySelector('#introWake').disabled=false;}
 function introWake(){if(!INTRO||INTRO.phase!=='who'||!INTRO.sex)return;const el=introEl(),nm=el.querySelector('#introName').value.replace(/[<>]/g,'').trim().slice(0,16);H.name=nm||HEROES[H.cls].name;
-  el.querySelector('.iwho').classList.remove('on');INTRO.phase='wake';INTRO.i=0;const t0=performance.now();
+  el.querySelector('.iwho').classList.remove('on');INTRO.phase='black';INTRO.i=0;INTRO.t0=performance.now();loadReal(H.cls);setTimeout(()=>{if(INTRO&&INTRO.phase==='black')introShow();},400);}
+function introWakeUp(){if(!INTRO)return;const el=introEl();INTRO.phase='wake';INTRO.i=0;const t0=performance.now();
   // stay dark until the chosen body has loaded, so the old model never flashes up
   const go=()=>{if(!INTRO)return;if(performance.now()-t0<9000&&(loadReal(H.cls)!=='ready'||animState!=='ready')){setTimeout(go,250);return;}el.classList.remove('black');
     setTimeout(()=>{if(!INTRO)return;H.state='ok';H.fx=1;H.fz=0.25;INTRO.phase='talk';introShow();},2200);};go();}
-function endIntro(){if(!INTRO)return;const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
+function endIntro(){if(!INTRO)return;voStop();const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
   const n=INTRO.npc;if(n){killSprite(n.spr);if(n.spr.rfig)n.spr.rfig=null;S.npcs=S.npcs.filter(x=>x!==n);}INTRO=null;introWaves(false);
   Object.assign(H,{state:'ok',inv:30});S.state='play';S.banner={top:'Sumera',text:'Town of Grimfall',t:170};camUpdate(true);updateTouch();save();
   schedule(120,()=>toast(INV.gift?'Press H to change your name or look. Your house is the first one across the street.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
