@@ -2884,8 +2884,8 @@ function partIcon(g,P,it){const t=document.createElement('canvas');t.width=t.hei
   g.save();g.shadowColor='rgba(0,0,0,.7)';g.shadowBlur=4;g.drawImage(t,-35,-35,70,70);g.restore();
   if(it.set){g.fillStyle=tint;g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.moveTo(24,-34);g.lineTo(34,-24);g.lineTo(24,-14);g.lineTo(14,-24);g.closePath();g.fill();g.stroke();}}
 function iconURL(it){
-  const A3=it.type==='gear'&&PART_KINDS.includes(it.kind)?armShot(H.cls,it.kind,it.tier):null,P=!A3&&it.type==='gear'&&PART_KINDS.includes(it.kind)?partShot(H.cls,it.kind):null,W=it.type==='gear'&&it.kind==='weapon'?wpnShot(H.cls,it.tier):null,S3=A3||(!P&&!W&&it.type!=='empty'?stuIcon(it):null);
-  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}`:it.type==='goods'?'o'+it.i:it.type==='crystal'?'c'+it.t:it.type==='jewel'?'j'+it.id+it.tier:'x'+it.type);
+  const A3s=it.type==='gear'&&PART_KINDS.includes(it.kind)?setShot(H.cls,it.kind,it.tier):null,A3=A3s||(it.type==='gear'&&PART_KINDS.includes(it.kind)?armShot(H.cls,it.kind,it.tier):null),P=!A3&&it.type==='gear'&&PART_KINDS.includes(it.kind)?partShot(H.cls,it.kind):null,W=it.type==='gear'&&it.kind==='weapon'?wpnShot(H.cls,it.tier):null,S3=A3||(!P&&!W&&it.type!=='empty'?stuIcon(it):null);
+  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}${A3s?'d':''}`:it.type==='goods'?'o'+it.i:it.type==='crystal'?'c'+it.t:it.type==='jewel'?'j'+it.id+it.tier:'x'+it.type);
   if(ICON[key])return ICON[key];
   const c=document.createElement('canvas');c.width=c.height=72;const g=c.getContext('2d');g.translate(36,36);
   if(it.type==='gear'){const gc=GRADES[it.grade].c;const gr=g.createRadialGradient(0,0,4,0,0,34);gr.addColorStop(0,gc+'66');gr.addColorStop(1,gc+'00');g.fillStyle=gr;g.fillRect(-36,-36,72,72);
@@ -4381,10 +4381,17 @@ const CARDF={};let cardAng=0.5,cardTick=0;
 function cardHero(cls){return {cls,look:null,weapon:{tier:1,grade:0},armor:{tier:cls==='barbarian'?2:1,grade:0},jewels:{},off:null,helm:null,hands:null,feet:null,cape:null,
   x:0,y:0,z:0,fx:0,fz:1,anim:0,moving:false,swing:0,swingMax:1,castT:0,state:'ok',dash:0,rage:0,inv:0,melee:false};}
 const CARDR={};
-function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;const ck=cls+(h&&h.sex==='f'?'_f':'');if(CARDR[ck])return CARDR[ck];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
-  const mi=modelInfo(cls,h||{cls,sex:'m'}),REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
-  m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.material=o.material.clone();o.material.skinning=!!o.isSkinnedMesh;const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&role!=='shield';
-    if(o.material.map){o.material.emissive=new THREE.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.18;}}});
+function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;const eq=h?{helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet}:null,ck=cls+(h&&h.sex==='f'?'_f':'')+(eq?'|'+Object.values(eq).map(Number).join('')+(h.armor?h.armor.tier:0):'');if(CARDR[ck])return CARDR[ck];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
+  const mi=modelInfo(cls,h||{cls,sex:'m'});if(loadReal(null,mi.f)!=='ready'||(mi.arm&&loadReal(null,mi.arm)!=='ready'))return null;const REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);
+  // the hero's own armor set goes on every picture too (bag, start screen, item icons)
+  const AR=mi.arm&&REALS[mi.arm],armL=ARM_LOOK[Math.max(0,Math.min(4,(h&&h.armor?h.armor.tier:1)|0))];if(AR&&AR.state==='ready'){const bones={};m.traverse(o=>{if(o.isBone)bones[o.name.replace(/_\d+$/,'')]=o;});const ac=THREE.SkeletonUtils.clone(AR.gltf.scene),list=[];ac.traverse(o=>{if(o.isSkinnedMesh)list.push(o);});
+    for(const o of list){const bs=o.skeleton.bones.map(b=>bones[b.name.replace(/_\d+$/,'')]);if(bs.some(b=>!b))continue;o.bind(new THREE.Skeleton(bs,o.skeleton.boneInverses),o.bindMatrix);o.userData.armc=1;o.userData.cardArm=1;o.parent.remove(o);m.add(o);}}
+  root.add(m);m.position.set(0,0,0);m.rotation.set(0,0,0);m.scale.setScalar(REAL.s0*(mi.tall||1.62)/REAL.h0);
+  m.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.material=o.material.clone();o.material.skinning=!!o.isSkinnedMesh;hoodSwap(o,mi);const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&role!=='shield';
+    if(o.material.map){o.material.emissive=new THREE.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.18;}
+    if(o.userData.cardArm&&mi.tierLook&&o.material.map){o.material.color.setHex(mi.cloth?0xffffff:armL.c);o.material.emissive.setHex(armL.e);o.material.emissiveIntensity=armL.i*0.7;}}});
+  // like the hero in the world: each armor piece shows once it is worn (the start screen shows the whole set)
+  if(mi.slots){const on=eq||{helm:1,armor:1,hands:1,feet:1};m.traverse(o=>{if(!o.isMesh)return;const r=/^(arm|body)_(?:[a-z]+_)?(helm|armor|hands|feet)/.exec(o.name);if(r)o.visible=r[1]==='arm'?!!on[r[2]]:(!on[r[2]]||(mi.keepHead&&r[2]==='helm'));});}
   const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[ck]={root,mx,h:mi.tall||1.62};}
 function drawCard3d(cv,cls,ang){if(!portraitInit())return false;
   const RC=cardReal(cls);if(RC){for(const k in CARDF)CARDF[k].root.visible=false;for(const k in CARDR)CARDR[k].root.visible=k===cls;if(PFIG)PFIG.root.visible=false;
@@ -4407,9 +4414,14 @@ const REALS={};
 // every hero shares one male and one female body; the armor set (its own file) and the attacks set them apart
 const HERO_BODY={f:'hero_m',arm:'arm_pal_m',tall:1.85,tierLook:1,slots:1,grip:1,outfits:[{min:0,sex:'f',f:'hero_f',arm:'arm_pal_f',tall:1.8}]};
 // each hero's own armor set (Dark Fantasy Protagonist Pack), fitted to both bodies
-const heroArm=(m,f)=>Object.assign({},HERO_BODY,{arm:m,outfits:[Object.assign({},HERO_BODY.outfits[0],{arm:f})]});
-const MODEL_FOR={barbarian:HERO_BODY,archer:heroArm('arm_lg_m','arm_lg_f'),elf:HERO_BODY,necromancer:HERO_BODY,healer:HERO_BODY};
+const heroArm=(m,f,cloth,keepHead)=>Object.assign({},HERO_BODY,{arm:m,cloth:!!cloth,keepHead:!!keepHead,outfits:[Object.assign({},HERO_BODY.outfits[0],{arm:f})]});
+const MODEL_FOR={barbarian:heroArm('arm_or_m','arm_or_f'),archer:heroArm('arm_lg_m','arm_lg_f'),elf:HERO_BODY,necromancer:Object.assign(heroArm('arm_mana_m','arm_mana_f',1,1),{hood:1}),healer:heroArm('arm_bh_m','arm_bh_f',1)};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
+// the Necromancer's red hood and tunic turn deep purple
+const HOODT=new Map(),HOODR=new Map();function hoodMap(t){if(!t||!t.image)return t;if(HOODT.has(t))return HOODT.get(t);const im=t.image,w=im.width,hh=im.height;if(!w)return t;const c=document.createElement('canvas');c.width=w;c.height=hh;const g=c.getContext('2d');g.drawImage(im,0,0);let d;try{d=g.getImageData(0,0,w,hh);}catch(e){return t;}const a=d.data;
+  for(let i=0;i<a.length;i+=4){const r=a[i],gg=a[i+1],b=a[i+2],mx=Math.max(r,gg,b),mn=Math.min(r,gg,b);if(mx<30||r!==mx)continue;const s=(mx-mn)/mx;if(s<0.5||(gg-b)>(mx-mn)*0.45)continue;const v=mx*0.78;a[i]=v*0.52;a[i+1]=v*0.22;a[i+2]=v*0.86;}
+  g.putImageData(d,0,0);const nt=new THREE.CanvasTexture(c);nt.flipY=t.flipY;nt.encoding=t.encoding;nt.wrapS=t.wrapS;nt.wrapT=t.wrapT;nt.anisotropy=t.anisotropy;HOODT.set(t,nt);HOODR.set(nt,t);return nt;}
+const hoodSwap=(o,mi)=>{if(!/^body_/.test(o.name)||!o.material||!o.material.map)return;const base=HOODR.get(o.material.map)||o.material.map,want=mi.hood?hoodMap(base):base;if(o.material.map!==want){o.material.map=want;o.material.needsUpdate=true;}};
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
 function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
   if(animState==='fail')return 'fail';
@@ -4582,6 +4594,12 @@ function armWear(R,h,cls,mats){const fit=ARM_FIT[cls];if(!fit||ARM_ST!=='ready')
       const sc=s*(it.sc||1),M=new THREE.Matrix4().makeTranslation(...pos(B).toArray()).multiply(new THREE.Matrix4().makeRotationFromQuaternion(q)).multiply(new THREE.Matrix4().makeScale(sc,sc,sc)).multiply(new THREE.Matrix4().makeTranslation(-it.piv[0]*sx,-it.piv[1],-it.piv[2]));
       const m=new THREE.Mesh(armGeo(it.k,mir,it.half),mat);m.matrixAutoUpdate=false;m.matrix.copy(B).invert().multiply(M);m.castShadow=true;m.frustumCulled=false;m.userData.wpn=1;lb.add(m);}}}
 const ARM_ICON={helm:{p:[['helm']],ry:0.5,rx:0.1},armor:{p:[['torso'],['waist'],['shoulder'],['shoulder',1],['upper'],['upper',1]],ry:0.35,rx:0.05},hands:{p:[['hands']],ry:-0.6,rx:0.3},feet:{p:[['feet']],ry:0.7,rx:0.25}};
+function setShot(cls,kind,tier){const mi=modelInfo(cls),AR=mi.arm&&!/^arm_pal/.test(mi.arm)&&REALS[mi.arm];if(!AR||AR.state!=='ready'||!AR.gltf||!PART_KINDS.includes(kind))return null;
+  const src=[];AR.gltf.scene.traverse(o=>{if(o.isMesh&&new RegExp('_'+kind+'$').test(o.name))src.push(o);});if(!src.length)return null;const half=kind==='hands'||kind==='feet'||kind==='armor';
+  return studio('set'+mi.arm+kind+tier,(p)=>{const L=ARM_LOOK[Math.max(0,Math.min(4,tier|0))];for(const o of src){let g=o.geometry;
+      if(half){if(!g.boundingBox)g.computeBoundingBox();const P=g.attributes.position,I=g.index?g.index.array:null,keep=[];const n=I?I.length:P.count;for(let i=0;i<n;i+=3){const a=I?I[i]:i,b=I?I[i+1]:i+1,c=I?I[i+2]:i+2;const cut=kind==='hands'?0.3*Math.max(-g.boundingBox.min.x,g.boundingBox.max.x):0;if(kind==='armor'){const lim=0.42*Math.max(-g.boundingBox.min.x,g.boundingBox.max.x);if(Math.abs(P.getX(a))<lim&&Math.abs(P.getX(b))<lim&&Math.abs(P.getX(c))<lim)keep.push(a,b,c);continue;}if(P.getX(a)<-cut&&P.getX(b)<-cut&&P.getX(c)<-cut)keep.push(a,b,c);}if(keep.length<n*0.2){keep.length=0;const cut=kind==='hands'?0.3*Math.max(-g.boundingBox.min.x,g.boundingBox.max.x):0;for(let i=0;i<n;i+=3){const a=I?I[i]:i,b=I?I[i+1]:i+1,c=I?I[i+2]:i+2;if(P.getX(a)>cut&&P.getX(b)>cut&&P.getX(c)>cut)keep.push(a,b,c);}}if(keep.length<9)continue;const g2=g.clone();g2.setIndex(keep);g=g2.toNonIndexed();g2.dispose();g.computeBoundingBox();}
+      const m0=o.material,mt=new THREE.MeshStandardMaterial({map:m0.map,normalMap:m0.normalMap||null,roughness:0.55,metalness:0.35,color:new THREE.Color(mi.cloth?0xffffff:L.c),emissive:new THREE.Color(L.e),emissiveMap:m0.map,emissiveIntensity:0.18+L.i*0.5,side:THREE.DoubleSide});
+      const m=new THREE.Mesh(g,mt);p.add(m);setTimeout(()=>{mt.dispose();if(half)g.dispose();},0);}},{ry:kind==='hands'?-0.6:kind==='feet'?0.7:0.35,rx:kind==='hands'?0.3:0.08});}
 function armShot(cls,kind,tier){if(!ARM_FIT[cls]||ARM_ST!=='ready'||!ARM_ICON[kind])return null;const I=ARM_ICON[kind];
   return studio('arm'+cls+kind+tier,(p,K)=>{const mt=armMat(tier,[]);mt.envMap=stuEnv();mt.envMapIntensity=1.1;mt.metalness=1;mt.roughness=1;mt.emissiveIntensity*=0.45;
     for(const [k,mir] of I.p)p.add(new THREE.Mesh(armGeo(k,!!mir),mt));setTimeout(()=>mt.dispose(),0);},{ry:I.ry,rx:I.rx});}
@@ -4598,7 +4616,7 @@ function buildReal(h){
   const surf=heavy?ARMOR_COL[Math.max(1,h.armor.tier)]:c.body,joint=heavy?'#5a4a3a':c.trim;const mats=[];
   const mk=(col,metal)=>{const m=new G.MeshStandardMaterial({color:new G.Color(col),roughness:metal?0.35:0.55,metalness:metal?0.55:0.1,emissive:new G.Color(col).multiplyScalar(0.12)});mats.push(m);return m;};
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;
-    if(true){if(h.remote){o.material=o.material.clone();mats.push(o.material);}o.material.skinning=!!o.isSkinnedMesh;const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&(role!=='shield'||!!h.off);if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.42;o.material.roughness=0.5;o.material.metalness=0.45;}}
+    if(true){if(h.remote){o.material=o.material.clone();mats.push(o.material);}o.material.skinning=!!o.isSkinnedMesh;hoodSwap(o,mi);const role=(mi.roles&&mi.roles[o.geometry.attributes.position.count])||'body';o.visible=role!=='hide'&&(role!=='shield'||!!h.off);if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.42;o.material.roughness=0.5;o.material.metalness=0.45;}}
     else{o.material=/Joint/i.test(o.name)?mk(joint,false):mk(surf,heavy);o.material.skinning=!!o.isSkinnedMesh;}}});
   const bone=n=>{let b=null;model.traverse(o=>{if(!b&&o.isBone&&o.name.replace(/_\d+$/,'').endsWith(n))b=o;});return b;};
   const toy=buildFigure(h,new G.Group());model.updateMatrixWorld(true);
@@ -4613,11 +4631,11 @@ function buildReal(h){
       if(R.bow&&R.bow.parent)R.bow.parent.remove(R.bow);const bw=new G.Group();bw.add(wpnMesh(cls,t,mats));R.bow=attach('LeftHand',bw,HAND_L);bw.rotation.set(WBOW[0],WBOW[1],WBOW[2]);}
     else if(cls==='barbarian'){swap(toy.wR);swap(toy.wpnL);}else swap(toy.wpn);}
   // blank-body heroes: each armor slot shows its piece when equipped, and the body part under it is hidden
-  if(mi.slots){const on={helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet};model.traverse(o=>{if(!o.isMesh)return;const m=/^(arm|body)_(?:[a-z]+_)?(helm|armor|hands|feet)/.exec(o.name)||/^(arm)_[a-z]+_(helm|armor|hands|feet)$/.exec(o.name);if(m)o.visible=m[1]==='arm'?on[m[2]]:!on[m[2]];});}
+  if(mi.slots){const on={helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet};model.traverse(o=>{if(!o.isMesh)return;const m=/^(arm|body)_(?:[a-z]+_)?(helm|armor|hands|feet)/.exec(o.name)||/^(arm)_[a-z]+_(helm|armor|hands|feet)$/.exec(o.name);if(m)o.visible=m[1]==='arm'?on[m[2]]:(!on[m[2]]||(mi.keepHead&&m[2]==='helm'));});}
   // close the weapon hand: Mixamo animations leave the fingers open, so curl them around the grip
   if(mi.grip){const GA=window.GRIPT||[new THREE.Vector3(1,0,0),1.1];R.grip=[];model.traverse(o=>{if(!o.isBone)return;const nm=o.name.replace(/_\d+$/,'');const m=/RightHand(Index|Middle|Ring|Pinky)([123])$/.exec(nm),t=/RightHandThumb([123])$/.exec(nm);
     if(m)R.grip.push([o,GA[0],GA[1]*(m[2]==='1'?0.9:1.0)]);else if(t&&t[1]!=='1')R.grip.push([o,GA[0],GA[1]*0.35]);});}
-  if(mi.tierLook){const L=ARM_LOOK[Math.max(0,Math.min(4,h.armor.tier|0))];model.traverse(o=>{if(o.isMesh&&o.material&&!o.userData.wpn&&o.material.map&&(!mi.slots||/^arm_/.test(o.name))){o.material.color.setHex(L.c);o.material.emissive.setHex(L.e);o.material.emissiveIntensity=L.i+0.08;}});}
+  if(mi.tierLook){const L=ARM_LOOK[Math.max(0,Math.min(4,h.armor.tier|0))];model.traverse(o=>{if(o.isMesh&&o.material&&!o.userData.wpn&&o.material.map&&(!mi.slots||/^arm_/.test(o.name))){o.material.color.setHex(mi.cloth?0xffffff:L.c);o.material.emissive.setHex(L.e);o.material.emissiveIntensity=L.i+0.08;}});}
   R.mi=mi;R.mixer=new G.AnimationMixer(model);R.act={};for(const cl of (ANIMS||g.animations))R.act[cl.name]=R.mixer.clipAction(cl);
   scene.add(root);R.play=(n,once,ts=1)=>{const a=R.act[n];if(!a)return;if(R.cur===n&&!once)return;const prev=R.cur&&R.act[R.cur];a.reset();a.setLoop(once?G.LoopOnce:G.LoopRepeat,Infinity);a.clampWhenFinished=!!once;a.timeScale=ts;a.enabled=true;a.setEffectiveWeight(1);
     if(prev&&prev!==a)a.crossFadeFrom(prev,0.12,false);a.play();R.cur=n;};
