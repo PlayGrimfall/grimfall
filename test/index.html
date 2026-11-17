@@ -783,7 +783,7 @@ function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<
 // the party crowd: three groups lined up across the road facing the hero
 const PARTY={figs:[],want:false};
 const PGROUPS=[{x:-26,z:2.2,men:['guard','guard','guard','guard'],girls:['girl','hero_f']},{x:16,z:1.5,men:['paladin','paladin','paladin'],girls:['hero_f']},{x:44,z:1.5,men:['guard','guard','guard'],girls:['hero_f','girl']}];
-const DOCK_SPOT={x:-45.65,z:-2.4,fx:1,fz:0,ship:true}; // the warship's raised stern deck, facing the town and castle
+const DOCK_SPOT={x:-47.95,z:-2.4,fx:1,fz:0,ship:true}; // the warship's raised stern deck, facing the town and castle
 // the King and Queen, freed from beneath the Lich Queen's throne, stand at the front of the party
 const ROYALS=[{f:'king',x:-34,z:-0.6,tall:1.97},{f:'queen',x:-34,z:1.2,tall:1.86}];
 function royalThanks(){if(S.state!=='play'||S.level!=='town')return;
@@ -1508,7 +1508,7 @@ function buildTown(){
   // harbor: pier and ship
   for(let x=-40.5;x>-50;x-=1.1){T.add(mesh(new THREE.BoxGeometry(1,0.2,2.4),M.wood,x,-0.08,2.2,true,true));}
   for(let x=-41;x>-50;x-=3)for(const z of [1,3.4])T.add(mesh(new THREE.CylinderGeometry(0.14,0.14,1.4,6),M.wood,x,-0.6,z));
-  ship=buildShip();ship.rotation.y=Math.PI;ship.scale.setScalar(1.4);ship.position.set(-55.7,-0.15,-2.4);ship.userData.baseY=-0.15;T.add(ship); // bigger, stern backed up to the quay without touching it
+  ship=buildShip();ship.rotation.y=Math.PI;ship.scale.setScalar(1.4);ship.position.set(-55.7,-0.15,-2.4);ship.userData.baseY=-0.15;T.add(ship);pearlLoad(); // bigger, stern backed up to the quay without touching it
   {const gp=new THREE.Group(),L=Math.hypot(2.55,2.75),pl=mesh(new THREE.BoxGeometry(1.0,0.08,L),M.wood,0,0,0);gp.add(pl);for(const sx of [-0.52,0.52])gp.add(mesh(new THREE.BoxGeometry(0.05,0.5,L),M.wood,sx,0.25,0));
    gp.position.set(-52.2,1.42,1.75);gp.rotation.x=Math.atan2(2.75,2.55);gp.userData.gang=1;T.add(gp);DKFX.gang=gp;} // gangplank from the pier up to the deck
   dockDeco(T);
@@ -1643,21 +1643,42 @@ V('merchant',-70,9,0.5,3);V('fish',-80,0,0,3,{sail:{cx:-78,cz:2,r:14,sp:0.05}});
     const sign=mesh(new THREE.PlaneGeometry(1.9,0.48),new THREE.MeshBasicMaterial({map:sg,side:THREE.DoubleSide}),0,dy+2.4,-0.93,false,false);sign.rotation.y=Math.PI;shop.add(sign);DKFX.shop=shop;}
 }
 function shipCrew(){if(!ship||ship.userData.crew||loadReal(null,'paladin')!=='ready'||animState!=='ready')return;const c=[];
-  for(const [lx,lz,ry] of [[7.4,0,Math.PI/2],[-5.6,0.5,-Math.PI/2],[-1.6,1.55,0],[-1.6,-1.55,Math.PI],[2.6,1.6,0.3],[2.4,-1.6,Math.PI-0.3],[0.6,0.75,Math.PI/2]]){const e={x:0,z:0,fx:1,fz:0};const R=buildRealMon(e,{f:'paladin',tall:1.85});
-    R.root.scale.multiplyScalar(1/1.4);R.root.position.set(lx,shipTopY(lx),lz);R.root.rotation.y=ry;ship.add(R.root);c.push({R,k:'idle',ph:Math.random()});} /* lookout at the bow, helmsman, gunners and deckhands */ship.userData.crew=c;} // dark-armoured paladins on the stern deck, facing the town
-function crewTick(){const c=ship&&ship.userData.crew;if(!c){if(ship&&ship.visible)shipCrew();return;}if(!ship.visible)return;for(const m of c){m.R.play('idle',false,0.8+m.ph*0.4);m.R.mixer.update(Math.min(0.05,m.R.clock.getDelta()));}}
+  const PL=ship.userData.pearl,pz=(mz,mx,ry)=>[pearlLX(mz),mx*PEARL.s,ry];
+  for(const [lx,lz,ry] of (PL?[pz(-1150,0,Math.PI/2),pz(1700,-120,-Math.PI/2),pz(150,330,0),pz(150,-330,Math.PI),pz(800,330,0.3),pz(750,-330,Math.PI-0.3),pz(-300,120,Math.PI/2)]:[[7.4,0,Math.PI/2],[-5.6,0.5,-Math.PI/2],[-1.6,1.55,0],[-1.6,-1.55,Math.PI],[2.6,1.6,0.3],[2.4,-1.6,Math.PI-0.3],[0.6,0.75,Math.PI/2]])){const e={x:0,z:0,fx:1,fz:0};const R=buildRealMon(e,{f:'paladin',tall:1.85});
+    R.root.scale.multiplyScalar(1/1.4);R.root.position.set(lx,shipTopY(lx),lz);R.root.rotation.y=ry;R.root.userData.crewR=1;ship.add(R.root);c.push({R,k:'idle',ph:Math.random()});} /* lookout at the bow, helmsman, gunners and deckhands */ship.userData.crew=c;} // dark-armoured paladins on the stern deck, facing the town
+function crewTick(){const c=ship&&ship.userData.crew;if(!c){if(ship&&ship.visible&&(!ship.userData.pearl||won()))shipCrew();return;}if(!ship.visible)return;const cw=!ship.userData.pearl||won();for(const m of c){m.R.root.visible=cw;if(!cw)continue;m.R.play('idle',false,0.8+m.ph*0.4);m.R.mixer.update(Math.min(0.05,m.R.clock.getDelta()));}}
+// ================= the Black Pearl: the Lich Queen's black ship, docked since she came; after the victory it becomes yours, in brown wood with red, gold and green sails =================
+// Pearl model units: z along the hull (bow -z, stern +z), y up. Ship-local: x along the hull with the bow at +x, so local x = ox - z*s, local z = x*s
+const PEARL={s:22/4200/1.4,ox:1.2,y0:0.304,look:null,hull:null,sail:null,tex:{}};
+const pearlLX=mz=>PEARL.ox-mz*PEARL.s,pearlMZ=lx=>(PEARL.ox-lx)/PEARL.s;
+function pearlDeck(lx){const z=pearlMZ(lx);let y;if(z<-850)y=460;else if(z<-750)y=460-(z+850)*1.7;else if(z<1000)y=290;else if(z<1450)y=340;else if(z<1550)y=340+(z-1450)*3.1;else y=650+Math.min(600,z-1550)*0.15;return y*PEARL.s+PEARL.y0;}
+const PEARL_HW=[[-1250,300],[-1100,320],[-900,370],[-700,470],[-300,500],[300,480],[900,465],[1200,430],[1500,395],[1800,355],[2140,320]];
+function pearlHW(lx){const z=pearlMZ(lx),T=PEARL_HW;let w=T[0][1];for(let i=1;i<T.length;i++){if(z<=T[i][0]){const a=T[i-1],b=T[i],k=(z-a[0])/(b[0]-a[0]);w=a[1]+(b[1]-a[1])*Math.max(0,Math.min(1,k));break;}w=T[i][1];}return w*0.82*PEARL.s;}
+function pearlLoad(){if(!THREE.GLTFLoader||!ship)return;loadModelData('pearl').then(gl=>{const o=gl.scene;o.rotation.y=-Math.PI/2;o.scale.setScalar(PEARL.s);o.position.set(PEARL.ox,PEARL.y0,0);
+  for(const c of ship.children)if(!c.userData.crewR)c.visible=false;
+  o.traverse(m=>{if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;const mt=m.material;if(/hull/.test(mt.name))PEARL.hull=mt;if(/sail/.test(mt.name)){PEARL.sail=mt;mt.alphaTest=0.5;}});
+  ship.add(o);ship.userData.pearl=o;ship.userData.lateen=null;DKFX.tier=-1;}).catch(e=>console.warn('pearl',e));}
+function pearlTex(won){const k=won?'w':'b';if(PEARL.tex[k])return PEARL.tex[k];const t=canvasTex(512,256,(c,w,h)=>{c.clearRect(0,0,w,h);
+    if(won){c.fillStyle='#7a1220';c.fillRect(0,0,256,256);c.fillStyle='#1e4a26';c.fillRect(86,0,84,256);c.fillStyle='#c9a03a';c.fillRect(80,0,6,256);c.fillRect(170,0,6,256);c.fillRect(0,0,256,10);c.fillRect(0,246,256,10);
+      c.beginPath();c.moveTo(128,70);c.lineTo(162,124);c.lineTo(128,178);c.lineTo(94,124);c.closePath();c.fill();c.fillStyle='#7a1220';c.beginPath();c.arc(128,124,13,0,7);c.fill();c.strokeStyle='rgba(0,0,0,.18)';for(let y=32;y<256;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(256,y);c.stroke();}}
+    else{c.fillStyle='#1a171c';c.fillRect(0,0,256,256);c.strokeStyle='#2a252c';c.lineWidth=2;for(let y=32;y<256;y+=32){c.beginPath();c.moveTo(0,y);c.lineTo(256,y);c.stroke();}
+      c.globalCompositeOperation='destination-out';let r=7;const rnd2=()=>{r=(r*9301+49297)%233280;return r/233280;};for(let i=0;i<10;i++){const x=15+rnd2()*225,y=60+rnd2()*180,q=6+rnd2()*12;c.beginPath();c.moveTo(x+q,y);for(let a=1;a<7;a++)c.lineTo(x+Math.cos(a)*q*(0.6+rnd2()*0.6),y+Math.sin(a)*q*(0.6+rnd2()*0.6));c.fill();}
+      for(let x=0;x<256;x+=6)c.fillRect(x,256-(2+rnd2()*24),5,30);c.globalCompositeOperation='source-over';}
+    const fl=won?['#7a1220','#c9a03a','#1e4a26','#c9a03a','#7a1220']:['#141016','#3a1a4a','#141016','#3a1a4a','#141016'];fl.forEach((col,i)=>{c.fillStyle=col;c.fillRect(256,i*51,256,52);});});
+  t.flipY=false;return PEARL.tex[k]=t;}
+function pearlLook(won){if(!PEARL.hull||PEARL.look===won)return;PEARL.look=won;PEARL.hull.color.setHex(won?0xffffff:0x262428);PEARL.sail.map=pearlTex(won);PEARL.sail.needsUpdate=true;}
 // walking on the warship's decks (ship-local coordinates: x along the hull, bow +x; the ship is turned round and scaled 1.4)
-function shipTopY(x){return x<-4.2?2.67:x<-3.7?2.67+(2.02-2.67)*(x+4.2)/0.5:2.02;} // the plank decks: stern deck 2.67, main deck 2.02
+function shipTopY(x){if(ship&&ship.userData.pearl)return pearlDeck(x);return x<-4.2?2.67:x<-3.7?2.67+(2.02-2.67)*(x+4.2)/0.5:2.02;} // the plank decks: stern deck 2.67, main deck 2.02
 const SHIPV=new THREE.Vector3();
 function shipDeck(){const sc=1.4,p=ship.position;let lx=(p.x-H.x)/sc,lz=(p.z-H.z)/sc;
-  if(lx>-3.2&&lx<-2.0&&lz<-1.75){H.onShip=false;H.shipMoved=false;if(ship.userData.lateen)ship.userData.lateen.visible=true;Object.assign(H,{x:H.x,z:2.15,y:0,vy:0});toast('You step down onto the pier.');return;} // gangway on the pier side
-  lx=clamp(lx,-7.0,5.0);const hw=2.2*(lx>2.5?1-0.9*Math.pow((lx-2.5)/6.3,1.6):lx<-5?1-0.25*((-5-lx)/2.6):1)*0.82;lz=clamp(lz,-hw,hw);
-  for(const mx of [4.8,0.6,-5.4]){const dx=lx-mx,dl=Math.hypot(dx,lz);if(dl<0.45){const k=0.45/(dl||0.01);lx=mx+dx*k;lz*=k;}} // masts
+  const PL=ship.userData.pearl;if(lx>-3.2&&lx<-2.0&&lz<(PL?-(pearlHW(lx)-0.1):-1.75)){H.onShip=false;H.shipMoved=false;if(ship.userData.lateen)ship.userData.lateen.visible=true;Object.assign(H,{x:H.x,z:2.15,y:0,vy:0});toast('You step down onto the pier.');return;} // gangway on the pier side
+  if(PL)lx=clamp(lx,pearlLX(2140),pearlLX(-1240));else lx=clamp(lx,-7.0,5.0);const hw=PL?pearlHW(lx):2.2*(lx>2.5?1-0.9*Math.pow((lx-2.5)/6.3,1.6):lx<-5?1-0.25*((-5-lx)/2.6):1)*0.82;lz=clamp(lz,-hw,hw);
+  for(const mx of (PL?[pearlLX(-870),pearlLX(500),pearlLX(1430)]:[4.8,0.6,-5.4])){const dx=lx-mx,dl=Math.hypot(dx,lz);if(dl<0.45){const k=0.45/(dl||0.01);lx=mx+dx*k;lz*=k;}} // masts
   H.x=p.x-lx*sc;H.z=p.z-lz*sc;ship.updateMatrixWorld();H.y=ship.localToWorld(SHIPV.set(lx,shipTopY(lx),lz)).y+0.02;H.vy=0;} // exactly on the planks, even as the ship rocks
 function dockTick(){if(!DKFX.boat)return;crewTick();const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
   for(const q of DKFX.gulls){const a=q.ph+t*q.sp,g=q.g;g.position.set(q.cx+Math.cos(a)*q.r,q.h+Math.sin(t*0.7+q.ph)*0.4,q.cz+Math.sin(a)*q.r);g.rotation.y=-a+(q.sp>0?0:Math.PI);g.rotation.z=(q.sp>0?-1:1)*0.25;
     const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}
-  const tr=harborTier();if(DKFX.tier!==tr){DKFX.tier=tr;for(const q of DKFX.ves)q.v.visible=q.tier<=tr&&!(q.until!==undefined&&tr>q.until);if(ship)ship.visible=tr>=4;}if(DKFX.gang&&ship)DKFX.gang.visible=ship.visible;
+  const tr=harborTier();if(DKFX.tier!==tr){DKFX.tier=tr;for(const q of DKFX.ves)q.v.visible=q.tier<=tr&&!(q.until!==undefined&&tr>q.until);if(ship)ship.visible=ship.userData.pearl?true:tr>=4;}if(ship&&ship.userData.pearl)pearlLook(won());if(DKFX.gang&&ship)DKFX.gang.visible=ship.visible&&(!ship.userData.pearl||won());
   for(const q of DKFX.ves){if(!q.v.visible)continue;if(q.sail){const a=q.ph+t*q.sail.sp;q.v.position.x=q.sail.cx+Math.cos(a)*q.sail.r;q.v.position.z=q.sail.cz+Math.sin(a)*q.sail.r;q.v.rotation.y=-a-Math.PI/2;}
     q.v.position.y=q.y0+Math.sin(t*1.1+q.ph)*0.06;q.v.rotation.z=Math.sin(t*0.8+q.ph)*0.025;q.v.rotation.x=Math.sin(t*0.7+q.ph+1)*0.015;}
   if(DKFX.gil&&DKFX.shop)DKFX.gil.y=DKFX.shop.position.y+DKFX.shop.userData.dy;
@@ -1952,6 +1973,7 @@ function buildMaze(fi){
   mzDecor(fi,theme);
   // portal (opens when the boss falls)
   const BR=D.rooms.find(r=>r.kind==='boss'),[bx]=mzCenter(BR);
+  mzSkulls(fi);
   const portal=new THREE.Group();portal.position.set(fi===3?bx+Math.min(5,(BR.x1-BR.x0+1)*TS/2-2.2):bx,0,(BR.z0+1.6)*TS);if(fi===3)buildLichThrone(bx,BR.z0*TS+1.25);
   // magic mirror portal: arched gold frame, swirling glass, stone base and candles
   const arch=(w,h,sh)=>{const r=w/2;sh.moveTo(-r,0);sh.lineTo(r,0);sh.lineTo(r,h-r);sh.absarc(0,h-r,r,0,Math.PI,false);sh.lineTo(-r,0);return sh;};
@@ -3279,13 +3301,26 @@ function msgTick(){const n=DKFX.msgr;if(!n||!won()||S.level!=='town')return;
     else{n.rush=false;n.arrived=true;n.pause=1e9;n.fx=H.x-n.x;n.fz=H.z-n.z;say(n,'From the King and Queen! It came by ship from Kemet!',3200);schedule(110,()=>{if(!INV.letter&&S.level==='town'&&S.state==='play')showLetter();});}}
   else if(n.arrived&&INV.letter){const dx=n.hx-n.x,dz=n.hz-n.z,d=Math.hypot(dx,dz);if(Math.hypot(H.x-n.x,H.z-n.z)<3&&!n.home)return;n.home=true;n.pause=0;
     if(d>0.25){n.fx=dx/d;n.fz=dz/d;n.x+=n.fx*0.035;n.z+=n.fz*0.035;clampPos(n);if(d>40){n.x=n.hx;n.z=n.hz;}}else{n.arrived=false;n.home=false;n.pause=1e9;n.fx=0;n.fz=1;}}}
+// ================= skull piles in the room corners and skull shelves on the back walls (deeper floors get more) =================
+function mzSkulls(fi){if(!THREE.GLTFLoader)return;const D=MZ,tok=D.grp;loadModelData('skulllo').then(gl=>{if(!MZ||MZ.grp!==tok)return;let src=null;gl.scene.traverse(o=>{if(o.isMesh&&!src)src=o;});if(!src)return;src.material.color.setHex(0xb8ac98);
+  const G=THREE,mats=[],m4=new G.Matrix4(),q=new G.Quaternion(),e=new G.Euler(),v=new G.Vector3(),sc=new G.Vector3();let seed=fi*977+13;const rr=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const put=(x,y,z,s,ry,rx=0,rz=0)=>{e.set(rx,ry,rz);q.setFromEuler(e);v.set(x,y,z);sc.set(s,s,s);mats.push(m4.clone().compose(v,q,sc));};
+  const pile=(x,z,n)=>{const ring=Math.min(6,n);for(let i=0;i<ring;i++){const a=i/ring*Math.PI*2+rr();put(x+Math.cos(a)*0.34,0.15,z+Math.sin(a)*0.34,0.42+rr()*0.06,Math.PI/2-a+rr()*0.6-0.3,-0.25-rr()*0.25,rr()*0.4-0.2);}
+    if(n>4)for(let i=0;i<3;i++){const a=i*2.1+rr();put(x+Math.cos(a)*0.15,0.43,z+Math.sin(a)*0.15,0.4,Math.PI/2-a+rr()*0.5,-0.35,rr()*0.3-0.15);}if(n>6)put(x,0.7,z,0.4,rr()*6.28,-0.45,0);};
+  const shelfM=lam({color:0x5a5258});const door=(tx,tz)=>D.doors.some(d=>mzDoorTiles(d).some(([dx,dz])=>Math.abs(dx-tx)<=1&&Math.abs(dz-tz)<=1));
+  const nearProp=(x,z)=>S.props.some(p=>Math.hypot(p.x-x,p.z-z)<1.1);const per=fi>=2?3:2;
+  for(const r of D.rooms){if(r.kind==='start')continue;const cs=[[r.x0,r.z0,1,1],[r.x1,r.z0,-1,1],[r.x0,r.z1,1,-1],[r.x1,r.z1,-1,-1]];let made=0;
+    for(const [tx,tz,sx,sz] of cs.sort(()=>rr()-0.5)){if(made>=per)break;if(door(tx,tz))continue;const x=tx*TS+TS/2-sx*0.25,z=tz*TS+TS/2-sz*0.25;if(nearProp(x,z))continue;pile(x,z,5+Math.floor(rr()*3));(D.piles=D.piles||[]).push([x,z]);made++;}
+    if(r.x1-r.x0>=3&&r.kind!=='boss'&&rr()<(fi>=2?0.85:0.55)){const tx=Math.round((r.x0+r.x1)/2)+(rr()<0.5?-1:1);if(!door(tx,r.z0-1)){const x=tx*TS+TS/2,z=r.z0*TS+0.17;
+      D.grp.add(mesh(new G.BoxGeometry(1.25,0.1,0.34),shelfM,x,1.45,z));for(let i=-1;i<=1;i++)put(x+i*0.38,1.62,z+0.03,0.33,rr()*0.5-0.25,-0.1,0);}}}
+  if(!mats.length)return;const im=new G.InstancedMesh(src.geometry,src.material,mats.length);mats.forEach((mm,i)=>im.setMatrixAt(i,mm));im.castShadow=true;im.receiveShadow=true;D.grp.add(im);}).catch(()=>{});}
 // ================= the Lich Queen's throne: black swords and skulls; it splits in half once her last spell breaks =================
-const LT={g:null,halves:[],broken:false,royals:[]};
-function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z);g.scale.setScalar(1.45);MZ.grp.add(g);LT.g=g;LT.broken=false;LT.halves=[];LT.royals=[];LT.x=x;LT.z=z;
+const LT={g:null,halves:[],broken:false,royals:[],sk:[]};
+function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z);g.scale.setScalar(1.45);MZ.grp.add(g);LT.g=g;LT.broken=false;LT.halves=[];LT.royals=[];LT.sk=[];LT.x=x;LT.z=z;
   const blk=new G.MeshStandardMaterial({color:0x0b0a10,roughness:0.55,metalness:0.4}),steel=new G.MeshStandardMaterial({color:0x6a6a78,metalness:0.85,roughness:0.3,emissive:0x140c1c}),
     bone=lam({color:0xd8cfb4}),hole=new G.MeshBasicMaterial({color:0x0a0408}),glow=new G.MeshBasicMaterial({color:0xb070ff}),vel=new G.MeshStandardMaterial({color:0x1a0614,roughness:1});MZ.mats.push(blk,steel,vel);
   const skull=(p,x,y,z,s=1,ry=0,rz=0)=>{const k=new G.Group();k.position.set(x,y,z);k.rotation.set(0,ry,rz);k.scale.setScalar(s);const c=mesh(new G.SphereGeometry(0.15,12,10),bone,0,0,0);c.scale.set(1,1.05,1.15);k.add(c);
-    k.add(mesh(new G.BoxGeometry(0.17,0.08,0.14),bone,0,-0.13,0.05));for(const sx of [-1,1])k.add(mesh(new G.SphereGeometry(0.04,8,6),hole,sx*0.055,0,0.155,false,false));p.add(k);return k;};
+    k.add(mesh(new G.BoxGeometry(0.17,0.08,0.14),bone,0,-0.13,0.05));for(const sx of [-1,1])k.add(mesh(new G.SphereGeometry(0.04,8,6),hole,sx*0.055,0,0.155,false,false));p.add(k);LT.sk.push(k);return k;};
   const sword=(p,x,y,a,len)=>{const s=new G.Group();s.position.set(x,y,0);s.rotation.z=a;s.add(mesh(new G.BoxGeometry(0.08,len,0.025),steel,0,len/2,0));
     const tip=mesh(new G.ConeGeometry(0.057,0.16,4),steel,0,len+0.08,0);tip.scale.z=0.35;s.add(tip);s.add(mesh(new G.BoxGeometry(0.32,0.05,0.07),blk,0,0,0));p.add(s);};
   for(const side of [-1,1]){const h=new G.Group();g.add(h);LT.halves.push(h);
@@ -3296,9 +3331,12 @@ function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z
     for(const [sx,sy,sz] of [[0.42,1.95,0.12],[0.6,1.55,0.1],[0.3,1.25,0.1],[0.18,2.25,0.1]])skull(back,side*sx,sy,sz,0.95,0,side*-0.15);
     for(let k=0;k<7;k++){const a=k/6*Math.PI*0.9;skull(h,side*(0.35+Math.cos(a)*0.55),0.12+(k%2)*0.12,0.55+Math.sin(a)*0.35,0.7+(k%3)*0.1,side*(k-3)*0.25);}}
   // the big crowned skull on top, split down the middle with the throne
-  {const k=skull(LT.halves[0],0,0.55+2.75,-0.42,1.6);const k2=skull(LT.halves[1],0,0.55+2.75,-0.42,1.6);k.scale.x*=0.5;k.position.x-=0.12;k2.scale.x*=0.5;k2.position.x+=0.12;
+  {const k=skull(LT.halves[0],0,0.55+2.75,-0.42,1.6);const k2=skull(LT.halves[1],0,0.55+2.75,-0.42,1.6);k.scale.x*=0.5;k.position.x-=0.12;k2.scale.x*=0.5;k2.position.x+=0.12;LT.sk=LT.sk.filter(q=>q!==k&&q!==k2);
     for(const [hk,sd] of [[LT.halves[0],-1],[LT.halves[1],1]])for(let j=0;j<3;j++){const sp=mesh(new G.ConeGeometry(0.045,0.32,5),steel,sd*(0.06+j*0.11),3.62-j*0.04,-0.42,true,false);hk.add(sp);}}
-  loadReal(null,'king');loadReal(null,'queen');const L=new G.PointLight(0x9a50ff,1.2,7,1.6);L.position.set(0,2.2,0.8);g.add(L);LT.light=L;}
+  loadReal(null,'king');loadReal(null,'queen');
+  // real skulls (from your skull model) replace the simple ones once loaded
+  if(THREE.GLTFLoader)loadModelData('skullm').then(gl=>{if(LT.g!==g)return;for(const k of LT.sk){for(const c of k.children)c.visible=false;const m=gl.scene.clone();m.scale.setScalar(0.42);m.position.set(0,-0.01,0.02);m.traverse(o=>{if(o.isMesh)o.castShadow=true;});k.add(m);}}).catch(()=>{});
+  const L=new G.PointLight(0x9a50ff,1.2,7,1.6);L.position.set(0,2.2,0.8);g.add(L);LT.light=L;}
 function lichBreak(){if(!LT.g||LT.broken)return;LT.broken=true;LT.t=0;S.shake=Math.max(S.shake,0.9);sfx('door');sfx('hit');
   toast('The Lich Queen\'s last spell breaks!');floatText(LT.x,4.6,LT.z,'CRACK!','#d8b0ff',30);
   for(let k=0;k<40;k++)addPart({x:LT.x+rnd(-1,1),y:rnd(0.2,4),z:LT.z+rnd(-0.6,0.8),vx:rnd(-0.08,0.08),vy:rnd(0.02,0.12),vz:rnd(-0.02,0.08),life:ri(30,60),size:rnd(0.08,0.22),color:k%3?'#3a3442':'#b070ff'});
@@ -3519,7 +3557,7 @@ function rest(){H.hp=H.maxHp;H.mp=H.maxMp;save();toast('You rest a while. Health
 function interactables(){
   const L=[];
   if(S.level==='town'){
-    for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&!(ship&&ship.visible))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':!shopOpen(d.id)?d.name+': boarded up':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?(shopOpen(d.id)?goHouse(d.id):shutMsg(d.id)):openPlace(d.id)});}
+    for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&(!(ship&&ship.visible)||(ship.userData.pearl&&!won())))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':!shopOpen(d.id)?d.name+': boarded up':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?(shopOpen(d.id)?goHouse(d.id):shutMsg(d.id)):openPlace(d.id)});}
     for(const id of SHOP_IDS){const B=SHOP_BOARDS[id];if(B&&B.visible&&walkable(id))L.push({x:B.userData.x,z:B.userData.z,r:2.4,y:3.1,label:KEEPER_OF[id].shop+': boarded up',act:()=>shutMsg(id)});}
     if(DKFX.msgr&&won()&&!H.onShip)L.push({x:DKFX.msgr.x,z:DKFX.msgr.z,r:2.4,y:2.8,label:INV.letter?'Read the letter from Kemet again':'Take the letter',act:()=>showLetter()});
     if(DKFX.king&&won()&&!H.onShip&&FW.party<=0)L.push({x:6.6,z:-3.4,r:2.6,y:3.6,label:'Speak with the King and Queen',act:royalTalk});
