@@ -4498,7 +4498,7 @@ var WPN_ST='none';const WPN_G={},WPN_T={},WSHOT={};
 function loadWpn(){if(WPN_ST!=='none')return;WPN_ST='loading';loadJs((document.body.classList.contains('phone')?'../play/models/m/':'../play/models/')+'wpn.js').then(()=>{if(!window.WPN){WPN_ST='fail';return;}return Promise.all(Object.keys(WPN.tex).map(k=>new Promise(r=>{const im=new Image();im.onload=()=>{const t=new THREE.Texture(im);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;t.needsUpdate=true;WPN_T[k]=t;r();};im.onerror=r;im.src=WPN.tex[k];}))).then(()=>{WPN_ST='ready';});}).catch(()=>{WPN_ST='fail';});}
 const WPN_SET={barbarian:['axe-10','axe-11','axe-04','axe-02','axe-07','axe-06'],necromancer:['staff-06','staff-05','staff-03','staff-04','staff-01','staff-02'],
   healer:['staff-04','staff-06','staff-05','staff-03','staff-02','staff-01'],archer:['bow-06','bow-05','bow-04','bow-03','bow-02','bow-01']};
-const WPN_LEN={barbarian:0.68,necromancer:1.6,healer:1.2,archer:1.2},WPN_GRIP={necromancer:0.28,healer:0.3};
+const WPN_LEN={barbarian:1.0,necromancer:1.6,healer:1.2,archer:1.2},WPN_GRIP={necromancer:0.28,healer:0.3};
 // Rusty, Iron, Steel use the pack's rusty, worn and clean metal; Mithril, Runic and Dragonforged glow
 const WPN_LOOK=[{v:3,e:0xffffff,i:0.32},{v:2,e:0xffffff,i:0.36},{v:1,e:0xffffff,i:0.4},{v:1,e:0x9fe0ff,i:0.62},{v:1,e:0xffd27a,i:0.66},{v:1,e:0xff8a4a,i:0.74}];
 const WPN_TIP={necromancer:0x7dff8a,healer:0xfff2a8};
