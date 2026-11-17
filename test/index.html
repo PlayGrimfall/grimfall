@@ -1369,7 +1369,9 @@ function makeGateGuards(){const G=THREE;
     const rc=new G.Raycaster(new G.Vector3(T.x,40,T.z),new G.Vector3(0,-1,0));let y=4;for(const h of rc.intersectObject(g,true)){const n=h.face&&h.face.normal.clone().transformDirection(h.object.matrixWorld);if(n&&n.y>0.7){y=h.point.y;break;}}
     for(const dz of [-1.6,0,1.6]){const e={x:T.x+1.1,y,z:T.z+dz,fx:1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{ranged:true,archer:true}};
       const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*3000,aim:false,tg:null});}}
-  GATE.guards.sort((a,b)=>Math.abs(a.e.z-1.5)-Math.abs(b.e.z-1.5));}  // guards[0] is the one by the road: he hands out the armor
+  GATE.guards.sort((a,b)=>Math.abs(a.e.z-1.5)-Math.abs(b.e.z-1.5));
+  // the gate captain stands on the road below the towers: you must talk to him (and put on his armor) before you reach the gate
+  {const e={x:80,y:0,z:INV.gift?3.3:1.5,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'guard',tall:1.9});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.cap={R,e};}}  // guards[0] is the one by the road: he hands out the armor
 // the courtyard between town and castle: skeletons stagger out of the castle toward town and the crossbowmen shoot them down.
 // They ignore you, so you just run through them. Fewer come out as you clear deeper floors.
 const CY={sk:[],bolts:[],next:0};
@@ -1393,12 +1395,16 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
     if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
+  if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
+    if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
+      if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
+      if(!GATE.asked&&d<4.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
   cyTick();const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;
     if(q.tg&&(q.tg.e.state==='dead'||q.tg.hidden)){q.tg=null;q.aim=false;}
     if(now>q.next){if(q.aim&&q.tg){cyFire(q,q.tg);q.aim=false;q.tg=null;q.next=now+1400+Math.random()*2600;}else{const c=cyPick(q);if(c){q.tg=c;q.aim=true;q.next=now+600+Math.random()*600;}else q.next=now+800;}}
     if(q.aim&&q.tg){const dx=q.tg.e.x-q.e.x,dz=q.tg.e.z-q.e.z,l=Math.hypot(dx,dz)||1;q.e.fx=dx/l;q.e.fz=dz/l;}
     q.e.state=q.aim?'wind':'idle';poseRealMon(q.R,q.e);
-    if(!INV.gift&&q===GATE.guards[0]&&H){const d=Math.hypot(H.x-q.e.x,H.z-q.e.z);if(S.frame%90===0)floatText(q.e.x,3.2,q.e.z,'!','#ffd35c',34);
+    if(!GATE.cap&&!INV.gift&&q===GATE.guards[0]&&H){const d=Math.hypot(H.x-q.e.x,H.z-q.e.z);if(S.frame%90===0)floatText(q.e.x,3.2,q.e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<16){GATE.called=1;floatText(q.e.x,2.6,q.e.z,'Stranger! Over here!','#ffcf8a',20);}
       if(!GATE.asked&&d<6.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
 // walk straight into the real buildings: door gap in the walls, camera-side walls and upper floors cut away while inside
@@ -2424,7 +2430,7 @@ function addGem(pu,t,lv,n=1){const k=t+lv;pu.gems[k]=(pu.gems[k]||0)+n;if(pu.gem
 function bounds(){return S.level==='town'?TOWN:S.level==='house'?ROOM:MZ?{minX:0.5,maxX:MZ.W*TS-0.5,minZ:0.5,maxZ:MZ.H*TS-0.5}:{minX:DUN.minX,maxX:Math.min(DUN.maxX,S.wallX),minZ:DUN.minZ,maxZ:DUN.maxZ};}
 function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
   const b=bounds();
-  if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
+  if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o===H&&!INV.gift&&GATE.cap)o.x=Math.min(o.x,78.6);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
     const dx=o.x-0,dz=o.z-1,d=Math.hypot(dx,dz),R=3.55+r;if(d<R&&d>0.001){o.x=dx/d*R;o.z=1+dz/d*R;}
     pushOut(o,TOWN_COL,r);pushOut(o,SHUT_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);}
   else if(S.level==='house'){o.x=clamp(o.x,b.minX,b.maxX);o.z=clamp(o.z,b.minZ,b.maxZ);pushOut(o,(houseGroups[S.house]||{}).cols||[],r);}
@@ -3423,7 +3429,7 @@ function interactables(){
     if(DKFX.maren)L.push({x:DKFX.maren.x,z:DKFX.maren.z+0.9,r:2.3,y:2.8,label:'Shop with Old Maren',act:()=>{gemSel=null;renderShop3('maren');}});
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
     if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push(freed().gil?{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()}:{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:"Gil's fish boat: empty",act:()=>toast("Gil's fish boat is empty. Gil went into the castle to fight the Lich Queen and never came back.")});
-    if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:6,y:2.7,label:'Talk to the guard',act:guardGift});}
+    if(!INV.gift&&(GATE.cap||GATE.guards.length)){const q=GATE.cap?GATE.cap.e:GATE.guards[0].e;L.push({x:q.x,z:q.z,r:GATE.cap?3:6,y:2.7,label:'Talk to the gate captain',act:guardGift});}
     walkInteract(L);
   } else if(S.level==='dungeon'){if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
   else{const hd=HOUSES.find(h=>h.id===S.house);L.push({x:0,z:4.2,r:1.5,y:3,label:'Go outside',act:()=>goTown(hd.shop?{x:hd.x,z:-7.6,fx:0,fz:1,house:true}:{x:hd.x,z:11.9,fx:0,fz:-1,house:true})});
@@ -3434,7 +3440,7 @@ function interactables(){
   return L;
 }
 // starter armor: the gate guard asks for help and hands over plain level-1 pieces, so the hero looks armored right away
-function guardGift(){openDlg(`<h1 class="logo sm"><small>Guard at the castle gate</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
+function guardGift(){openDlg(`<h1 class="logo sm"><small>The gate captain</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
 function giveStarter(){const g=k=>({type:'gear',kind:k,tier:0,grade:0,sockets:[null],aff:[]});for(const k of ['helm','hands','feet'])if(!H[k])H[k]=g(k);if(!H.armor||H.armor.tier<1)H.armor=Object.assign(g('armor'),{tier:1});
   INV.gift=1;recalc(H);save();sfx('go');sparks(H.x,1.4,H.z,14);toast('You put on the guard\'s armor: helmet, chest, gloves and boots. Press H to see your gear.');}
 function openPlace(id){
@@ -4964,7 +4970,7 @@ function showMaster(){if(!ADMIN||!H)return;const b=(a,n,i)=>`<button class="buy"
   openDlg(`<h1 class="logo sm"><small>Owner only</small>Master</h1><div class="shopgrid"><div class="scard"><h3>Give</h3>`
     +b('gold','10,000 gold','Added to your purse')+b('gems','Every crystal ×10','All kinds, Rough, Polished and Flawless')+b('pots','Full potion belt','Health and mana')
     +(typeof diaGrant==='function'?b('dia','1,000 test diamonds','For testing the Cash Store'):'')+`</div><div class="scard"><h3>Rune (free)</h3>`+Object.keys(RUNES).map(k=>b('rune-'+k,RUNES[k].n,RUNES[k].e)).join('')
-    +`</div><div class="scard"><h3>Testing</h3>`+b('god',S.godMode?'Can\'t-die mode: ON':'Can\'t-die mode: off','Monsters can\'t hurt you')+FLOORS.map((F,i)=>b('floor-'+i,'Go to '+F.sub,F.name)).join('')+b('town','Go to town','')+b('doors',S.openDoors?'Open every door: ON':'Open every door: off','No locks or room bars, walk straight to the boss')+b('letter','Read the letter from Kemet','The ending message')+b('free','Free every shopkeeper','Opens all four shops')+b('board','Board up all shops','Test the rescues again')+`</div></div>`
+    +`</div><div class="scard"><h3>Testing</h3>`+b('god',S.godMode?'Can\'t-die mode: ON':'Can\'t-die mode: off','Monsters can\'t hurt you')+FLOORS.map((F,i)=>b('floor-'+i,'Go to '+F.sub,F.name)).join('')+b('town','Go to town','')+b('doors',S.openDoors?'Open every door: ON':'Open every door: off','No locks or room bars, walk straight to the boss')+b('letter','Read the letter from Kemet','The ending message')+b('free','Free every shopkeeper and Gil','Opens all four shops and Gil\'s fish boat')+b('board','Board up all shops','Test the rescues again')+`</div></div>`
     +`<div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'master',act=>{
     if(act==='close'){closeDlg();return;}const [k,x]=act.split('-');
     if(k==='gold'){INV.gold+=10000;toast('+10,000 gold');}
@@ -4974,7 +4980,7 @@ function showMaster(){if(!ADMIN||!H)return;const b=(a,n,i)=>`<button class="buy"
     if(k==='rune'){H.rune=x;recalc(H);toast(RUNES[x].n+' equipped');}
     if(k==='doors'){S.openDoors=!S.openDoors;if(S.openDoors)openAllDoors();toast(S.openDoors?'Every door is open, on every floor.':'Doors work normally again (from the next floor).');}
     if(k==='letter'){closeDlg();showLetter();return;}
-    if(k==='free'){KEEPERS.forEach(K=>freed()[K.id]=1);save();toast('Every shopkeeper is free. All shops are open.');}
+    if(k==='free'){KEEPERS.forEach(K=>freed()[K.id]=1);freed().gil=1;save();toast('Every shopkeeper and Gil are free. All shops and Gil\'s boat are open.');}
     if(k==='board'){INV.freed={};save();toast('All four shops are boarded up again.');}
     if(k==='god'){S.godMode=!S.godMode;toast(S.godMode?'Can\'t-die mode on':'Can\'t-die mode off');}
     if(k==='floor'){closeDlg();goDungeon(+x);return;}if(k==='town'){closeDlg();goTown();return;}
