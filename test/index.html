@@ -311,6 +311,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <b>WASD / Arrows</b><span>Move (in free camera, up means away from the camera)</span>
       <b>Shift</b><span>Hold while moving to run</span>
       <b>G</b><span>Dance (in town). Press again for another dance</span>
+      <b>O</b><span>Save a screenshot to your Downloads folder</span>
       <b>Mouse</b><span>Click the ground to walk (hold to follow the cursor). Click a monster to attack it, hold to keep fighting. Shift+click attacks where you point. Right-click uses your special</span>
       <b>J</b><span>Attack, or enter a door when its sign lights up</span>
       <b>K</b><span>Jump. Attack in the air for a heavy hit</span>
@@ -808,6 +809,11 @@ function fwTick(){partyCrowdTick();if(!FW.pts&&!celebrating())return;fwInit();FW
   for(let i=0;i<FW.n;i++){if(FW.life[i]<=0)continue;const k=i*3;FW.life[i]--;FW.vel[k]*=0.975;FW.vel[k+1]=FW.vel[k+1]*0.975-0.0028;FW.vel[k+2]*=0.975;FW.pos[k]+=FW.vel[k];FW.pos[k+1]+=FW.vel[k+1];FW.pos[k+2]+=FW.vel[k+2];
     if(FW.life[i]<22){const f=0.9;FW.col[k]*=f;FW.col[k+1]*=f;FW.col[k+2]*=f;}if(FW.life[i]<=0)FW.pos[k+1]=-999;}
   FW.pts.geometry.attributes.position.needsUpdate=true;FW.pts.geometry.attributes.color.needsUpdate=true;}
+// O key: save a screenshot of the game view, with where the camera is written small in the corner so the same angle can be set up again
+function snapShot(){try{renderScene();const W=glc.width,Hh=glc.height,c=document.createElement('canvas');c.width=W;c.height=Hh;const g=c.getContext('2d');g.drawImage(glc,0,0);
+  const p=camera.position,txt=`${S.level}${S.level==='dungeon'?' floor '+(S.floor||1):''} · hero ${H.x.toFixed(1)}, ${H.z.toFixed(1)} · camera ${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)} · ${camMode()}`;
+  const fs=Math.max(12,Math.round(Hh/60));g.font=`${fs}px sans-serif`;const tw=g.measureText(txt).width;g.fillStyle='rgba(0,0,0,0.55)';g.fillRect(6,Hh-fs*1.7-6,tw+14,fs*1.7);g.fillStyle='#f3e6c4';g.fillText(txt,13,Hh-fs*0.62-6);
+  c.toBlob(b=>{const a=document.createElement('a'),d=new Date();a.href=URL.createObjectURL(b);a.download=`grimfall-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}.png`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);toast('Screenshot saved to your Downloads folder');},'image/png');}catch(err){toast('Could not take a screenshot here');}}
 function seaTick(){const want=!muted&&H&&S.state!=='start'&&S.level==='town';const L=SFXB.amb_sea;
   if(want&&!SEA.s&&L&&L.length){const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[0];s.loop=true;g.gain.value=0;s.connect(g);g.connect(AC.destination);s.start();SEA={s,g};}
   if(SEA.g){const v=want?clamp((-28-H.x)/14,0,1)*0.85:0;SEA.g.gain.setTargetAtTime(v,AC.currentTime,0.5);if(!want&&SEA.s){const s=SEA.s;SEA={s:null,g:null};setTimeout(()=>{try{s.stop();}catch(e){}},2500);}}}
@@ -2234,6 +2240,7 @@ addEventListener('keydown',e=>{
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
     const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
+  if(e.code==='KeyO'&&!e.repeat&&H&&!e.shiftKey){snapShot();} // O = save a screenshot (with the camera spot written in the corner)
   if(e.code==='KeyG'&&S.state==='play'&&H){if(S.level!=='town')toast('Save the dancing for town.');else{H.dance=((H.dance||0)+1)%3;if(H.dance)toast(H.dance===1?'Samba! (G for another dance, move to stop)':'Gangnam style! (G to stop)');}}
   if(e.code==='KeyM'){if(S.level==='dungeon'&&S.state==='play')S.mapOn=!S.mapOn;else toggleMute();}if(e.code==='KeyT'&&!e.shiftKey)townPortal();
   if(e.code==='KeyN')toggleMute();
