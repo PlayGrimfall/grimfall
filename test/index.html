@@ -793,7 +793,7 @@ function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
     if(f.kind==='cheer'){R.play('jump',false,1.15+f.ph*0.3);}else R.play(f.kind);R.mixer.update(dt);}}
 const FW_SPOTS=[[-33,4.5],[-18,-4.5],[-8,6.5],[-5,-4.2],[7,6.8],[24,-4.5],[30,5.2],[36,-3.5],[2,9]];
 function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route);L.forEach((n,i)=>{const p=FW_SPOTS[i%FW_SPOTS.length];n.cspot=[p[0],p[1]];n.x=p[0];n.z=p[1];n.dspot=n.dspot||[p[0],p[1]];n.dancer=true;n.dclip=i%2?'gangnam':'samba';n.cheer=false;});} // everyone dances, all through town
-function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'The castle has fallen. You stand victorious aboard the warship as Grimfall celebrates below.'),900);}
+function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.'),900);}
 function fwInit(){if(FW.pts)return;const g=new THREE.BufferGeometry();FW.pos=new Float32Array(FW.n*3).fill(-999);FW.col=new Float32Array(FW.n*3);FW.vel=new Float32Array(FW.n*3);FW.life=new Float32Array(FW.n);
   g.setAttribute('position',new THREE.BufferAttribute(FW.pos,3));g.setAttribute('color',new THREE.BufferAttribute(FW.col,3));
   FW.pts=new THREE.Points(g,new THREE.PointsMaterial({size:1.9,map:TX.glow,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));FW.pts.frustumCulled=false;scene.add(FW.pts);}
@@ -2876,7 +2876,7 @@ function setLevel(lv){
 }
 function goTown(spot){
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
-  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('The castle has fallen. You stand victorious aboard the warship as Grimfall celebrates below.');}},60);}
+  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
@@ -4208,7 +4208,7 @@ function poseReal(R,h,blink){
   else if(h.state==='hurt'){if(R.cur!=='hit')once('hit',0.55);}
   else if(h.castT>0&&R.cur!=='area'&&R.cur!=='cast'&&R.cur!=='flip'){if(cls==='barbarian'&&h.spN===2&&R.act.flip)once('flip',1.7);else once(cls==='barbarian'?'area':'cast',cls==='barbarian'?1.1:0.9);}
   else if(h.swing>0&&h.swing===h.swingMax-1){const n=cls==='barbarian'?(h.combo%2?'chop':'slash'):cls==='elf'?'sss':cls==='archer'?(h.melee?'sss':'aim'):'magic';once(n,cls==='archer'&&!h.melee?0.45:0.7);}
-  else if(now>R.lock){if(h.y>0.05)R.play('jump',false,1.6);else if(h.moving&&h.strafe&&R.act.strafeL)R.play(h.strafe<0?'strafeL':'strafeR',false,h.sprint?1.7:1.15);else if(h.moving)R.play('run',false,h.sprint?1.6:1.1);else if(h.dance&&R.act.samba)R.play(h.dance===1?'samba':'gangnam');else R.play('idle');}
+  else if(now>R.lock){if(h.y>0.05)R.play('jump',false,1.6);else if(h.moving&&h.strafe&&R.act.strafeL)R.play(h.strafe<0?'strafeL':'strafeR',false,h.sprint?1.7:1.15);else if(h.moving)R.play('run',false,h.sprint?1.6:1.1);else if(h.onShip&&!h.shipMoved&&R.act.triumph)R.play('triumph');else if(h.dance&&R.act.samba)R.play(h.dance===1?'samba':'gangnam');else R.play('idle');}
   if(R.knife)R.knife.visible=!!(h.melee&&(R.cur==='sss'));
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
