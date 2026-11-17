@@ -1404,6 +1404,7 @@ function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
 // walk straight into the real buildings: door gap in the walls, camera-side walls and upper floors cut away while inside
 const WALK={map:{},cur:null,pz:new THREE.Plane(new THREE.Vector3(0,0,-1),0),py:new THREE.Plane(new THREE.Vector3(0,-1,0),2.9)};
 const walkable=id=>bldState==='ready'&&!!WALK.map[id];
+const SHUT_COL=[],SHOP_BOARDS={};
 function walkSetup(){renderer.localClippingEnabled=true;
   for(const t of TOWN_BLD){const b=t.o.bld;if(!b.walk||!b.wb||!t.o.hid)continue;const w=b.wb,dz=t.g.rotation.y===0?1:-1,cx=(w.min.x+w.max.x)/2,cz=(w.min.z+w.max.z)/2,iw=w.max.x-w.min.x,idp=w.max.z-w.min.z;
     const W={id:t.o.hid,t,b,cx,cz,dz,sx:Math.min(1,(iw/2-1)/5.5),sz:Math.min(1,(idp/2-1)/4.2),ceil:3.2};t.g.updateMatrixWorld(true);
@@ -1419,7 +1420,8 @@ function walkIn(){const town=S.level==='town'&&bldState==='ready'&&H;let cur=nul
   if(town)for(const id in WALK.map){const w=WALK.map[id].b.wb;if(H.x>w.min.x+0.25&&H.x<w.max.x-0.25&&H.z>w.min.z+0.25&&H.z<w.max.z-0.25){cur=WALK.map[id];break;}}
   if(cur!==WALK.cur){if(WALK.cur)walkClip(WALK.cur,false);WALK.cur=cur;if(cur)walkClip(cur,true);}
   if(cur){const n=new THREE.Vector3(H.x-camera.position.x,0,H.z-camera.position.z);if(n.lengthSq()<1e-6)n.set(0,0,-1);n.normalize();const p=new THREE.Vector3(H.x,0,H.z).addScaledVector(n,-1.1);WALK.pz.normal.copy(n);WALK.pz.constant=-n.dot(p);WALK.py.constant=cur.ceil;}
-  for(const id in WALK.map){const n=WALK.map[id].npc;if(!n)continue;const show=town&&Math.hypot(n.x-H.x,n.z-H.z)<40;
+  if(S.level==='town')shutTick();
+  for(const id in WALK.map){const n=WALK.map[id].npc;if(!n)continue;const show=town&&Math.hypot(n.x-H.x,n.z-H.z)<40&&shopOpen(id);
     if(show){const dx=H.x-n.x,dz=H.z-n.z;if(Math.hypot(dx,dz)<5){n.fx=dx;n.fz=dz;}else{n.fx=0;n.fz=WALK.map[id].dz;}realNpc(n,1.8);}
     if(n.spr.rfig)n.spr.rfig.root.visible=show;}}
 function walkInteract(L){const W=WALK.cur;if(!W)return;const hd=HOUSES.find(h=>h.id===W.id);
@@ -1649,6 +1651,7 @@ function dockTick(){if(!DKFX.boat)return;crewTick();const t=(DKFX.t+=0.016);cons
 function makeHarborFolk(){
   const sp=()=>makeSprite(512,512,256,472,2);
   const gil={x:-53.1,z:4.7,y:0.3,tx:-53.1,tz:4.7,vx:-1,pause:1e9,anim:0,col:'#3a6a8a',hat:1,skin:'#d9a07a',face:-1,fx:0,fz:-1,rm:'mage',tint:'#bcd0e0',tall:1.74,keeper:true,gil:true,spr:sp()};S.npcs.push(gil);DKFX.gil=gil;
+  const maren={x:-37.6,z:-6.6,tx:-37.6,tz:-6.6,vx:-1,pause:1e9,anim:0,col:'#5a6a7a',hat:0,skin:'#d9a07a',face:1,fx:0.3,fz:1,rm:'girl',tint:'#c8bca8',tall:1.62,keeper:true,maren:true,spr:sp()};S.npcs.push(maren);DKFX.maren=maren;
   const R=[[[-31,-6.2],[-36.6,2.2],[-41.5,2.2],[-42.6,3.6],[-42.6,12.3],[-53.5,12.3]],
            [[-25,-6.2],[-36.6,1.9],[-41.5,1.9],[-42.4,0.6],[-42.4,-8.3],[-53.5,-8.3]],
            [[-22,6.4],[-36.6,2.5],[-56.5,2.5]],
@@ -2093,7 +2096,7 @@ function updRooms(){
 }
 function updMaze(){
   if(!MZ)return;
-  if(S.frame%5===0)mzReveal();
+  if(S.frame%5===0)mzReveal();prisTick();
   for(const d of MZ.doors){const o=MZ.doorObjs[d.i];
     if(!d.open&&!d.lock&&!d.bar&&Math.hypot(H.x-o.cx,H.z-o.cz)<2.9){d.open=true;mzRefreshBlk();sfx('door');}
     const ta=d.open&&!d.lock?1:0;d.anim+=(ta-d.anim)*0.12;
@@ -2121,6 +2124,7 @@ function updMaze(){
 }
 function mzInteract(L){
   if(!MZ)return;
+  const PR=S.pris;if(PR&&!PR.gone){const ok=prisReady(PR);L.push({x:PR.ix,z:PR.iz,r:2.6,y:2.7,label:ok?'Free '+PR.K.name:PR.K.name+' is a prisoner here',act:()=>{if(ok)freePris();else toast(PR.boss?'Defeat the Lich Queen to free '+PR.K.name+'.':'Defeat the guards of this room to free '+PR.K.name+'.');}});}
   for(const d of MZ.doors){if(!d.lock)continue;const o=MZ.doorObjs[d.i],need=d.lock==='great'?GKEY[S.floor]:'Rusty Key',have=d.lock==='great'?S.keys.great>0:S.keys.rusty>0;
     L.push({x:o.cx,z:o.cz,r:2.9,y:2.4,label:have?'Unlock with the '+need:'Locked: needs the '+need,act:()=>{
       if(!have){toast(d.lock==='great'?'This door is locked. Defeat the guards of '+PIECE_N[S.floor]+' to win the '+GKEY[S.floor]+'.':'Locked. Rusty keys drop when you clear some rooms.');return;}
@@ -2411,7 +2415,7 @@ function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
   const b=bounds();
   if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
     const dx=o.x-0,dz=o.z-1,d=Math.hypot(dx,dz),R=3.55+r;if(d<R&&d>0.001){o.x=dx/d*R;o.z=1+dz/d*R;}
-    pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);}
+    pushOut(o,TOWN_COL,r);pushOut(o,SHUT_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);}
   else if(S.level==='house'){o.x=clamp(o.x,b.minX,b.maxX);o.z=clamp(o.z,b.minZ,b.maxZ);pushOut(o,(houseGroups[S.house]||{}).cols||[],r);}
   else{o.x=clamp(o.x,b.minX,b.maxX);o.z=clamp(o.z,b.minZ,b.maxZ);if(MZ)mzCollide(o,r);}
 }
@@ -2867,6 +2871,7 @@ function clearLevel(){
   for(const p of S.pickups){scene.remove(p.spr);p.spr.material.dispose();}S.pickups=[];
   for(const p of S.props)p.grp.remove(p.obj);S.props=[];
   if(S.hnpc){killSprite(S.hnpc.spr);S.hnpc=null;}
+  if(S.pris){if(!S.pris.gone)killSprite(S.pris.spr);S.pris=null;}
   Object.assign(S,{proj:[],eproj:[],parts:[],texts:[],fx:[],timers:[],queue:[],boss:null,exitOpen:false,shake:0,hitStop:0,near:null});
 }
 function setLevel(lv){
@@ -2887,7 +2892,7 @@ function goDungeon(fi=0){
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
-  mzPlaceProps();
+  mzPlaceProps();prisSpawn(fi);
   if(INV.map){INV.map=false;const nr=MZ.rooms.filter(r=>r.kind==='normal'),tr=nr[ri(0,nr.length-1)],[tx,tz]=mzRoomSpot(-99,-99,0,tr);S.props.push(makeProp('chest',tx,tz,dunGroup,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.6));dropPickup('gear',p.x,p.z,0,gearFor(0.4));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));for(let i=0;i<10;i++)dropPickup('gold',p.x,p.z,12);}}));
     schedule(120,()=>toast('Your treasure map leads to a golden chest somewhere on this floor!'));}
   portal.visible=false;portal.userData.pl.intensity=0;
@@ -3035,6 +3040,55 @@ const HOUSE_PROPS={
  empty:[['chest',-3.6,-3.4,{loot:emptyLoot,fancy:true}],['pot',4.6,-3.5],['pot',5.0,-2.6],['pot',-4.9,3.3],['barrel',4.8,3.1],['barrel',-1.2,-3.5]],
 };
 const SHOP_IDS=['smith','armory','gems','magic'];
+// ================= captured shopkeepers: each shop stays boarded up until you free its keeper from the castle =================
+const KEEPERS=[
+ {id:'armory',fi:0,name:'Borin',him:'him',shop:'The Armory',rm:'guard',col:'#6a6f7a',skin:'#f1c8a5',hat:0,
+  thanks:'You came for me! Three weeks in this cage, eating cold gruel. Get back to town, friend. I will have the forge lit and the armor racks full before you get there.',
+  hint:'There was another prisoner down here, a fishman called Gil. He sang sea songs all night until the guards dragged him away, deeper into the castle. I never saw where.'},
+ {id:'smith',fi:1,name:'Hilda the Smith',him:'her',shop:'The Blacksmith',rm:'smith',col:'#5a4a3a',skin:'#d9a07a',hat:2,
+  thanks:'Ha! I knew somebody would come. Bring me your weapon when you get back and I will make it sing.',
+  hint:'Gil the fishman? The skeletons laughed about him. They hid him on the floor below this one, and not in any cell you can see.'},
+ {id:'gems',fi:2,name:'Opal',him:'her',shop:'Crystals & Jewels',rm:'girl',col:'#a463f2',skin:'#f6d5b8',hat:1,
+  thanks:'Oh, thank you, thank you! I thought I would never see daylight again. My crystals are waiting for you in town.',
+  hint:'Can you smell the sea? It is strongest on this floor. Somewhere a wall drips salt water. I would bet my best crystal that Gil is behind it.'},
+ {id:'magic',fi:3,name:'Master Wren',him:'him',shop:'Runes & Magic',rm:'mage',col:'#3a5a8a',skin:'#e9b58d',hat:1,
+  thanks:'The Lich Queen kept me to read her old runes. You have done what no one else could. My shop is yours, hero.',
+  hint:'My runes found the fishman. Gil is on the third floor, behind a cracked wall that weeps seawater. Strike it hard and it will break.'}];
+const KEEPER_OF={};KEEPERS.forEach(K=>KEEPER_OF[K.id]=K);
+// old saves keep every shop they already earned
+function freed(){if(!INV.freed){INV.freed={};KEEPERS.forEach(K=>{if((INV.deepest||0)>K.fi)INV.freed[K.id]=1;});}return INV.freed;}
+const shopOpen=id=>!KEEPER_OF[id]||!!freed()[id];
+function shutMsg(id){const K=KEEPER_OF[id];toast(K.fi===3?`${K.shop} is boarded up. The Lich Queen holds ${K.name} on floor 4 of the castle. Free ${K.him} to open the shop.`:`${K.shop} is boarded up. ${K.name} is locked up on floor ${K.fi+1} of the castle. Free ${K.him} to open the shop.`);}
+function boardUp(){const g=new THREE.Group(),wd=lam({color:0x6a4a30,map:TX.plank||null}),dk=lam({color:0x3e2a1a});
+  for(const sx of [-1.45,1.45])g.add(mesh(new THREE.BoxGeometry(0.18,2.5,0.18),dk,sx,1.25,0));
+  for(const [y,r] of [[0.55,0.04],[1.25,-0.05],[1.95,0.03]]){const p=mesh(new THREE.BoxGeometry(3.3,0.32,0.08),wd,0,y,0.1);p.rotation.z=r;g.add(p);}
+  const x1=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x1.rotation.z=0.62;g.add(x1);const x2=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x2.rotation.z=-0.62;g.add(x2);
+  const t=canvasTex(256,96,(c,w,h)=>{c.fillStyle='#d8c6a0';c.fillRect(0,0,w,h);c.strokeStyle='#5a3a20';c.lineWidth=6;c.strokeRect(4,4,w-8,h-8);c.fillStyle='#8a1a1a';c.font='700 50px Georgia';c.textAlign='center';c.textBaseline='middle';c.fillText('CLOSED',w/2,h/2+3);});
+  const sg=mesh(new THREE.PlaneGeometry(1.3,0.5),lam({map:t}),0,2.45,0.24,false,false);sg.rotation.z=-0.06;g.add(sg);return g;}
+function shutTick(){SHUT_COL.length=0;
+  for(const id of SHOP_IDS){const W=WALK.map[id],real=!!(W&&bldState==='ready');let B=SHOP_BOARDS[id];
+    if(B&&B.userData.real!==real){townGroup.remove(B);B=SHOP_BOARDS[id]=null;}
+    if(!B){const d=DOORS.find(q=>q.id===id);B=boardUp();B.userData.real=real;
+      if(real){const w=W.b.wb;B.position.set(W.t.g.position.x,0,W.dz>0?w.max.z+0.12:w.min.z-0.12);if(W.dz<0)B.rotation.y=Math.PI;}else B.position.set(d.x,0,-8.85);
+      B.userData.x=B.position.x;B.userData.z=B.position.z+(W&&W.dz<0?-0.9:0.9);townGroup.add(B);SHOP_BOARDS[id]=B;}
+    const shut=!shopOpen(id);B.visible=shut;if(shut){const x=B.position.x,z=B.position.z;SHUT_COL.push([x-1.6,x+1.6,z-1.2,z+0.25]);}}}
+// the prisoner on each floor: in the spare cell on floors 1-2, chained to the wall on floor 3, in the Lich Queen's own room on floor 4
+function prisSpawn(fi){S.pris=null;const K=KEEPERS[fi];if(!K||!MZ||freed()[K.id])return;
+  const cell=fi<=1?MZ.cells.find(c=>c.kind==='decor'):null,boss=fi>=3,room=MZ.rooms.find(r=>r.kind===(boss?'boss':'piece'));if(!room)return;let x,z,ix,iz;
+  if(cell){x=(cell.tx+1)*TS;z=(cell.tz-1)*TS+TS/2;const o=MZ.cellObjs[cell.k];ix=o?o.cx:x;iz=(o?o.cz:cell.tz*TS+TS*0.85)+0.6;}
+  else{const nearDoor=tx=>MZ.doors.some(d=>mzDoorTiles(d).some(([dx,dz])=>Math.abs(dx-tx)<=2&&Math.abs(dz-room.z0)<=2));let bt=null;
+    for(let k=0;k<=room.x1-room.x0;k++){const tx=boss?room.x0+k:Math.round((room.x0+room.x1)/2)+(k%2?-1:1)*Math.ceil(k/2);if(tx<room.x0||tx>room.x1)continue;if(!nearDoor(tx)){bt=tx;break;}}
+    x=bt!=null?bt*TS+TS/2:boss?room.x0*TS+1.6:(room.x0+room.x1+1)*TS/2+TS;z=room.z0*TS+0.95;ix=x;iz=z+1.1;
+    const G=MZ.grp;for(const sx of [-0.5,0.5]){G.add(mesh(new THREE.CylinderGeometry(0.03,0.03,1.3,5),M.metal,x+sx,2.25,room.z0*TS+0.1,false,false));G.add(mesh(new THREE.TorusGeometry(0.13,0.035,6,10),M.metal,x+sx,1.55,room.z0*TS+0.14,false,false));}
+    S.props=S.props.filter(p=>{if(Math.hypot(p.x-x,p.z-z)<1.8){p.grp.remove(p.obj);return false;}return true;});}
+  const n={x,z,fx:0,fz:1,face:1,anim:0,pause:1,rm:K.rm,keeper:true,tall:1.76,col:K.col,skin:K.skin,hat:K.hat,K,cell,room,boss,ix,iz,called:false,spr:makeSprite(512,512,256,472,2)};S.pris=n;}
+function prisReady(P){return P.boss?S.exitOpen:P.room.state==='clear';}
+function prisTick(){const P=S.pris;if(!P||P.gone)return;const d=Math.hypot(H.x-P.x,H.z-P.z);
+  if(!P.called&&d<9){P.called=true;floatText(P.x,2.6,P.z,'Help! Get me out of here!','#ffcf8a',22);}
+  if(prisReady(P)&&!P.cheer){P.cheer=true;floatText(P.x,2.6,P.z,'You did it! Let me out!','#bfffcf',20);}}
+function freePris(){const P=S.pris,K=P.K;if(P.cell){P.cell.open=true;mzRefreshBlk();}sfx('chest');
+  freed()[K.id]=1;P.gone=true;save();sparks(P.x,1.2,P.z,24,'#bfe8ff');sparks(P.x,2,P.z,16,'#ffe27a');sfx('potion');killSprite(P.spr);
+  openDlg(`<h1 class="logo sm"><small>${esc(K.shop)}</small>${esc(K.name)} is free!</h1><p class="tag">"${esc(K.thanks)}"</p><p class="tag"><b>About Gil the fishman:</b> "${esc(K.hint)}"</p><p class="note">${esc(K.name)} uses a homing charm and vanishes in a flash of light. ${esc(K.shop)} is open again in town.</p><div class="row"><button class="btn" type="button" data-act="ok">Good luck</button></div>`,'freed',()=>{closeDlg();toast(K.shop+' is open again in town.');},false);}
 const fogHouse=new THREE.Fog(0x120c10,20,44);
 TX.nightWin=canvasTex(128,112,(g,w,h)=>{g.fillStyle='#4a2e1c';g.fillRect(0,0,w,h);const gr=g.createLinearGradient(0,10,0,h-10);gr.addColorStop(0,'#1a2050');gr.addColorStop(1,'#4a5aa0');g.fillStyle=gr;g.fillRect(10,10,w-20,h-20);
   g.fillStyle='#fff';for(let i=0;i<8;i++){circ(g,16+((i*37)%96),16+((i*23)%40),1.2);g.fill();}g.fillStyle='#f2ead8';circ(g,90,30,9);g.fill();g.fillStyle='#4a2e1c';g.fillRect(w/2-4,10,8,h-20);g.fillRect(10,h/2-4,w-20,8);});
@@ -3155,7 +3209,9 @@ function rest(){H.hp=H.maxHp;H.mp=H.maxMp;save();toast('You rest a while. Health
 function interactables(){
   const L=[];
   if(S.level==='town'){
-    for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&!(ship&&ship.visible))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?goHouse(d.id):openPlace(d.id)});}
+    for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&!(ship&&ship.visible))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':!shopOpen(d.id)?d.name+': boarded up':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?(shopOpen(d.id)?goHouse(d.id):shutMsg(d.id)):openPlace(d.id)});}
+    for(const id of SHOP_IDS){const B=SHOP_BOARDS[id];if(B&&B.visible&&walkable(id))L.push({x:B.userData.x,z:B.userData.z,r:2.4,y:3.1,label:KEEPER_OF[id].shop+': boarded up',act:()=>shutMsg(id)});}
+    if(DKFX.maren)L.push({x:DKFX.maren.x,z:DKFX.maren.z+0.9,r:2.3,y:2.8,label:'Shop with Old Maren',act:()=>{gemSel=null;renderShop3('maren');}});
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
     if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push({x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()});
     if(!INV.gift&&GATE.guards.length){const q=GATE.guards[0].e;L.push({x:q.x,z:q.z,r:6,y:2.7,label:'Talk to the guard',act:guardGift});}
@@ -3199,7 +3255,7 @@ function ingrLine(){const I=INV.ingr||{},ks=FISH.filter(f=>I[f.id]);return ks.le
 function goldLine(){return `<div class="purses"><span>Your gold: <span class="coin"></span><b>${INV.gold}</b></span><span>Bag: <b>${INV.bag.length}/${BAG_MAX}</b></span></div>`;}
 function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickable?`<button class="sock full" type="button" style="--gc:${GEMS[s.t].c}" data-act="unsock-${kind}-${i}" title="Take out the ${GEM_LV[s.lv]} ${GEMS[s.t].n}">${gemSpan(s.t)}</button>`:`<span class="gem" style="--gc:${GEMS[s.t].c}" title="${GEM_LV[s.lv]} ${GEMS[s.t].n}"></span>`)
   :(clickable?`<button class="sock" type="button" data-act="sock-${kind}-${i}" title="Empty setting">${gemSel?'+':''}</button>`:'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>')).join(' ');}
-const SHOP_T={smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
+const SHOP_T={maren:['Old Maren','Basic potions for the road, and she buys what you find'],smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
   gems:['Crystals & Jewels','Real crystals with real powers. Set them in your weapon, armor and jewelry, or combine three into a better one'],magic:['Runes & Magic','Runes power up your specials, elixirs make you stronger for good, and potions fill your belt']};
 const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25};
 // every shop price is 25% higher than the base numbers above
@@ -3236,7 +3292,10 @@ function armRackHtml(){const a=H.armor,G0=INV.gold;return `<p class="sub l">Armo
 let gemQ=1;const gemPrice=(t,q)=>Math.round(gemCost(t)*[0,1,3.5,11][q]);
 function renderShop3(id){
   const [title,sub]=SHOP_T[id],w=H.weapon,a=H.armor,G0=INV.gold;let card='',extra='';
-  if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
+  if(id==='maren'){card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
+      +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
+      +(SHOP_IDS.some(i=>!shopOpen(i))?`<p class="note l">"The Lich Queen's dead dragged our shopkeepers into the castle. Free them and their shops will open again."</p>`:'');}
+  else if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set}))}</b> ${socketsHtml(w,'weapon',false)}</div>`
       +buyBtn('wtier',w.tier<5?`Forge ${WEAPON_TIERS[w.tier+1]} ${HEROES[H.cls].weapon}`:'Best metal reached','+25% damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
       +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rackHtml();}
@@ -4480,6 +4539,8 @@ function render3D(){
     placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
   if(lv==='house'&&S.hnpc){const n=S.hnpc;n.anim++;const dx=H.x-n.x,dz=H.z-n.z;if(Math.hypot(dx,dz)<4){n.fx=dx;n.fz=dz;}n.face=screenFace(n.fx,n.fz,n.face);
     if(realNpc(n,1.8)){}else if(syncFig(n.spr,()=>buildNpc(n)))poseNpc(n.spr.fig,Object.assign(n,{pause:1}));else paintSprite(n.spr,g=>drawNpc(g,{pause:1,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
+  if(lv==='dungeon'&&S.pris&&!S.pris.gone){const n=S.pris;n.anim++;const dx=H.x-n.x,dz=H.z-n.z;if(Math.hypot(dx,dz)<6){n.fx=dx;n.fz=dz;}n.face=screenFace(n.fx,n.fz,n.face);
+    if(realNpc(n,1.76)){}else if(syncFig(n.spr,()=>buildNpc(n)))poseNpc(n.spr.fig,n);else paintSprite(n.spr,g=>drawNpc(g,{pause:1,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
   for(const p of S.pickups){p.spr.position.set(p.x,p.y+Math.sin((p.age+p.x*10)*0.12)*0.05+p.sz*0.35,p.z);if(p.spr.children[0])p.spr.children[0].rotation.y+=0.04;}
   if(lv==='dungeon'&&SET.style==='real')for(const e of S.enemies)if(REALMON[e.type])loadReal(null,rmInfo(e).f);
   if(!heroLight){heroLight=new THREE.PointLight(0xffe2c4,0,9,1.6);scene.add(heroLight);}
@@ -4610,7 +4671,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['Cold water. The creak of old wood. Gulls crying somewhere above.','You wake on a wooden dock, soaked to the bone, with no memory of how you got here.'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'black',t0:performance.now()};S.state='intro';S.banner=null;
@@ -4690,7 +4751,7 @@ function showMaster(){if(!ADMIN||!H)return;const b=(a,n,i)=>`<button class="buy"
   openDlg(`<h1 class="logo sm"><small>Owner only</small>Master</h1><div class="shopgrid"><div class="scard"><h3>Give</h3>`
     +b('gold','10,000 gold','Added to your purse')+b('gems','Every crystal ×10','All kinds, Rough, Polished and Flawless')+b('pots','Full potion belt','Health and mana')
     +(typeof diaGrant==='function'?b('dia','1,000 test diamonds','For testing the Cash Store'):'')+`</div><div class="scard"><h3>Rune (free)</h3>`+Object.keys(RUNES).map(k=>b('rune-'+k,RUNES[k].n,RUNES[k].e)).join('')
-    +`</div><div class="scard"><h3>Testing</h3>`+b('god',S.godMode?'Can\'t-die mode: ON':'Can\'t-die mode: off','Monsters can\'t hurt you')+FLOORS.map((F,i)=>b('floor-'+i,'Go to '+F.sub,F.name)).join('')+b('town','Go to town','')+`</div></div>`
+    +`</div><div class="scard"><h3>Testing</h3>`+b('god',S.godMode?'Can\'t-die mode: ON':'Can\'t-die mode: off','Monsters can\'t hurt you')+FLOORS.map((F,i)=>b('floor-'+i,'Go to '+F.sub,F.name)).join('')+b('town','Go to town','')+b('free','Free every shopkeeper','Opens all four shops')+b('board','Board up all shops','Test the rescues again')+`</div></div>`
     +`<div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'master',act=>{
     if(act==='close'){closeDlg();return;}const [k,x]=act.split('-');
     if(k==='gold'){INV.gold+=10000;toast('+10,000 gold');}
@@ -4698,6 +4759,8 @@ function showMaster(){if(!ADMIN||!H)return;const b=(a,n,i)=>`<button class="buy"
     if(k==='pots'){INV.belt.hp=INV.belt.mp=BELT_MAX;toast('Potion belt full');}
     if(k==='dia'&&typeof diaGrant==='function')diaGrant(1000);
     if(k==='rune'){H.rune=x;recalc(H);toast(RUNES[x].n+' equipped');}
+    if(k==='free'){KEEPERS.forEach(K=>freed()[K.id]=1);save();toast('Every shopkeeper is free. All shops are open.');}
+    if(k==='board'){INV.freed={};save();toast('All four shops are boarded up again.');}
     if(k==='god'){S.godMode=!S.godMode;toast(S.godMode?'Can\'t-die mode on':'Can\'t-die mode off');}
     if(k==='floor'){closeDlg();goDungeon(+x);return;}if(k==='town'){closeDlg();goTown();return;}
     sfx('chest');save();showMaster();});}
