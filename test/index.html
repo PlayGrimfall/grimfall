@@ -1398,7 +1398,7 @@ function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
-      if(!GATE.asked&&d<4.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}}
+      if(!GATE.asked&&d<5.5&&S.state==='play'&&H.state==='ok'){GATE.asked=1;guardGift();}}}capTalkTick(c,inTown);}
   cyTick();const now=performance.now();for(const q of GATE.guards){q.R.root.visible=inTown;if(!inTown)continue;
     if(q.tg&&(q.tg.e.state==='dead'||q.tg.hidden)){q.tg=null;q.aim=false;}
     if(now>q.next){if(q.aim&&q.tg){cyFire(q,q.tg);q.aim=false;q.tg=null;q.next=now+1400+Math.random()*2600;}else{const c=cyPick(q);if(c){q.tg=c;q.aim=true;q.next=now+600+Math.random()*600;}else q.next=now+800;}}
@@ -3440,7 +3440,12 @@ function interactables(){
   return L;
 }
 // starter armor: the gate guard asks for help and hands over plain level-1 pieces, so the hero looks armored right away
-function guardGift(){openDlg(`<h1 class="logo sm"><small>The gate captain</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
+const CAP_LINES=['So Old Maren sent you. Good!','The Lich Queen\'s dead are pouring out of that castle.','There are too few of us left to hold this gate.','You look like you can fight. Take this armor!','Now get in there, and good luck!'];
+function capTalk(){if(GATE.talk||INV.gift)return;GATE.talk={i:-1,t:0};}
+function capTalkTick(c,vis){const T=GATE.talk;if(!T)return;const now=performance.now();
+  if(now>=T.t){T.i++;bubbleKill(T);if(T.i>=CAP_LINES.length){GATE.talk=null;return;}if(T.i===3)giveStarter();T.bub=bubbleSpr(CAP_LINES[T.i]);scene.add(T.bub);T.t=now+3300;}
+  if(T.bub){T.bub.visible=vis;T.bub.position.set(c.e.x,(c.e.y||0)+3.05,c.e.z);}}
+function guardGift(){if(GATE.cap){capTalk();return;}openDlg(`<h1 class="logo sm"><small>The gate captain</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
 function giveStarter(){const g=k=>({type:'gear',kind:k,tier:0,grade:0,sockets:[null],aff:[]});for(const k of ['helm','hands','feet'])if(!H[k])H[k]=g(k);if(!H.armor||H.armor.tier<1)H.armor=Object.assign(g('armor'),{tier:1});
   INV.gift=1;recalc(H);save();sfx('go');sparks(H.x,1.4,H.z,14);toast('You put on the guard\'s armor: helmet, chest, gloves and boots. Press H to see your gear.');}
 function openPlace(id){
