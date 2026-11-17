@@ -369,8 +369,8 @@ const sgn=v=>v<0?-1:1;
 const DF='"Grenze Gotisch", Georgia, serif', BF='"Alegreya Sans", "Trebuchet MS", sans-serif';
 // ================= heroes =================
 const HEROES={
- sorceress:{name:'Sorceress',role:'Fire magic from a distance',hp:85,mp:110,spd:2.7,dmg:9,range:0,shot:true,aiDist:150,atkRate:20,swing:14,weapon:'Staff',
-  s1:{name:'Fireball',cost:20},s2:{name:'Meteor Rain',cost:60},
+ necromancer:{name:'Necromancer',role:'Dark magic from afar, calls on the dead',hp:85,mp:110,spd:2.7,dmg:9,range:0,shot:true,aiDist:150,atkRate:20,swing:14,weapon:'Bone Staff',
+  s1:{name:'Soul Fire',cost:20},s2:{name:'Raise Skeletons',cost:50},
   col:{skin:'#f6caa6',body:'#231e2c',trim:'#e8b93a',leg:'#17141e',boot:'#0f0d14',hair:'#e2553a',hat:'#1b1724',sleeve:'#231e2c'}},
  elf:{name:'Elf',role:'Throws knives, slashes up close',hp:95,mp:75,spd:3.4,dmg:7,range:54,shot:true,aiDist:170,atkRate:13,swing:10,weapon:'Throwing Knives',
   s1:{name:'Blade Dash',cost:25},s2:{name:'Vine Snare',cost:45},
@@ -385,8 +385,8 @@ const HEROES={
   s1:{name:'Arcane Bolt',cost:15},s2:{name:'Healing Light',cost:55},
   col:{skin:'#f1c8a5',body:'#e8edf6',trim:'#e1b23d',leg:'#9cb5d7',boot:'#5f7398',hair:'#ffffff',hat:'#3f6fc4',sleeve:'#e8edf6'}},
 };
-const CLASS_ORDER=['sorceress','elf','archer','barbarian','healer'];
-const STAT={sorceress:[.5,.95,.55],elf:[.62,.6,1],archer:[.58,.6,.8],barbarian:[1,.5,.42],healer:[.68,1,.6]};
+const CLASS_ORDER=['necromancer','elf','archer','barbarian','healer'];
+const STAT={necromancer:[.5,.95,.55],elf:[.62,.6,1],archer:[.58,.6,.8],barbarian:[1,.5,.42],healer:[.68,1,.6]};
 
 
 // ================= drawing primitives =================
@@ -428,7 +428,7 @@ function drawHero(g,h){
   else if(h.swing>0){
     const p=easeOut(1-h.swing/h.swingMax);
     if(cls==='archer'){if(h.melee){armA=-0.35;wA=0.4;}else{armA=-1.5;wA=0;}}
-    else if(cls==='sorceress'){armA=lerp(-2.2,-1.25,p);wA=lerp(-0.4,1.1,p);}
+    else if(cls==='necromancer'){armA=lerp(-2.2,-1.25,p);wA=lerp(-0.4,1.1,p);}
     else if(cls==='elf'){armA=lerp(-2.6,-1.2,p);wA=lerp(-1.2,1.4,p);backA=lerp(0.9,-0.6,p);}
     else{armA=lerp(-2.7,-0.5,p);wA=lerp(-1.6,2.2,p);}
   } else if(cls==='archer'){armA=-1.15;wA=0.15;}
@@ -441,8 +441,8 @@ function drawHero(g,h){
   if(cls==='barbarian'){g.beginPath();g.moveTo(-8,-54+bob);g.quadraticCurveTo(-28,-30,-24,-6+sw*2);g.lineTo(-10,-10);g.lineTo(-2,-50+bob);g.closePath();fillOut(g,capeC||c.trim);
     if(h.off){const sc=GEAR_COL[h.off.tier];g.save();g.translate(-18,-33+bob);g.rotate(-0.25);ell(g,0,0,11,13);fillOut(g,h.off.tier>=2?sc:'#8a5a32',2);ell(g,0,0,7.5,9);g.lineWidth=1.6;g.strokeStyle=h.off.tier>=2?'rgba(0,0,0,.25)':sc;g.stroke();circ(g,0,0,3);fillOut(g,'#e1b23d',1.3);g.restore();}
     g.beginPath();g.moveTo(-20,-24);g.quadraticCurveTo(-16,-18,-12,-22);g.lineWidth=1.5;g.strokeStyle='#2f6a28';g.stroke();}
-  if(cls==='sorceress'){ell(g,-5,-56+bob,11,17);fillOut(g,c.hair);}
-  if(h.off&&cls==='sorceress'){const oc=ORB_COL[h.off.tier],oy=-40+Math.sin(t*0.08)*3;g.save();g.globalAlpha=0.35;circ(g,-17,oy,9);g.fillStyle=oc;g.fill();g.restore();circ(g,-17,oy,5.5);fillOut(g,oc,1.6);circ(g,-18.5,oy-1.8,1.6);g.fillStyle='rgba(255,255,255,.85)';g.fill();}
+  if(cls==='necromancer'){ell(g,-5,-56+bob,11,17);fillOut(g,c.hair);}
+  if(h.off&&cls==='necromancer'){const oc=ORB_COL[h.off.tier],oy=-40+Math.sin(t*0.08)*3;g.save();g.globalAlpha=0.35;circ(g,-17,oy,9);g.fillStyle=oc;g.fill();g.restore();circ(g,-17,oy,5.5);fillOut(g,oc,1.6);circ(g,-18.5,oy-1.8,1.6);g.fillStyle='rgba(255,255,255,.85)';g.fill();}
   let bArm=backA*0.6+sw*0.4, bW=-0.35, knife=false;
   if(cls==='barbarian'&&!(h.castT>0)){bArm=0.6+sw*0.3;bW=-1.05;}
   if(h.swing>0&&!(h.castT>0)){const p=easeOut(1-h.swing/h.swingMax);
@@ -457,11 +457,11 @@ function drawHero(g,h){
   g.restore();
   leg(g,-5,sw,c,22,cls==='barbarian'?plate:null); leg(g,5,-sw,c,22,cls==='barbarian'?plate:null);
   g.save(); g.translate(0,bob);
-  if(cls==='sorceress'||cls==='healer'){
+  if(cls==='necromancer'||cls==='healer'){
     g.beginPath();g.moveTo(-10,-50);g.lineTo(10,-50);g.lineTo(17,-11);g.quadraticCurveTo(0,-7,-17,-11);g.closePath();fillOut(g,c.body);
     g.beginPath();g.moveTo(-16.3,-15);g.quadraticCurveTo(0,-11,16.3,-15);g.lineTo(17,-11);g.quadraticCurveTo(0,-7,-17,-11);g.closePath();fillOut(g,at>=2?ARMOR_COL[at]:c.trim,1.5);
     rrp(g,-11,-36,22,4.5,2);fillOut(g,cls==='healer'?'#3f6fc4':c.trim,1.5);
-    if(cls==='sorceress'){star(g,-7,-23,2.6,'#ffd35c');star(g,6,-19,2.2,'#ffd35c');star(g,1,-28,1.8,'#ffd35c');star(g,-2,-44,2,'#ffd35c');}
+    if(cls==='necromancer'){star(g,-7,-23,2.6,'#ffd35c');star(g,6,-19,2.2,'#ffd35c');star(g,1,-28,1.8,'#ffd35c');star(g,-2,-44,2,'#ffd35c');}
   } else if(cls==='barbarian'){
     for(const s of [-1,0,1]){rrp(g,s*8-5,-27,10,11,3);fillOut(g,plate,1.6);}
     rrp(g,-13,-53,26,30,9);fillOut(g,plate);
@@ -484,7 +484,7 @@ function drawHero(g,h){
   eyes(g,5,hy-1);
   if(cls!=='barbarian'&&cls!=='healer'){g.beginPath();g.arc(6,hy+5,3,0.2,Math.PI-0.6);g.lineWidth=1.6;g.strokeStyle=OUT;g.stroke();}
   switch(cls){
-    case 'sorceress':
+    case 'necromancer':
       g.beginPath();g.moveTo(-13,hy-5);g.quadraticCurveTo(-4,hy-14,12,hy-6);g.lineTo(12,hy-10);g.quadraticCurveTo(-2,hy-18,-13,hy-9);g.closePath();g.fillStyle=c.hair;g.fill();
       g.beginPath();g.moveTo(-14,hy-8);g.quadraticCurveTo(-2,hy-26,-18,hy-42);g.quadraticCurveTo(4,hy-30,14,hy-8);g.closePath();fillOut(g,c.hat);
       rrp(g,-12,hy-13,24,5,2);fillOut(g,h.helm?GEAR_COL[h.helm.tier]:'#e8b93a',1.4);if(h.helm&&h.helm.grade>=2){circ(g,4,hy-10.5,2);g.fillStyle='#8fe3ff';g.fill();}
@@ -545,7 +545,7 @@ function drawWeapon(g,h){
   if(tier>=3){g.shadowColor=metal;g.shadowBlur=12;}
   switch(h.cls){
     case 'barbarian': handAxe(g,metal); break;
-    case 'sorceress':
+    case 'necromancer':
       rrp(g,-2.2,-46,4.4,62,2);fillOut(g,'#6b4221',2);
       g.beginPath();g.moveTo(-6,-46);g.quadraticCurveTo(0,-62,6,-46);g.lineWidth=2.5;g.strokeStyle=metal;g.stroke();
       circ(g,0,-53,7);fillOut(g,'#ff7a3a',2);circ(g,-2,-55,2.2);g.fillStyle='#ffe6b0';g.fill();
@@ -689,7 +689,7 @@ function drawNpc(g,n){
 const ARMOR_SETS={barbarian:['Hide Vest','Iron Mail','Knight Plate','Mithril Plate','Runic Plate'],
   elf:['Cloth Tunic','Leather Jerkin','Elven Chain','Mithril Mail','Leafweave Armor'],
   archer:['Cloth Tunic','Leather Jerkin','Chainmail','Mithril Mail','Ranger Plate'],
-  sorceress:['Cloth Robe','Silk Robe','Warded Robe','Starweave Robe','Archmage Robe'],
+  necromancer:['Cloth Robe','Silk Robe','Warded Robe','Starweave Robe','Archmage Robe'],
   healer:['Cloth Robe','Silk Robe','Warded Robe','Starweave Robe','Archmage Robe']};
 const GRADES=[{n:'Common',c:'#cfc7b8',s:1},{n:'Fine',c:'#7bd88f',s:1},{n:'Rare',c:'#5aaeff',s:2},{n:'Epic',c:'#c08bff',s:2},{n:'Legendary',c:'#ffa94a',s:3}];
 const GEMS={
@@ -768,7 +768,7 @@ const SFXB={};let SFX_ST='none',AMB={k:null,s:null,g:null};
 function loadSfx(){if(SFX_ST!=='none'||!AC)return;SFX_ST='loading';fetch('sfx/list.json').then(r=>r.json()).then(L=>{for(const k in L){SFXB[k]=[];for(let i=0;i<L[k];i++)fetch('sfx/'+k+'_'+i+'.mp3').then(r=>r.arrayBuffer()).then(b=>new Promise((res,rej)=>AC.decodeAudioData(b,res,rej))).then(buf=>SFXB[k].push(buf)).catch(()=>{});}SFX_ST='ready';}).catch(()=>{SFX_ST='fail';});}
 const SFX_VOL={swing:0.7,hit:0.75,hurt:0.7,block:0.6,shoot:0.7,magic:0.5,boom:0.55,chest:0.8,door:0.7,gate:0.7,boss:0.8,go:0.6,gem:0.6,tick:0.5,bagopen:0.6,bagclose:0.6,jump:0.4,land:0.4,step_dirt:0.32,step_stone:0.5,step_wood:0.35,whoosh:0.6,thud:0.7,zap:0.45,spellhit:0.5,arrowhit:0.6,chop:0.6};
 // which swing and hit sounds fit each hero and monster: only bladed weapons clang
-const HERO_SWING={barbarian:'swing',archer:'shoot',elf:'whoosh',sorceress:'zap',healer:'whoosh'},HERO_HIT={barbarian:'hit',archer:'arrowhit',elf:'hit',sorceress:'spellhit',healer:'thud'};
+const HERO_SWING={barbarian:'swing',archer:'shoot',elf:'whoosh',necromancer:'zap',healer:'whoosh'},HERO_HIT={barbarian:'hit',archer:'arrowhit',elf:'hit',necromancer:'spellhit',healer:'thud'};
 const BLADE_FOES=new Set(['skeleton','boneKing','deathRider','goblin','orc','warden']);
 const foeSwing=e=>e.def.ranged?(e.def.archer?'shoot':'zap'):BLADE_FOES.has(e.type)?'swing':'whoosh';
 function playSample(k,vol){const L=SFXB[k];if(!AC||!L||!L.length)return false;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[Math.floor(Math.random()*L.length)];s.playbackRate.value=0.94+Math.random()*0.12;g.gain.value=vol==null?(SFX_VOL[k]||0.5):vol;s.connect(g);g.connect(AC.destination);s.start();return true;}
@@ -2380,17 +2380,16 @@ function makeHero(cls){const d=HEROES[cls];return {cls,x:0,z:2,y:0,vy:0,fx:1,fz:
 // ================= character: levels, stats, skills, gear =================
 JEWELS.push({id:'ring3',n:'Third Ring',s:1,bonus:'+3% damage, more with better metal'},{id:'ring4',n:'Fourth Ring',s:1,bonus:'+3% damage, more with better metal'});
 const RINGS=['ring1','ring2','ring3','ring4'];
-Object.assign(HEROES.sorceress,{name:'Necromancer',role:'Dark magic from afar, calls on the dead',weapon:'Bone Staff'});HEROES.sorceress.s1.name='Soul Fire';HEROES.sorceress.s2.name='Raise Skeletons';HEROES.sorceress.s2.cost=50;
-const BASE_ST={sorceress:{str:5,dex:8,vit:8,mag:16},elf:{str:8,dex:15,vit:9,mag:7},archer:{str:8,dex:15,vit:9,mag:6},barbarian:{str:15,dex:8,vit:13,mag:4},healer:{str:6,dex:8,vit:11,mag:14}};
-const PRIM={sorceress:'mag',elf:'dex',archer:'dex',barbarian:'str',healer:'mag'};
+const BASE_ST={necromancer:{str:5,dex:8,vit:8,mag:16},elf:{str:8,dex:15,vit:9,mag:7},archer:{str:8,dex:15,vit:9,mag:6},barbarian:{str:15,dex:8,vit:13,mag:4},healer:{str:6,dex:8,vit:11,mag:14}};
+const PRIM={necromancer:'mag',elf:'dex',archer:'dex',barbarian:'str',healer:'mag'};
 const STATS=[{id:'str',n:'Strength',e:'+1 armor per point'},{id:'dex',n:'Dexterity',e:'Better chance of critical hits'},{id:'vit',n:'Vitality',e:'+5 max health per point'},{id:'mag',n:'Magic',e:'+3 max mana per point, stronger specials'}];
 const PRIM_E={str:'Your main stat: +2% attack damage per point',dex:'Your main stat: +2% attack damage per point',mag:'Your main stat: +2% damage per point'};
 const SETS={
- graveyard:{cls:'sorceress',n:'Graveyard',names:{helm:'Graveyard Hood',armor:'Graveyard Robe',hands:'Graveyard Grips',feet:'Graveyard Treads'},b2:'+15% max mana',b4:'+20% damage, and your skeletons hit 30% harder'},
+ graveyard:{cls:'necromancer',n:'Graveyard',names:{helm:'Graveyard Hood',armor:'Graveyard Robe',hands:'Graveyard Grips',feet:'Graveyard Treads'},b2:'+15% max mana',b4:'+20% damage, and your skeletons hit 30% harder'},
  bloodbear:{cls:'barbarian',n:'Bloodbear',names:{helm:'Bloodbear Helm',armor:'Bloodbear Plate',hands:'Bloodbear Gauntlets',feet:'Bloodbear Boots'},b2:'+15% max health',b4:'+20% damage, and take 10% less damage'},
  windrunner:{cls:'archer',n:'Windrunner',names:{helm:'Windrunner Hood',armor:'Windrunner Jerkin',hands:'Windrunner Bracers',feet:'Windrunner Boots'},b2:'+6% crit chance',b4:'+20% damage, and 8% faster on your feet'},
  dawnlight:{cls:'healer',n:'Dawnlight',names:{helm:'Dawnlight Circlet',armor:'Dawnlight Vestments',hands:'Dawnlight Gloves',feet:'Dawnlight Sandals'},b2:'+15% max mana',b4:'+20% damage, and Healing Light heals 25% more'}};
-const CLASS_SET={sorceress:'graveyard',barbarian:'bloodbear',archer:'windrunner',healer:'dawnlight'},SET_SLOTS=['helm','armor','hands','feet'],COLOR_BONUS={2:5,3:8,4:12};
+const CLASS_SET={necromancer:'graveyard',barbarian:'bloodbear',archer:'windrunner',healer:'dawnlight'},SET_SLOTS=['helm','armor','hands','feet'],COLOR_BONUS={2:5,3:8,4:12};
 function setN(h){const id=h&&CLASS_SET[h.cls];if(!id)return 0;let n=0;for(const k of SET_SLOTS)if(h[k]&&h[k].set===id)n++;return n;}
 function colorGrade(h){let g=null;for(const k of SET_SLOTS){const it=h[k];if(!it)return 0;if(g===null)g=it.grade;else if(it.grade!==g)return 0;}return g>=2?g:0;}
 function setDmgMult(h){return (setN(h)>=4?1.2:1)*(1+(COLOR_BONUS[colorGrade(h)]||0)/100);}
@@ -2405,7 +2404,7 @@ const SLOT_N={weapon:'Weapon',off:'Off-hand',helm:'Helmet',armor:'Armor',hands:'
 const GEARN={helm:{heavy:['Leather Cap','Iron Helm','Knight Helm','Mithril Helm','Runic Helm'],robe:['Felt Hat','Starry Hat','Silk Hat','Moonweave Hat','Archmage Hat'],light:['Leather Circlet','Ranger Circlet','Silver Circlet','Mithril Circlet','Runic Circlet']},
   hands:['Leather Gloves','Studded Gloves','Steel Gauntlets','Mithril Gauntlets','Runic Gauntlets'],feet:['Leather Boots','Studded Boots','Steel Boots','Mithril Boots','Runic Boots'],
   cape:['Wool Cape',"Traveler's Cloak",'Velvet Cape','Starthread Cape','Dragon Cape'],
-  off:{barbarian:['Wooden Shield','Iron Shield','Knight Shield','Mithril Shield','Runic Shield'],sorceress:['Glass Orb','Ember Orb','Sun Orb','Frost Orb','Void Orb'],healer:['Prayer Book','Blue Tome','Holy Tome','Mithril Tome','Golden Tome'],
+  off:{barbarian:['Wooden Shield','Iron Shield','Knight Shield','Mithril Shield','Runic Shield'],necromancer:['Glass Orb','Ember Orb','Sun Orb','Frost Orb','Void Orb'],healer:['Prayer Book','Blue Tome','Holy Tome','Mithril Tome','Golden Tome'],
     elf:['Wooden Buckler','Iron Buckler','Elven Buckler','Mithril Buckler','Runic Buckler'],archer:['Leather Quiver','Hunter Quiver','Silver Quiver','Mithril Quiver','Runic Quiver']}};
 const SLOT_E={off:{barbarian:'A shield on your back. Lots of armor',other:'Raises your main stat'},helm:'Armor for your head',hands:'Armor for your hands',feet:'Armor, and you run a little faster',cape:'Light armor that flows behind you'};
 const RATE={armor:[6,12,4],helm:[3,5,2],hands:[2,3,1.5],feet:[2,3,1.5],cape:[2,3,1],shield:[5,7,3]};
@@ -2415,12 +2414,12 @@ const affText=a=>a.s==='crit'?`+${a.v}% crit chance`:`+${a.v} ${AFF[a.s].n}`;
 function rollAff(it){const have=(it.aff||[]).map(a=>a.s);const keys=Object.keys(AFF).filter(k=>!have.includes(k));const k=keys[ri(0,keys.length-1)];return {s:k,v:AFF[k].v(it.tier)};}
 function fillAff(it){it.aff=it.aff||[];while(it.aff.length<it.grade)it.aff.push(rollAff(it));return it;}
 const PASSIVES={
- sorceress:[{id:'ember',n:'Ember Heart',e:'Your fire sets enemies burning, longer and hotter each rank'},{id:'wis',n:'Arcane Mind',e:'+10% max mana per rank'},{id:'ward',n:'Mana Shield',e:'8% of each hit drains mana instead of health, per rank'}],
+ necromancer:[{id:'ember',n:'Ember Heart',e:'Your fire sets enemies burning, longer and hotter each rank'},{id:'wis',n:'Arcane Mind',e:'+10% max mana per rank'},{id:'ward',n:'Mana Shield',e:'8% of each hit drains mana instead of health, per rank'}],
  elf:[{id:'swift',n:'Swift Feet',e:'+5% move speed per rank'},{id:'keen',n:'Keen Edge',e:'+4% crit chance per rank'},{id:'evade',n:'Evasion',e:'5% chance per rank to dodge a hit completely'}],
  archer:[{id:'eagle',n:'Eagle Eye',e:'+4% crit chance per rank'},{id:'quick',n:'Quick Draw',e:'Attack 8% faster per rank'},{id:'pierce',n:'Piercing Shots',e:'Arrows fly through one more enemy per rank'}],
  barbarian:[{id:'tough',n:'Bear Hide',e:'+8% max health per rank'},{id:'iron',n:'Iron Skin',e:'+12 armor per rank'},{id:'cleave',n:'Mighty Swing',e:'+8% attack damage per rank'}],
  healer:[{id:'mend',n:'Mending Light',e:'Slowly regain health in the dungeon, faster each rank'},{id:'wis',n:'Deep Wisdom',e:'+10% max mana per rank'},{id:'bless',n:'Blessed',e:'Take 6% less damage per rank'}]};
-const SP_E={sorceress:['Fireball hits 20% harder','Skeletons are 15% tougher, hit 20% harder and stay 5 seconds longer'],elf:['Dash hits 20% harder','Vines hit 20% harder'],archer:['Arrows hit 20% harder','Arrow storm hits 20% harder'],barbarian:['Earthquake hits 20% harder','Rage lasts 1.5 seconds longer'],healer:['Bolt hits 20% harder','Heals 15% more']};
+const SP_E={necromancer:['Fireball hits 20% harder','Skeletons are 15% tougher, hit 20% harder and stay 5 seconds longer'],elf:['Dash hits 20% harder','Vines hit 20% harder'],archer:['Arrows hit 20% harder','Arrow storm hits 20% harder'],barbarian:['Earthquake hits 20% harder','Rage lasts 1.5 seconds longer'],healer:['Bolt hits 20% harder','Heals 15% more']};
 const SP_MAX=5,PAS_MAX=3,LV_MAX=30;
 const xpNeed=l=>50+40*l*l;
 function pr(id){return (H&&H.sk&&H.sk[id])||0;}
@@ -2445,7 +2444,7 @@ function itemOf(h,k){return (k==='weapon'||k==='armor'||EXTRA.includes(k))?h[k]:
 function jp(h,id){const j=h.jewels[id];return j?j.tier+1:0;}
 function recalc(h){const d=HEROES[h.cls],b=BASE_ST[h.cls],sk=h.sk||{};
   h.maxHp=Math.round((d.hp+h.vit*20+10*jp(h,'neck')+5*(stat(h,'vit')-b.vit)+affSum(h,'life')+4*((h.lvl||1)-1))*(1+0.08*(sk.tough||0))*(h.cls==='barbarian'&&setN(h)>=2?1.15:1));
-  h.maxMp=Math.round((d.mp+h.foc*15+8*jp(h,'ears')+3*(stat(h,'mag')-b.mag)+affSum(h,'mana'))*(1+0.1*(sk.wis||0))*((h.cls==='sorceress'||h.cls==='healer')&&setN(h)>=2?1.15:1));
+  h.maxMp=Math.round((d.mp+h.foc*15+8*jp(h,'ears')+3*(stat(h,'mag')-b.mag)+affSum(h,'mana'))*(1+0.1*(sk.wis||0))*((h.cls==='necromancer'||h.cls==='healer')&&setN(h)>=2?1.15:1));
   h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);}
 function gainXP(n){if(!H||H.lvl>=LV_MAX)return;H.xp+=n;
   let up=false;while(H.lvl<LV_MAX&&H.xp>=xpNeed(H.lvl)){H.xp-=xpNeed(H.lvl);H.lvl++;H.pts+=5;H.sp+=1;up=true;}
@@ -2529,7 +2528,7 @@ function heroStrike(){
   const sx=H.x+H.fx*0.5,sz=H.z+H.fz*0.5,y=H.y+1.0;
   if(H.cls==='archer'&&H.melee){dmg*=1.15;}
   else if(H.cls==='archer'){addProj({kind:'arrow',x:sx,y,z:sz,vx:H.fx*0.26,vz:H.fz*0.26,dmg,life:60,pierce:(fin?1:0)+pr('pierce'),r:0.25});return;}
-  if(H.cls==='sorceress'){addProj({kind:'spark',x:sx,y:y+0.1,z:sz,vx:H.fx*0.2,vz:H.fz*0.2,dmg,life:24,pierce:0,r:0.25});return;}
+  if(H.cls==='necromancer'){addProj({kind:'spark',x:sx,y:y+0.1,z:sz,vx:H.fx*0.2,vz:H.fz*0.2,dmg,life:24,pierce:0,r:0.25});return;}
   if(H.cls==='healer'){healBeam(sx,sz,y+0.15,dmg*1.1);return;}
   if(H.cls==='elf'&&!enemyNear(d.range*U+0.3)){
     const ang=fin?[-0.18,0.18]:[0];for(const a of ang){const c=Math.cos(a),s=Math.sin(a),fx=H.fx*c-H.fz*s,fz=H.fx*s+H.fz*c;addProj({kind:'knife',x:sx,y,z:sz,vx:fx*0.24,vz:fz*0.24,dmg:dmg*(fin?0.8:1),life:30,pierce:0,r:0.22});}return;}
@@ -2548,8 +2547,8 @@ function special(n){
   autoAim(10);
   const fx=H.fx,fz=H.fz;
   switch(H.cls+n){
-    case 'sorceress1':schedule(8,()=>addProj({kind:'fireball',x:H.x+fx*0.6,y:H.y+1.1,z:H.z+fz*0.6,vx:fx*0.18,vz:fz*0.18,dmg:spDmg(26,n),life:80,pierce:0,r:0.4,explode:true}));break;
-    case 'sorceress2':schedule(10,raiseSkeletons);break;
+    case 'necromancer1':schedule(8,()=>addProj({kind:'soulfire',x:H.x+fx*0.6,y:H.y+1.1,z:H.z+fz*0.6,vx:fx*0.18,vz:fz*0.18,dmg:spDmg(26,n),life:80,pierce:0,r:0.4,explode:true}));break;
+    case 'necromancer2':schedule(10,raiseSkeletons);break;
     case 'elf1':H.dash=16;H.dashHit=new Set();H.inv=Math.max(H.inv,22);H.castT=0;break;
     case 'elf2':for(const e of S.enemies){if(e.state==='dead'||Math.hypot(e.x-H.x,e.z-H.z)>10)continue;e.rootT=e.def.boss?100:220;hurtEnemy(e,spDmg(10,n),0,0,false);
       for(let k=0;k<6;k++)addPart({x:e.x+rnd(-.3,.3),y:rnd(0,.6),z:e.z+rnd(-.3,.3),vy:rnd(.02,.05),g:.002,life:30,size:.07,color:k%2?'#5fd16a':'#2f8f3f',kind:'leaf'});}break;
@@ -2636,7 +2635,7 @@ function spawnEnemy(type,x,z){
 function hurtEnemy(e,dmg,dx,dz,kd){
   if(e.state==='dead'||e.spawnInv>0)return false;
   let crit=false;if(Math.random()<critPct()){dmg*=2;crit=true;}
-  const fo=gemSum(H,'fireopal')+(H.cls==='sorceress'?pr('ember'):0);if(fo){e.burn=150+40*pr('ember');e.burnDmg=1+fo;}const em=gemSum(H,'emerald');if(em&&H.state!=='down')H.hp=Math.min(H.maxHp,H.hp+em*0.8);
+  const fo=gemSum(H,'fireopal')+(H.cls==='necromancer'?pr('ember'):0);if(fo){e.burn=150+40*pr('ember');e.burnDmg=1+fo;}const em=gemSum(H,'emerald');if(em&&H.state!=='down')H.hp=Math.min(H.maxHp,H.hp+em*0.8);
   dmg=Math.max(1,Math.round(dmg));e.hp-=dmg;e.flash=7;if(e.ghost)netHit(e,dmg,dx,dz,kd);
   if(H&&H.buffs){if(buffOn('squid')&&H.state!=='down'){H.hp=Math.min(H.maxHp,H.hp+Math.max(1,dmg*0.3));}if(buffOn('spider')){e.web=e.def.boss?60:150;}if(buffOn('bobbit')){e.psn=240;e.psnDmg=Math.max(e.psnDmg||0,2,Math.round(dmg*0.12*H.buffs.bobbit.st));}}
   floatText(e.x,1.4*e.scale+0.4,e.z,crit?dmg+' CRIT!':String(dmg),crit?'#bff3ff':dmg>=30?'#ffd35c':'#ffffff',crit||dmg>=30?22:17);sparks(e.x,0.9*e.scale,e.z,5);sfx(HERO_HIT[H&&H.cls]||'hit');
@@ -2714,7 +2713,7 @@ function updEProj(p){if(p.g){p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.ki
   if(NET.on&&NET.host)netProjHit(p);
   if(p.life<=0||mzHit(p.x,p.z))p.dead=true;}
 // ================= projectiles, area, pickups, props =================
-function addProj(o){o.hit=new Set();o.dead=false;if(buffOn('gulper')&&/^(arrow|spark|knife|fireball)$/.test(o.kind))o.r=(o.r||0.25)*2;S.proj.push(o);}
+function addProj(o){o.hit=new Set();o.dead=false;if(buffOn('gulper')&&/^(arrow|spark|knife|soulfire)$/.test(o.kind))o.r=(o.r||0.25)*2;S.proj.push(o);}
 function aoe(cx,cz,r,dmg,kd){
   for(const e of S.enemies){if(e.state==='dead')continue;if(Math.hypot(e.x-cx,e.z-cz)<=r+eRad(e))hurtEnemy(e,dmg,e.x-cx,e.z-cz,kd);}
   for(const p of S.props){if(!p.dead&&Math.hypot(p.x-cx,p.z-cz)<=r)hitProp(p);}
@@ -2724,10 +2723,10 @@ function explodeAt(x,z,dmg){aoe(x,z,1.7,dmg,true);sfx('boom');S.shake=Math.max(S
 function updProj(p){
   p.x+=p.vx;p.z+=p.vz;p.life--;
   if(p.kind==='spark')addPart({x:p.x,y:p.y+rnd(-.06,.06),z:p.z,vy:.014,g:0,life:13,size:rnd(.05,.1),color:Math.random()<.5?'#9dff8a':'#21b84a'});
-  if(p.kind==='fireball'&&S.frame%2===0)addPart({x:p.x,y:p.y+rnd(-.1,.1),z:p.z,vy:.01,g:0,life:16,size:rnd(.08,.14),color:Math.random()<.5?'#9dff8a':'#3fd16a'});
+  if(p.kind==='soulfire'&&S.frame%2===0)addPart({x:p.x,y:p.y+rnd(-.1,.1),z:p.z,vy:.01,g:0,life:16,size:rnd(.08,.14),color:Math.random()<.5?'#9dff8a':'#3fd16a'});
   if(p.kind==='bolt'&&S.frame%2===0)addPart({x:p.x,y:p.y,z:p.z,g:0,life:14,size:rnd(.05,.09),color:'#c6a4ff',kind:'star'});
   for(const e of S.enemies){if(e.state==='dead'||p.hit.has(e))continue;
-    if(Math.hypot(e.x-p.x,e.z-p.z)<p.r+eRad(e)){p.hit.add(e);hurtEnemy(e,p.dmg,p.vx,p.vz,p.kind==='fireball');if(p.explode){explodeAt(p.x,p.z,p.dmg*0.45);p.dead=true;break;}if(--p.pierce<0){p.dead=true;break;}}}
+    if(Math.hypot(e.x-p.x,e.z-p.z)<p.r+eRad(e)){p.hit.add(e);hurtEnemy(e,p.dmg,p.vx,p.vz,p.kind==='soulfire');if(p.explode){explodeAt(p.x,p.z,p.dmg*0.45);p.dead=true;break;}if(--p.pierce<0){p.dead=true;break;}}}
   if(!p.dead)for(const pr of S.props){if(pr.dead||p.hit.has(pr))continue;if(Math.hypot(pr.x-p.x,pr.z-p.z)<p.r+0.5){p.hit.add(pr);hitProp(pr);if(p.explode)explodeAt(p.x,p.z,p.dmg*0.45);if(p.kind!=='bolt')p.dead=true;break;}}
   if(p.life<=0||mzHit(p.x,p.z)){if(p.life>0)sparks(p.x,p.y||1,p.z,3,'#d8c8b0');p.dead=true;}
 }
@@ -2813,7 +2812,7 @@ function pickKind(){let r=Math.random()*100;for(const [k,w] of DROP_KINDS){if((r
 function gearFor(b=0,kind){kind=kind||pickKind();const tier=clamp((S.level==='dungeon'?S.floor+1:0)+(Math.random()<0.45?1:0)-(Math.random()<0.3?1:0),0,kind==='weapon'?5:4);const grade=rollGrade(b);
   const it=fillAff({type:'gear',kind,tier,grade,sockets:Array(GRADES[grade].s).fill(null),aff:[]});if(SET_SLOTS.includes(kind)&&grade>=2&&H&&CLASS_SET[H.cls]&&Math.random()<(b>=0.3?0.5:0.22))it.set=CLASS_SET[H.cls];return it;}
 function gearName(it,cls){cls=cls||H.cls;const k=it.kind,t=it.tier;if(it.set&&SETS[it.set]&&SETS[it.set].names[k])return SETS[it.set].names[k];if(k==='weapon')return `${WEAPON_TIERS[t]} ${HEROES[cls].weapon}`;if(k==='armor')return ARMOR_SETS[cls][t];
-  if(k==='helm')return GEARN.helm[cls==='barbarian'?'heavy':(cls==='sorceress'||cls==='healer')?'robe':'light'][t];if(k==='off')return GEARN.off[cls][t];return GEARN[k][t];}
+  if(k==='helm')return GEARN.helm[cls==='barbarian'?'heavy':(cls==='necromancer'||cls==='healer')?'robe':'light'][t];if(k==='off')return GEARN.off[cls][t];return GEARN[k][t];}
 function itemLabel(it){return it.type==='gear'?`${GRADES[it.grade].n} ${gearName(it)}`:it.n+((it.q||1)>1?' ×'+it.q:'');}
 function itemValue(it){return it.type==='gear'?Math.round(22*(1+it.tier)*(1+it.grade*0.6)):it.v*(it.q||1);}
 function affScore(it){let v=0;for(const a of it.aff||[])v+=a.v*({def:0.5,life:0.2,mana:0.15,crit:2}[a.s]||(a.s===PRIM[H.cls]?2:a.s==='vit'?1:0.6));return v;}
@@ -2857,14 +2856,14 @@ function drawGoods(g,i){
 const ICON={};
 function drawSlotIcon(g,k,t,cls){const mc=GEAR_COL[t];
   if(k==='helm'){if(cls==='barbarian'){g.beginPath();g.arc(0,6,15,Math.PI,0);g.lineTo(15,14);g.lineTo(-15,14);g.closePath();fillOut(g,GEAR_COL[Math.max(1,t)],2.5);for(const s of [-1,1]){g.beginPath();g.moveTo(s*10,-2);g.quadraticCurveTo(s*26,-6,s*22,-22);g.quadraticCurveTo(s*18,-9,s*6,-6);g.closePath();fillOut(g,'#f2e6c8',2);}rrp(g,-2,0,4,14,1.5);fillOut(g,GEAR_COL[Math.max(1,t)],1.5);}
-    else if(cls==='sorceress'||cls==='healer'){const hc=cls==='sorceress'?'#1b1724':'#3f6fc4';g.beginPath();g.moveTo(-13,10);g.quadraticCurveTo(-4,-6,-12,-22);g.quadraticCurveTo(8,-8,13,10);g.closePath();fillOut(g,hc,2);ell(g,0,10,21,5);fillOut(g,hc,2);rrp(g,-12,3,24,5,2);fillOut(g,mc,1.5);if(cls==='sorceress')star(g,-3,-6,4,'#ffd35c');}
+    else if(cls==='necromancer'||cls==='healer'){const hc=cls==='necromancer'?'#1b1724':'#3f6fc4';g.beginPath();g.moveTo(-13,10);g.quadraticCurveTo(-4,-6,-12,-22);g.quadraticCurveTo(8,-8,13,10);g.closePath();fillOut(g,hc,2);ell(g,0,10,21,5);fillOut(g,hc,2);rrp(g,-12,3,24,5,2);fillOut(g,mc,1.5);if(cls==='necromancer')star(g,-3,-6,4,'#ffd35c');}
     else{g.beginPath();g.arc(0,14,18,Math.PI*1.1,Math.PI*1.9);g.lineWidth=7;g.strokeStyle=OUT;g.stroke();g.lineWidth=4.5;g.strokeStyle=mc;g.stroke();gemShape(g,0,-6,5,'#5aaeff');}}
   else if(k==='hands'){for(const s of [-1,1]){g.save();g.translate(s*9,0);g.rotate(s*0.18);rrp(g,-7,-14,14,18,5);fillOut(g,mc,2);rrp(g,-8,2,16,9,3);fillOut(g,t>=2?mc:'#6b4221',2);g.restore();}}
   else if(k==='feet'){for(const s of [-1,1]){g.save();g.translate(s*10-3,0);rrp(g,-5,-16,10,22,3);fillOut(g,mc,2);rrp(g,-5,1,15,9,3.5);fillOut(g,mc,2);g.restore();}}
   else if(k==='cape'){g.beginPath();g.moveTo(-8,-18);g.lineTo(8,-18);g.quadraticCurveTo(14,2,19,18);g.quadraticCurveTo(0,22,-19,18);g.quadraticCurveTo(-14,2,-8,-18);g.closePath();fillOut(g,CAPE_COL[t],2.5);if(t>=3){g.beginPath();g.moveTo(-18,15);g.quadraticCurveTo(0,19,18,15);g.lineWidth=2;g.strokeStyle='#ffd35c';g.stroke();}circ(g,0,-16,3.6);fillOut(g,'#e1b23d',1.5);}
   else if(k==='off'){
     if(cls==='barbarian'||cls==='elf'){const r=cls==='elf'?14:18;ell(g,0,0,r,r*1.12);fillOut(g,t>=2?mc:'#8a5a32',2.5);ell(g,0,0,r*0.68,r*0.76);g.lineWidth=2;g.strokeStyle=t>=2?'rgba(0,0,0,.25)':mc;g.stroke();circ(g,0,0,4.5);fillOut(g,'#e1b23d',1.5);}
-    else if(cls==='sorceress'){const oc=ORB_COL[t];g.save();g.globalAlpha=0.35;circ(g,0,0,22);g.fillStyle=oc;g.fill();g.restore();circ(g,0,0,13);fillOut(g,oc,2.5);circ(g,-4,-4,4);g.fillStyle='rgba(255,255,255,.8)';g.fill();}
+    else if(cls==='necromancer'){const oc=ORB_COL[t];g.save();g.globalAlpha=0.35;circ(g,0,0,22);g.fillStyle=oc;g.fill();g.restore();circ(g,0,0,13);fillOut(g,oc,2.5);circ(g,-4,-4,4);g.fillStyle='rgba(255,255,255,.8)';g.fill();}
     else if(cls==='healer'){g.rotate(-0.2);rrp(g,-13,-16,26,32,3);fillOut(g,['#7a3a2a','#3f6fc4','#e8edf6','#8fd3e8','#ffd35c'][t],2.5);rrp(g,-10,-13,20,26,2);g.lineWidth=1.5;g.strokeStyle='#e1b23d';g.stroke();g.fillStyle='#e1b23d';g.fillRect(-1.6,-9,3.2,16);g.fillRect(-6,-4,12,3.2);}
     else{g.rotate(-0.35);rrp(g,-7,-12,14,30,4);fillOut(g,mc,2.5);for(let i=0;i<4;i++){g.beginPath();g.moveTo(-4.5+i*3,-12);g.lineTo(-4.5+i*3,-22);g.lineWidth=2;g.strokeStyle='#e8e0d0';g.stroke();g.fillStyle=t>=3?'#8fe3ff':'#d94a3a';g.fillRect(-6+i*3,-25,3,5);}}}
 }
@@ -2892,10 +2891,10 @@ function iconURL(it){
   if(it.type==='gear'){const gc=GRADES[it.grade].c;const gr=g.createRadialGradient(0,0,4,0,0,34);gr.addColorStop(0,gc+'66');gr.addColorStop(1,gc+'00');g.fillStyle=gr;g.fillRect(-36,-36,72,72);
     if(W){g.save();g.shadowColor='rgba(0,0,0,.75)';g.shadowBlur=4;g.drawImage(W,-35,-35,70,70);g.restore();}
     else if(S3){g.save();g.shadowColor='rgba(0,0,0,.75)';g.shadowBlur=4;g.drawImage(S3,-35,-35,70,70);g.restore();if(it.set&&SET_FX[it.set]){const tc='#'+SET_FX[it.set].col.toString(16).padStart(6,'0');g.fillStyle=tc;g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.moveTo(24,-34);g.lineTo(34,-24);g.lineTo(24,-14);g.lineTo(14,-24);g.closePath();g.fill();g.stroke();}}
-    else if(it.kind==='weapon'){const cls=H.cls,sc={elf:1.6,archer:0.85,barbarian:0.9,sorceress:0.75,healer:0.8}[cls];g.save();g.translate(cls==='archer'?6:-4,cls==='archer'?0:22);if(cls!=='archer')g.rotate(0.6);g.scale(sc,sc);drawWeapon(g,{cls,weapon:{tier:it.tier},swing:0,swingMax:1});g.restore();}
+    else if(it.kind==='weapon'){const cls=H.cls,sc={elf:1.6,archer:0.85,barbarian:0.9,necromancer:0.75,healer:0.8}[cls];g.save();g.translate(cls==='archer'?6:-4,cls==='archer'?0:22);if(cls!=='archer')g.rotate(0.6);g.scale(sc,sc);drawWeapon(g,{cls,weapon:{tier:it.tier},swing:0,swingMax:1});g.restore();}
     else if(P)partIcon(g,P,it);
     else if(it.kind!=='armor'){drawSlotIcon(g,it.kind,it.tier,H.cls);}
-    else{const robe=H.cls==='sorceress'||H.cls==='healer';const col=robe?(it.tier>=2?ARMOR_COL[it.tier]:HEROES[H.cls].col.body):ARMOR_COL[it.tier];
+    else{const robe=H.cls==='necromancer'||H.cls==='healer';const col=robe?(it.tier>=2?ARMOR_COL[it.tier]:HEROES[H.cls].col.body):ARMOR_COL[it.tier];
       g.beginPath();if(robe){g.moveTo(-8,-18);g.lineTo(8,-18);g.lineTo(16,18);g.lineTo(-16,18);}else{g.moveTo(-14,-16);g.lineTo(14,-16);g.lineTo(16,-6);g.lineTo(11,-4);g.lineTo(11,18);g.lineTo(-11,18);g.lineTo(-11,-4);g.lineTo(-16,-6);}g.closePath();fillOut(g,col,2.5);
       g.beginPath();g.moveTo(-6,-16);g.quadraticCurveTo(0,-9,6,-16);g.lineWidth=2;g.strokeStyle=OUT;g.stroke();rrp(g,-11,2,22,4,2);fillOut(g,gc,1.5);}}
   else if(S3){const gc=it.type==='jewel'?METAL_COL[it.tier]:it.type==='crystal'?(GEMS[it.t]||{c:'#ffffff'}).c:'#f6a63b';const gr=g.createRadialGradient(0,0,4,0,0,34);gr.addColorStop(0,gc+'55');gr.addColorStop(1,gc+'00');g.fillStyle=gr;g.fillRect(-36,-36,72,72);
@@ -3313,7 +3312,7 @@ function mzSkulls(fi){if(!THREE.GLTFLoader)return;const D=MZ,tok=D.grp;loadModel
   if(!mats.length)return;const im=new G.InstancedMesh(src.geometry,src.material,mats.length);mats.forEach((mm,i)=>im.setMatrixAt(i,mm));im.castShadow=true;im.receiveShadow=true;D.grp.add(im);}).catch(()=>{});}
 // ================= portal fire: a looping fire-ring video tinted to each hero's colors =================
 const PCOL={healer:{c:['#7a5a10','#ffd860','#ffffff'],tint:0xfff0c0,light:0xffe08a,p:['#ffe08a','#ffffff']},
-  sorceress:{c:['#3a0080','#9a50ff','#b8dcff'],tint:0xb090ff,light:0x9a60ff,p:['#a070ff','#7fb4ff']},
+  necromancer:{c:['#3a0080','#9a50ff','#b8dcff'],tint:0xb090ff,light:0x9a60ff,p:['#a070ff','#7fb4ff']},
   elf:{c:['#0a5020','#40e070','#eaffd0'],tint:0x90ffb0,light:0x50ff80,p:['#60f090','#d8ffd0']},
   archer:{c:['#a01800','#ff7a10','#fff0b0'],tint:0xffb070,light:0xff8a30,p:['#ff9a40','#ffe0a0']},
   barbarian:{c:['#5a0000','#ff2a10','#ffc080'],tint:0xff8070,light:0xff4020,p:['#ff4a30','#ffb080']}};
@@ -3885,7 +3884,7 @@ function showMap(){
 // ================= save =================
 const SAVE3='hollowdeep-3d-save-v1';
 function save(){if(!H||S.state==='start')return;try{localStorage.setItem(SAVE3,JSON.stringify({v:1,cls:H.cls,weapon:H.weapon,armor:H.armor,jewels:H.jewels,rune:H.rune,vit:H.vit,foc:H.foc,off:H.off,helm:H.helm,hands:H.hands,feet:H.feet,cape:H.cape,lvl:H.lvl,xp:H.xp,pts:H.pts,sp:H.sp,st:H.st,sk:H.sk,look:H.look,sex:H.sex,name:H.name,inv:INV,t:Date.now(),uid:ACCT.user?ACCT.user.id:undefined}));cloudQueue();}catch(e){}}
-function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.cls==='elf'){s.cls='archer';if(!s.name||s.name==='Elf')s.name='Archer';}return s&&s.v===1&&HEROES[s.cls]?s:null;}catch(e){return null;}}
+function readSave(){try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.cls==='elf'){s.cls='archer';if(!s.name||s.name==='Elf')s.name='Archer';}if(s&&s.cls==='sorceress'){s.cls='necromancer';if(s.name==='Sorceress')s.name='Necromancer';}return s&&s.v===1&&HEROES[s.cls]?s:null;}catch(e){return null;}}
 function loadGame(){const sv=readSave();if(!sv)return false;if(H)killSprite(H.spr);H=makeHero(sv.cls);
   Object.assign(H,{weapon:sv.weapon||H.weapon,armor:sv.armor||H.armor,jewels:Object.assign({},H.jewels,sv.jewels||{}),rune:sv.rune||null,vit:sv.vit||0,foc:sv.foc||0,
     off:sv.off||null,helm:sv.helm||null,hands:sv.hands||null,feet:sv.feet||null,cape:sv.cape||null,lvl:sv.lvl||1,xp:sv.xp||0,pts:sv.pts||0,sp:sv.sp||0,
@@ -4027,7 +4026,7 @@ function skullAxe(add,M3,fmat,tier,wcol){const G=THREE,a=new G.Group();
   return a;}
 function buildFigure(h,tgt){
   const G=THREE,d=HEROES[h.cls],cls=h.cls,c=Object.assign({},d.col,h.look||{});if(h.look&&h.look.body)c.sleeve=h.look.body;
-  const heavy=cls==='barbarian',robe=cls==='sorceress'||cls==='healer',plate=ARMOR_COL[Math.max(1,h.armor.tier)];
+  const heavy=cls==='barbarian',robe=cls==='necromancer'||cls==='healer',plate=ARMOR_COL[Math.max(1,h.armor.tier)];
   const glove=h.hands?GEAR_COL[h.hands.tier]:(heavy?'#5a4a3a':c.skin),boot=h.feet?GEAR_COL[h.feet.tier]:c.boot,wcol=TIER_COL[h.weapon.tier];
   const M3=col=>fmat(col,{metal:true});
   const F={root:new G.Group(),yaw:Math.atan2(h.fx,h.fz),key:figKey(h),h};
@@ -4048,12 +4047,12 @@ function buildFigure(h,tgt){
     add(torso,new G.CylinderGeometry(0.29,0.29,0.035,20),h.armor.tier>=2?M3(ARMOR_COL[h.armor.tier]):fmat(c.trim),0,-0.29,0);
     const belt=add(torso,new G.TorusGeometry(0.165,0.024,6,20),fmat(cls==='healer'?'#3f6fc4':c.trim),0,0.16,0);belt.rotation.x=Math.PI/2;
     add(torso,new G.SphereGeometry(0.135,14,8,0,Math.PI*2,0,Math.PI/2),fmat(c.body),0,0.355,0);
-    const gold=M3(cls==='sorceress'?'#e8b93a':'#e1b23d');
+    const gold=M3(cls==='necromancer'?'#e8b93a':'#e1b23d');
     for(const s of [-1,1]){const pd=add(torso,new G.SphereGeometry(0.09,12,8,0,Math.PI*2,0,Math.PI/2),gold,s*0.17,0.33,0);pd.scale.set(1.15,0.7,1.05);pd.rotation.z=-s*0.3;
-      if(cls==='sorceress')for(let k=0;k<2;k++){const sp=add(torso,new G.ConeGeometry(0.022,0.1,6),M3('#1b1724'),s*(0.16+k*0.05),0.39,-0.01);sp.rotation.z=-s*(0.5+k*0.3);}}
-    const col=add(torso,new G.CylinderGeometry(0.13,0.1,0.14,16,1,true,Math.PI*0.55,Math.PI*0.9),fmat(cls==='sorceress'?'#1b1724':c.body,{ds:true}),0,0.43,0);col.rotation.y=Math.PI;
+      if(cls==='necromancer')for(let k=0;k<2;k++){const sp=add(torso,new G.ConeGeometry(0.022,0.1,6),M3('#1b1724'),s*(0.16+k*0.05),0.39,-0.01);sp.rotation.z=-s*(0.5+k*0.3);}}
+    const col=add(torso,new G.CylinderGeometry(0.13,0.1,0.14,16,1,true,Math.PI*0.55,Math.PI*0.9),fmat(cls==='necromancer'?'#1b1724':c.body,{ds:true}),0,0.43,0);col.rotation.y=Math.PI;
     add(torso,new G.TorusGeometry(0.13,0.008,4,16,Math.PI*0.9),gold,0,0.5,0).rotation.set(Math.PI/2,0,Math.PI*0.55);
-    if(cls==='sorceress')for(const [a,y,sz] of [[0.3,0.04,0.03],[-0.4,-0.14,0.026],[0.05,0.25,0.022],[-0.15,-0.22,0.028],[0.9,-0.05,0.024],[-0.9,0.1,0.022]]){const r=rAt(y)+0.008;const st=add(torso,new G.OctahedronGeometry(sz),fmat('#ffd35c',{glow:true}),Math.sin(a)*r,y,Math.cos(a)*r);st.scale.z=0.4;st.rotation.y=a;}
+    if(cls==='necromancer')for(const [a,y,sz] of [[0.3,0.04,0.03],[-0.4,-0.14,0.026],[0.05,0.25,0.022],[-0.15,-0.22,0.028],[0.9,-0.05,0.024],[-0.9,0.1,0.022]]){const r=rAt(y)+0.008;const st=add(torso,new G.OctahedronGeometry(sz),fmat('#ffd35c',{glow:true}),Math.sin(a)*r,y,Math.cos(a)*r);st.scale.z=0.4;st.rotation.y=a;}
     if(cls==='healer'){const st=add(torso,new G.BoxGeometry(0.05,0.2,0.02),fmat('#e1b23d',{metal:true}),0,0.0,rAt(0)+0.01);add(torso,new G.BoxGeometry(0.13,0.05,0.02),fmat('#e1b23d',{metal:true}),0,0.04,rAt(0.04)+0.01);}
   }else{
     const m=heavy?M3(plate):fmat(c.body);
@@ -4090,7 +4089,7 @@ function buildFigure(h,tgt){
   const wpn=new G.Group();hR.add(wpn);F.wpn=wpn;
   const rod=(par,len,r,col,z0)=>{const m=add(par,new G.CylinderGeometry(r,r,len,8),fmat(col,{metal:col!=='#7a5230'&&col!=='#6b4221'}),0,0,z0+len/2);m.rotation.x=Math.PI/2;return m;};
   if(heavy){for(const hd of [hR,hL]){const a=skullAxe(add,M3,fmat,h.weapon.tier,wcol);a.rotation.x=-1.0;a.scale.setScalar(1.0);hd.add(a);if(hd===hL)F.wpnL=a;else F.wR=a;}F.wBase=-1.0;}
-  else if(cls==='sorceress'){wpn.rotation.x=-1.45;F.wR=wpn;F.wBase=-1.45;rod(wpn,1.2,0.022,'#6b4221',-0.22);const orb=add(wpn,new G.SphereGeometry(0.07,14,10),fmat(h.weapon.tier>=3?'#c8ffd8':'#3fd16a',{glow:true}),0,0,1.03);
+  else if(cls==='necromancer'){wpn.rotation.x=-1.45;F.wR=wpn;F.wBase=-1.45;rod(wpn,1.2,0.022,'#6b4221',-0.22);const orb=add(wpn,new G.SphereGeometry(0.07,14,10),fmat(h.weapon.tier>=3?'#c8ffd8':'#3fd16a',{glow:true}),0,0,1.03);
     const cg=add(wpn,new G.TorusGeometry(0.075,0.012,5,14),M3(wcol),0,0,1.01);cg.rotation.y=Math.PI/2;
     for(const s of [-1,1]){const pr=add(wpn,new G.ConeGeometry(0.018,0.14,5),M3(wcol),s*0.05,0,0.95);pr.rotation.x=Math.PI/2;pr.rotation.z=s*0.4;}
     const fl=add(wpn,new G.ConeGeometry(0.05,0.16,8),fmat(h.weapon.tier>=3?'#e8ffd8':'#7aff8a',{glow:true}),0,0,1.14);fl.rotation.x=Math.PI/2;fl.castShadow=false;F.flame=fl;}
@@ -4114,7 +4113,7 @@ function buildFigure(h,tgt){
   if(h.off){const oc=GEAR_COL[h.off.tier];
     if(heavy){const sh=new G.Group();sh.position.set(0,0.2,-0.19);torso.add(sh);const disc=add(sh,new G.CylinderGeometry(0.21,0.21,0.04,22),h.off.tier>=2?M3(oc):fmat('#8a5a32'));disc.rotation.x=Math.PI/2;
       const rim=add(sh,new G.TorusGeometry(0.205,0.018,6,24),M3(oc),0,0,-0.005);add(sh,new G.SphereGeometry(0.05,10,8),M3('#e1b23d'),0,0,-0.025);}
-    else if(cls==='sorceress'){const orb=new G.Group();body.add(orb);const oc2=ORB_COL[h.off.tier];add(orb,new G.SphereGeometry(0.065,14,10),fmat(oc2,{glow:true}));const halo=new G.Mesh(new G.SphereGeometry(0.11,12,8),new G.MeshBasicMaterial({color:oc2,transparent:true,opacity:0.25,depthWrite:false}));orb.add(halo);F.orb=orb;}
+    else if(cls==='necromancer'){const orb=new G.Group();body.add(orb);const oc2=ORB_COL[h.off.tier];add(orb,new G.SphereGeometry(0.065,14,10),fmat(oc2,{glow:true}));const halo=new G.Mesh(new G.SphereGeometry(0.11,12,8),new G.MeshBasicMaterial({color:oc2,transparent:true,opacity:0.25,depthWrite:false}));orb.add(halo);F.orb=orb;}
     else if(cls==='healer'){const tb=new G.Group();hL.add(tb);tb.position.set(0,-0.03,0.07);add(tb,new G.BoxGeometry(0.06,0.18,0.14),fmat(['#7a3a2a','#3f6fc4','#e8edf6','#8fd3e8','#ffd35c'][h.off.tier]));add(tb,new G.BoxGeometry(0.065,0.16,0.12),fmat('#f2ead8'),0.004,0,0);add(tb,new G.BoxGeometry(0.068,0.05,0.016),M3('#e1b23d'),0,0,0);}
     else if(cls==='elf'){const bk=add(armL,new G.CylinderGeometry(0.1,0.1,0.025,16),M3(oc),-0.05,-0.15,0);bk.rotation.z=Math.PI/2;add(armL,new G.SphereGeometry(0.03,8,6),fmat('#3f915b'),-0.068,-0.15,0);}}
   // cape
@@ -4127,12 +4126,12 @@ function buildFigure(h,tgt){
   add(head,new G.SphereGeometry(0.2,22,16),fmat(c.skin));
   for(const s of [-1,1]){const e=add(head,new G.SphereGeometry(0.032,10,8),fmat('#1b1426'),s*0.072,0.005,0.178);e.scale.set(0.95,0.95,0.6);
     const hl=new G.Mesh(new G.SphereGeometry(0.01,6,5),new G.MeshBasicMaterial({color:0xffffff}));hl.position.set(s*0.072+0.01,0.02,0.2);head.add(hl);
-    const br=add(head,new G.BoxGeometry(0.085,0.024,0.025),fmat(cls==='healer'?'#ffffff':cls==='sorceress'?'#7a2a1e':'#2a1d18'),s*0.07,0.058,0.182);br.rotation.z=s*0.38;br.rotation.y=s*0.35;br.castShadow=false;
+    const br=add(head,new G.BoxGeometry(0.085,0.024,0.025),fmat(cls==='healer'?'#ffffff':cls==='necromancer'?'#7a2a1e':'#2a1d18'),s*0.07,0.058,0.182);br.rotation.z=s*0.38;br.rotation.y=s*0.35;br.castShadow=false;
     if(heavy)for(let k=0;k<2;k++){const wp=add(head,new G.BoxGeometry(0.07,0.012,0.01),fmat('#3f8a3a'),s*0.115,-0.05-k*0.028,0.155);wp.rotation.y=s*0.6;wp.castShadow=false;}}
   const mo=add(head,new G.BoxGeometry(0.055,0.012,0.01),fmat('#5a2020'),0.01,-0.08,0.192);mo.rotation.z=-0.15;head.scale.setScalar(0.92);
   const hatG=(col,h0)=>{const hg=new G.Group();hg.position.y=0.12;head.add(hg);add(hg,new G.CylinderGeometry(0.33,0.33,0.025,24),fmat(col));const cone=add(hg,new G.ConeGeometry(0.19,h0,18),fmat(col),0,h0/2,0);cone.rotation.x=-0.12;return hg;};
   const hairM=fmat(c.hair);
-  if(cls==='sorceress'){const hr=add(head,new G.SphereGeometry(0.215,16,12),hairM,0,0.0,-0.03);hr.scale.set(1.02,1,1);add(head,new G.CylinderGeometry(0.15,0.12,0.32,12),hairM,0,-0.17,-0.1);
+  if(cls==='necromancer'){const hr=add(head,new G.SphereGeometry(0.215,16,12),hairM,0,0.0,-0.03);hr.scale.set(1.02,1,1);add(head,new G.CylinderGeometry(0.15,0.12,0.32,12),hairM,0,-0.17,-0.1);
     const hg=hatG(c.hat,0.5);const tip=hg.children[1];tip.rotation.z=0.25;const band=add(hg,new G.TorusGeometry(0.19,0.022,6,20),h.helm?M3(GEAR_COL[h.helm.tier]):M3('#e8b93a'),0,0.03,0);band.rotation.x=Math.PI/2;
     for(const [a,y] of [[0.4,0.14],[-0.7,0.26],[1.6,0.1]]){const r=0.19*(1-y/0.5)+0.008;const st=add(hg,new G.OctahedronGeometry(0.03),fmat('#ffd35c',{glow:true}),Math.sin(a)*r,y,Math.cos(a)*r);st.scale.z=0.4;st.rotation.y=a;}
     if(h.helm&&h.helm.grade>=2)add(hg,new G.OctahedronGeometry(0.025),fmat('#8fe3ff',{glow:true}),0,0.03,0.21);}
@@ -4168,14 +4167,14 @@ function poseFigure(F,h,blink){
   const air=h.y>0.05;
   F.legs[0].rotation.set(air?-0.5:sw*0.75,0,mv?-0.03:-0.09);F.legs[1].rotation.set(air?0.2:-sw*0.75,0,mv?0.03:0.09);
   let lx=-0.12+sw*0.55,rx=-0.3-sw*0.55,lz=-0.14,rz=0.14,ty=0,wR=F.wBase,wL=F.wBase;
-  if(cls==='sorceress'||cls==='healer'){rx=-0.25-sw*0.15;rz=0.3;}
+  if(cls==='necromancer'||cls==='healer'){rx=-0.25-sw*0.15;rz=0.3;}
   if(cls==='archer'){lx=-1.45;lz=-0.05;rx=-1.3;rz=0.3;}
   if(cls==='elf'){lx=-0.75+sw*0.3;rx=-0.75-sw*0.3;lz=-0.3;rz=0.3;}
   if(cls==='barbarian'&&!mv){lx=-0.55;rx=-0.65;lz=-0.25;rz=0.25;}
   if(h.castT>0){lx=-2.8;rx=-2.8;lz=-0.45;rz=0.45;wR=1.2;wL=1.2;}
   else if(h.swing>0){const p=easeOut(1-h.swing/h.swingMax);
     if(cls==='archer'){if(h.melee){rx=lerp(-0.4,-1.7,p);rz=0.05;ty=lerp(0.3,-0.3,p);}else{rx=lerp(-1.3,-1.45,p);}}
-    else if(cls==='sorceress'||cls==='healer'){rx=lerp(-2.3,-1.3,p);wR=lerp(0.4,0.75,p);ty=lerp(0.25,-0.2,p);}
+    else if(cls==='necromancer'||cls==='healer'){rx=lerp(-2.3,-1.3,p);wR=lerp(0.4,0.75,p);ty=lerp(0.25,-0.2,p);}
     else{const p2=easeOut(clamp(1-h.swing/h.swingMax-0.15,0,1)/0.85);rx=lerp(-3.0,-0.5,p);wR=lerp(-0.6,0.3,p);lx=lerp(-2.7,-0.6,p2);wL=lerp(-0.6,0.3,p2);ty=lerp(0.4,-0.4,p);if(cls==='elf')lz=-0.3;}}
   if(h.dash>0){F.body.rotation.x=0.45;lx=0.9;rx=0.9;wR=wL=-0.6;}
   if(F.wR)F.wR.rotation.x=wR;if(F.wpnL)F.wpnL.rotation.x=wL;
@@ -4409,7 +4408,7 @@ const REALS={};
 const HERO_BODY={f:'hero_m',arm:'arm_pal_m',tall:1.85,tierLook:1,slots:1,grip:1,outfits:[{min:0,sex:'f',f:'hero_f',arm:'arm_pal_f',tall:1.8}]};
 // each hero's own armor set (Dark Fantasy Protagonist Pack), fitted to both bodies
 const heroArm=(m,f)=>Object.assign({},HERO_BODY,{arm:m,outfits:[Object.assign({},HERO_BODY.outfits[0],{arm:f})]});
-const MODEL_FOR={barbarian:HERO_BODY,archer:heroArm('arm_lg_m','arm_lg_f'),elf:HERO_BODY,sorceress:HERO_BODY,healer:HERO_BODY};
+const MODEL_FOR={barbarian:HERO_BODY,archer:heroArm('arm_lg_m','arm_lg_f'),elf:HERO_BODY,necromancer:HERO_BODY,healer:HERO_BODY};
 // a hero can change outfit as their armor improves: each outfit is a complete model, so nothing pokes through
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
 function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
@@ -4424,12 +4423,12 @@ let RFIG=null;
 // ---- weapon models from the 3DRT Fantasy Arms pack, one per hero and metal tier ----
 var WPN_ST='none';const WPN_G={},WPN_T={},WSHOT={};
 function loadWpn(){if(WPN_ST!=='none')return;WPN_ST='loading';loadJs((document.body.classList.contains('phone')?'../play/models/m/':'../play/models/')+'wpn.js').then(()=>{if(!window.WPN){WPN_ST='fail';return;}return Promise.all(Object.keys(WPN.tex).map(k=>new Promise(r=>{const im=new Image();im.onload=()=>{const t=new THREE.Texture(im);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;t.needsUpdate=true;WPN_T[k]=t;r();};im.onerror=r;im.src=WPN.tex[k];}))).then(()=>{WPN_ST='ready';});}).catch(()=>{WPN_ST='fail';});}
-const WPN_SET={barbarian:['axe-10','axe-11','axe-04','axe-02','axe-07','axe-06'],sorceress:['staff-06','staff-05','staff-03','staff-04','staff-01','staff-02'],
+const WPN_SET={barbarian:['axe-10','axe-11','axe-04','axe-02','axe-07','axe-06'],necromancer:['staff-06','staff-05','staff-03','staff-04','staff-01','staff-02'],
   healer:['staff-04','staff-06','staff-05','staff-03','staff-02','staff-01'],archer:['bow-06','bow-05','bow-04','bow-03','bow-02','bow-01']};
-const WPN_LEN={barbarian:0.68,sorceress:1.6,healer:1.2,archer:1.2},WPN_GRIP={sorceress:0.28,healer:0.3};
+const WPN_LEN={barbarian:0.68,necromancer:1.6,healer:1.2,archer:1.2},WPN_GRIP={necromancer:0.28,healer:0.3};
 // Rusty, Iron, Steel use the pack's rusty, worn and clean metal; Mithril, Runic and Dragonforged glow
 const WPN_LOOK=[{v:3,e:0xffffff,i:0.32},{v:2,e:0xffffff,i:0.36},{v:1,e:0xffffff,i:0.4},{v:1,e:0x9fe0ff,i:0.62},{v:1,e:0xffd27a,i:0.66},{v:1,e:0xff8a4a,i:0.74}];
-const WPN_TIP={sorceress:0x7dff8a,healer:0xfff2a8};
+const WPN_TIP={necromancer:0x7dff8a,healer:0xfff2a8};
 function wpnMesh(cls,tier,mats,nm,ln){const n=nm||WPN_SET[cls][Math.max(0,Math.min(5,tier|0))],d=WPN.m[n],L=WPN_LOOK[Math.max(0,Math.min(5,tier|0))];
   let g=WPN_G[n];if(!g){g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(d.p,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(d.u,2));
     g.setAttribute('normal',new THREE.Float32BufferAttribute(d.n,3));g.setIndex(d.i);g.computeBoundingBox();WPN_G[n]=g;}
@@ -4471,7 +4470,7 @@ const BOOK_COL=['#6b3f22','#2f5aa8','#e8e4da','#8fd3e8','#d8a62a'],QUIV_COL=['#7
 const RING_GEM=['#e8344e','#5aaeff','#2fbf6a','#e8f6ff'];
 function offModel(cls,t){t=Math.max(0,Math.min(4,t|0));
   if(cls==='barbarian'&&WPN_ST==='ready')return {b:(p,K)=>{const s=wpnMesh('barbarian',t,[],['shield-06','shield-05','shield-04','shield-03','shield-01'][t],1.1);p.add(s);},rx:-1.3,ry:0.3,shield:1};
-  if(cls==='sorceress')return {b:(p,K)=>{const mc=GEAR_COL[t],oc=ORB_COL[t];K.gem(p,oc,0.36,0,0.42,0,'round').material.op;
+  if(cls==='necromancer')return {b:(p,K)=>{const mc=GEAR_COL[t],oc=ORB_COL[t];K.gem(p,oc,0.36,0,0.42,0,'round').material.op;
       K.add(p,new K.G.SphereGeometry(0.44,16,12),K.glowMat(oc,0.22),0,0.42,0);
       for(let i=0;i<3;i++){const a=i*Math.PI*2/3,cl=K.add(p,new K.G.TorusGeometry(0.3,0.03,6,16,Math.PI*0.75),K.mat(mc,{metal:true}),Math.cos(a)*0.02,0.36,Math.sin(a)*0.02);cl.rotation.set(0,-a,Math.PI*0.62);}
       K.add(p,K.lathe([[0,0],[0.26,0],[0.28,0.05],[0.12,0.12],[0.1,0.22],[0.05,0.24]]),K.mat(t>=2?mc:'#2a2230',{metal:t>=2}),0,0,0);},rx:0.25};
@@ -4561,7 +4560,7 @@ const ARM_FIT={healer:{headY:1.66,hide:/Hair|Beard/i,slots:{
   armor:[{k:'torso',bone:'Spine2',piv:[0,1.40,-0.075],sc:1.2},{k:'waist',bone:'Hips',piv:[0,1.03,-0.04],sc:1.18},Object.assign({k:'shoulder',sc:0.95},ARM_ARM),Object.assign({k:'upper'},ARM_ARM)],
   hands:[{k:'hands',bone:'#ForeArm',sides:2,piv:[0.40,1.34,-0.10],dir:[0.17,-0.12,0.10],child:'#Hand'}],
   feet:[{k:'feet',bone:'#Leg',sides:2,half:1,piv:[0.15,0.55,0],dir:[0.05,-0.43,-0.06],child:'#Foot'}]}}};
-ARM_FIT.barbarian=ARM_FIT.archer=ARM_FIT.sorceress=ARM_FIT.elf=ARM_FIT.healer;
+ARM_FIT.barbarian=ARM_FIT.archer=ARM_FIT.necromancer=ARM_FIT.elf=ARM_FIT.healer;
 // Rusty, Iron, Steel, Mithril, Runic: same plates, different metal and glow
 const ARM_LOOK=[{c:0x9a8a78,e:0xffffff,i:0.24},{c:0xc0c0c4,e:0xffffff,i:0.3},{c:0xffffff,e:0xffffff,i:0.36},{c:0xe6f4ff,e:0x9fe0ff,i:0.55},{c:0xfff0c8,e:0xffd27a,i:0.6}];
 function armGeo(k,mir,half){const key=k+(mir?'R':'L')+(half?'h':'');if(ARM_G[key])return ARM_G[key];const d=ARM_PAL.m[k],P=d.p,idx=[];
@@ -4607,7 +4606,7 @@ function buildReal(h){
     if(obj.parent)obj.parent.remove(obj);obj.position.set(0,0,0);cont.add(obj);return cont;};
   const R={root,model,mats,h,key:figKey(h),yaw:Math.atan2(h.fx,h.fz),cur:null,lock:0,clock:new G.Clock(),cls};
   if(cls==='archer'){R.knife=toy.knife;attach('RightHand',toy.knife,HAND_R);if(!mi.ownBow){const bw=toy.bow;R.bow=attach('LeftHand',bw,HAND_L);if(R.bow)bw.rotation.set(-Math.PI/2,0,0);}}
-  else{R.wR=attach('RightHand',cls==='sorceress'||cls==='healer'?toy.wpn:toy.wR,HAND_R);if(toy.wpnL)R.wL=attach('LeftHand',toy.wpnL,HAND_L);}
+  else{R.wR=attach('RightHand',cls==='necromancer'||cls==='healer'?toy.wpn:toy.wR,HAND_R);if(toy.wpnL)R.wL=attach('LeftHand',toy.wpnL,HAND_L);}
   R.wRobj=toy.wR||toy.wpn;R.wLobj=toy.wpnL;R.wBase=toy.wBase!==undefined?toy.wBase+0.65:undefined;
   if(WPN_ST==='ready'&&WPN_SET[cls]){const t=h.weapon?h.weapon.tier:0,swap=grp=>{if(!grp)return;for(const ch of [...grp.children])grp.remove(ch);grp.add(wpnMesh(cls,t,mats));};
     if(cls==='archer'){model.traverse(o=>{if(o.isSkinnedMesh){const si=o.geometry.attributes.skinIndex;if(si&&/arch/i.test((o.skeleton.bones[si.array[0]]||{}).name||''))o.visible=false;}});
@@ -4877,7 +4876,7 @@ function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now()
       const dn=netDunSnap();if(dn)netUnionAll();for(const c of NET.conns)if(c.open)c.send({t:'all',l,d:dn});
       const seen={};for(const id in l){if(id===NET.myId)continue;seen[id]=1;(NET.peers[id]=NET.peers[id]||{}).s=l[id];}for(const id in NET.peers)if(!seen[id])netDrop(id);netBadge();}
     else if(H&&NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'st',s:netState()});}
-  for(const id in NET.peers){const p=NET.peers[id],s=p.s;if(!s)continue;
+  for(const id in NET.peers){const p=NET.peers[id],s=p.s;if(!s)continue;if(s.cls==='sorceress')s.cls='necromancer';
     const vis=!!H&&SET.style==='real'&&s.lvl===S.level&&(S.level!=='house'||s.house===S.house)&&(S.level!=='dungeon'||s.floor===S.floor);netMinions(p,s,vis);
     if(p.R&&!p.R.root.parent){disposeReal(p.R);p.R=null;}
     if(!vis){if(p.R)p.R.root.visible=false;if(p.tag)p.tag.visible=false;continue;}
@@ -4979,7 +4978,7 @@ function drawHUD(){
       case 'knife':{const k=s*PX*K*0.85;g.rotate(p.life*0.7*(b.x>=a.x?1:-1));g.scale(k,k);g.translate(0,12);dagger(g,TIER_COL[H.weapon.tier]);break;}
       case 'spark':{g.rotate(ang);const t=S.frame*0.6+p.life,fl=1+0.18*Math.sin(t*1.7),w=0.13*s;const lay=(L,W,glow)=>{g.shadowColor=glow||'transparent';g.shadowBlur=glow?18:0;g.beginPath();g.moveTo(0.14*s,0);g.quadraticCurveTo(0.1*s,-W,-0.05*s,-W*0.9);g.quadraticCurveTo(-L*0.55,-W*0.7+Math.sin(t)*W*0.3,-L,Math.sin(t*1.3)*W*0.4);g.quadraticCurveTo(-L*0.55,W*0.7+Math.sin(t+1)*W*0.3,-0.05*s,W*0.9);g.quadraticCurveTo(0.1*s,W,0.14*s,0);g.fill();};
         g.fillStyle='rgba(20,150,55,0.75)';lay(0.8*s*fl,w*1.25,'#3dff6a');g.fillStyle='#39e868';lay(0.58*s*fl,w*0.9);g.fillStyle='#b8ffb0';lay(0.32*s,w*0.5);g.fillStyle='#f4fff0';circ(g,0.05*s,0,0.045*s);g.fill();break;}
-      case 'fireball':g.shadowColor='#5aff7a';g.shadowBlur=20;circ(g,0,0,0.3*s);g.fillStyle='#3fd16a';g.fill();circ(g,0.05*s,-0.05*s,0.16*s);g.fillStyle='#d8ffc8';g.fill();break;
+      case 'soulfire':g.shadowColor='#5aff7a';g.shadowBlur=20;circ(g,0,0,0.3*s);g.fillStyle='#3fd16a';g.fill();circ(g,0.05*s,-0.05*s,0.16*s);g.fillStyle='#d8ffc8';g.fill();break;
       case 'bolt':g.rotate(ang);g.shadowColor='#b68cff';g.shadowBlur=16;g.beginPath();g.moveTo(0.38*s,0);g.lineTo(0,-0.16*s);g.lineTo(-0.38*s,0);g.lineTo(0,0.16*s);g.closePath();g.fillStyle='#d8c4ff';g.fill();break;
     }
     g.restore();}
@@ -5253,7 +5252,7 @@ const ICO={
  bolt:'<path d="M13 2L5 14h6l-2 8 9-13h-6z" fill="currentColor"/>',
  heal:'<path d="M12 4v16M4 12h16" stroke-width="4"/>',
  jump:'<path d="M6 14l6-6 6 6M6 20l6-6 6 6"/>'};
-const ICO_FOR={sorceress:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['beam','bolt','heal']};
+const ICO_FOR={necromancer:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['beam','bolt','heal']};
 const svgI=k=>`<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k]}</svg>`;
 let touchCls=null;function touchIcons(){if(!H||touchCls===H.cls)return;touchCls=H.cls;const f=ICO_FOR[H.cls]||ICO_FOR.barbarian,d=HEROES[H.cls];
   const set=(b,k,label)=>{const el=document.querySelector('#touch .tb [data-b="'+b+'"]');if(el){el.innerHTML=svgI(k);el.setAttribute('aria-label',label);}};
