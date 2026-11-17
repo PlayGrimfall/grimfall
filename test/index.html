@@ -253,7 +253,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
       <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map <kbd>T</kbd> town</span>
       <span><kbd>Q</kbd> <kbd>E</kbd> or drag to turn camera · <kbd>C</kbd> switch camera</span>
       <span>Online: <kbd>Enter</kbd> chat · <kbd>V</kbd> mute mic</span>
-      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party</span>
+      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party · <kbd>Shift</kbd>+<kbd>Y</kbd> Lich Queen falls</span>
     </div>
     <div class="tools">
       <button class="tbtn" id="bBag" type="button">Bag</button>
@@ -798,6 +798,9 @@ function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
     if(f.kind==='cheer'){R.play('jump',false,1.15+f.ph*0.3);}else R.play(f.kind);R.mixer.update(dt);}}
 const FW_SPOTS=[[-33,4.5],[-18,-4.5],[-8,6.5],[-5,-4.2],[7,6.8],[24,-4.5],[30,5.2],[36,-3.5],[2,9]];
 function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route);L.forEach((n,i)=>{const p=FW_SPOTS[i%FW_SPOTS.length];n.cspot=[p[0],p[1]];n.x=p[0];n.z=p[1];n.dspot=n.dspot||[p[0],p[1]];n.dancer=true;n.dclip=i%2?'gangnam':'samba';n.cheer=false;});} // everyone dances, all through town
+function lqPreview(){if(!S.lqKeep)S.lqKeep={d:INV.deepest||0,c:!!INV.cleared,f:INV.fwShown};goDungeon(3);if(!MZ)return;const BR=MZ.rooms.find(r=>r.kind==='boss');if(!BR)return;
+  for(const i of BR.doors){const d=MZ.doors[i];d.lock=null;d.open=true;}mzRefreshBlk();const [cx,cz]=mzCenter(BR);H.x=cx;H.z=cz+TS;camUpdate(true);toast('Preview: the Lich Queen falls (your progress is put back afterwards)');
+  let n=0;const iv=setInterval(()=>{n++;if(S.level!=='dungeon'||n>80){clearInterval(iv);return;}const b=S.enemies.find(e=>e.def&&e.def.boss&&e.state!=='dead');if(b){clearInterval(iv);b.spawnInv=0;b.inv=0;hurtEnemy(b,b.hp+99999,0,1,false);}},250);}
 function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.'),900);setTimeout(royalThanks,3500);}
 function fwInit(){if(FW.pts)return;const g=new THREE.BufferGeometry();FW.pos=new Float32Array(FW.n*3).fill(-999);FW.col=new Float32Array(FW.n*3);FW.vel=new Float32Array(FW.n*3);FW.life=new Float32Array(FW.n);
   g.setAttribute('position',new THREE.BufferAttribute(FW.pos,3));g.setAttribute('color',new THREE.BufferAttribute(FW.col,3));
@@ -1275,7 +1278,7 @@ function buildShip(){
     const br=mesh(new THREE.CylinderGeometry(0.11,0.16,1.0,12),iron,0.15,0.45,0);br.rotation.z=-Math.PI/2;c.add(br);c.add(mesh(new THREE.SphereGeometry(0.12,8,6),iron,-0.38,0.45,0));
     const ring=mesh(new THREE.TorusGeometry(0.13,0.035,6,12),brass,0.62,0.45,0);ring.rotation.y=Math.PI/2;c.add(ring);S0.add(c);
     for(let k=0;k<3;k++)S0.add(mesh(new THREE.SphereGeometry(0.1,8,6),iron,x-0.6+k*0.22,2.12,z+(z>0?-0.45:0.45)));};
-  deckCannon(2.6,1.15,Math.PI/2+0.0);deckCannon(2.6,-1.15,-Math.PI/2);deckCannon(-1.6,1.15,Math.PI/2);deckCannon(-1.6,-1.15,-Math.PI/2);deckCannon(7.0,0,0);
+  deckCannon(2.6,1.15,-Math.PI/2);deckCannon(2.6,-1.15,Math.PI/2);deckCannon(-1.6,1.15,-Math.PI/2);deckCannon(-1.6,-1.15,Math.PI/2);deckCannon(7.0,0,0);
   // stern details
   const sw=mesh(new THREE.PlaneGeometry(2.6,0.85),new THREE.MeshBasicMaterial({map:TX.sternWin}),-7.47,2.0,0,false,false);sw.rotation.y=-Math.PI/2;S0.add(sw);
   for(const z of [-1.3,1.3]){S0.add(mesh(new THREE.BoxGeometry(0.3,0.42,0.3),M.lantern,-7.25,3.35,z,false,false));S0.add(mesh(new THREE.ConeGeometry(0.26,0.25,4),brass,-7.25,3.68,z));const gl=new THREE.Sprite(M.glow);gl.scale.set(1.8,1.8,1);gl.position.set(-7.25,3.35,z);S0.add(gl);}
@@ -2270,6 +2273,7 @@ addEventListener('keydown',e=>{
   if(e.code==='Escape'&&S.state==='dialog'&&dlgClosable)closeDlg();
   if(e.target&&e.target.tagName==='INPUT')return;
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow((INV.deepest||0)<4);return;}
+  if(S.state==='play'&&e.shiftKey&&e.code==='KeyY'){lqPreview();return;}
   if(S.state==='play'&&e.shiftKey&&/^Digit[0-4]$/.test(e.code)){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
     const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
@@ -2299,13 +2303,14 @@ function readInput(){
 }
 // drag to turn, wheel to zoom
 let drag=null;
-glc.addEventListener('pointerdown',e=>{if(S.state!=='play')return;if(e.pointerType==='mouse'&&e.button!==2)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,mouse:e.pointerType==='mouse'};try{glc.setPointerCapture(e.pointerId);}catch(_){}});
+glc.addEventListener('pointerdown',e=>{if(S.state!=='play')return;if(e.pointerType==='mouse'&&(!MOUSE_PLAY||e.button!==2))return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,mouse:e.pointerType==='mouse'};try{glc.setPointerCapture(e.pointerId);}catch(_){}});
 glc.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;drag.mv+=Math.abs(dx)+Math.abs(dy);
   if(camMode()==='free'){CAM.yaw-=dx*0.007;CAM.pitch=clamp(CAM.pitch+dy*0.004,0.06,1.15);}
   else if(camMode()==='behind'&&H&&H.swing<=0){const a=-dx*0.006,c=Math.cos(a),si=Math.sin(a),fx=H.fx*c+H.fz*si,fz=-H.fx*si+H.fz*c;H.fx=fx;H.fz=fz;}});
 const endDrag=e=>{if(drag&&drag.id===e.pointerId){if(drag.mouse&&e.type==='pointerup'&&drag.mv<6&&S.state==='play'){MS.sx=e.clientX;MS.sy=e.clientY;MS.sp1=true;}drag=null;}};
 glc.addEventListener('pointerup',endDrag);glc.addEventListener('pointercancel',endDrag);
 // ================= mouse: click to move / attack, right-click special =================
+const MOUSE_PLAY=false; // clicking to move/attack caused stray runs, so it is switched off
 const MS={down:false,sx:0,sy:0,tx:null,tz:null,foe:null,hold:false,inPlace:false,sp1:false,last:null,stuck:0,hov:0};
 const MRC=new THREE.Raycaster(),MV2=new THREE.Vector2(),MPL=new THREE.Plane(new THREE.Vector3(0,1,0),0),MP3=new THREE.Vector3(),MPV=new THREE.Vector3();
 function msGround(sx,sy){const r=glc.getBoundingClientRect();MV2.set((sx-r.left)/r.width*2-1,-((sy-r.top)/r.height)*2+1);MRC.setFromCamera(MV2,camera);return MRC.ray.intersectPlane(MPL,MP3)?[MP3.x,MP3.z]:null;}
@@ -2314,13 +2319,14 @@ function msFoe(sx,sy){if(S.level==='town')return null;const r=glc.getBoundingCli
     const d=Math.hypot((MPV.x+1)/2*r.width+r.left-sx,(1-MPV.y)/2*r.height+r.top-sy);if(d<bd){bd=d;best=e;}}}return best;}
 function msOrder(){MS.stuck=0;MS.last=null;if(MS.inPlace){MS.foe=null;MS.tx=null;return;}const f=msFoe(MS.sx,MS.sy);
   if(f){MS.foe=f;MS.tx=null;return;}MS.foe=null;const p=msGround(MS.sx,MS.sy);if(p){MS.tx=p[0];MS.tz=p[1];ring(p[0],p[1],'#ffe39a',0.25,0.05,18);}}
-glc.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||S.state!=='play')return;MS.sx=e.clientX;MS.sy=e.clientY;
+glc.addEventListener('pointerdown',e=>{if(!MOUSE_PLAY||e.pointerType!=='mouse'||S.state!=='play')return;MS.sx=e.clientX;MS.sy=e.clientY;
   if(e.button===0){MS.down=true;MS.inPlace=e.shiftKey;msOrder();}});
 glc.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;MS.sx=e.clientX;MS.sy=e.clientY;
-  if(S.state==='play'&&++MS.hov%4===0){const c=msFoe(MS.sx,MS.sy)?'crosshair':'';if(glc.style.cursor!==c)glc.style.cursor=c;}});
+  if(MOUSE_PLAY&&S.state==='play'&&++MS.hov%4===0){const c=msFoe(MS.sx,MS.sy)?'crosshair':'';if(glc.style.cursor!==c)glc.style.cursor=c;}});
 addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')return;if(e.button===0){MS.down=false;MS.inPlace=false;}});
 glc.addEventListener('contextmenu',e=>e.preventDefault());
 function msInput(r){
+  if(!MOUSE_PLAY){MS.foe=null;MS.tx=null;MS.sp1=false;return;}
   if(S.state!=='play'||!H||H.state==='down'){MS.foe=null;MS.tx=null;return;}
   if(r.mx||r.my){MS.foe=null;MS.tx=null;return;} // keys take over
   const h=H,aim=()=>{const p=msGround(MS.sx,MS.sy);if(p&&Math.hypot(p[0]-h.x,p[1]-h.z)>0.2)r.face=[p[0]-h.x,p[1]-h.z];};
@@ -2913,6 +2919,7 @@ function setLevel(lv){
   for(const n of S.npcs){n.spr.grp.visible=n.spr.blob.visible=lv==='town';if(n.spr.fig)n.spr.fig.root.visible=lv==='town';if(n.spr.rfig)n.spr.rfig.root.visible=lv==='town';}
 }
 function goTown(spot){
+  if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
   if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);setTimeout(royalThanks,3500);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
@@ -4505,7 +4512,7 @@ function buildReal(h){
   R.wRobj=toy.wR||toy.wpn;R.wLobj=toy.wpnL;R.wBase=toy.wBase!==undefined?toy.wBase+0.65:undefined;
   if(WPN_ST==='ready'&&WPN_SET[cls]){const t=h.weapon?h.weapon.tier:0,swap=grp=>{if(!grp)return;for(const ch of [...grp.children])grp.remove(ch);grp.add(wpnMesh(cls,t,mats));};
     if(cls==='archer'){model.traverse(o=>{if(o.isSkinnedMesh){const si=o.geometry.attributes.skinIndex;if(si&&/arch/i.test((o.skeleton.bones[si.array[0]]||{}).name||''))o.visible=false;}});
-      const bw=new G.Group();bw.add(wpnMesh(cls,t,mats));R.bow=attach('LeftHand',bw,HAND_L);bw.rotation.set(WBOW[0],WBOW[1],WBOW[2]);}
+      if(R.bow&&R.bow.parent)R.bow.parent.remove(R.bow);const bw=new G.Group();bw.add(wpnMesh(cls,t,mats));R.bow=attach('LeftHand',bw,HAND_L);bw.rotation.set(WBOW[0],WBOW[1],WBOW[2]);}
     else if(cls==='barbarian'){swap(toy.wR);swap(toy.wpnL);}else swap(toy.wpn);}
   // blank-body heroes: each armor slot shows its piece when equipped, and the body part under it is hidden
   if(mi.slots){const on={helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet};model.traverse(o=>{if(!o.isMesh)return;const m=/^(arm|body)_(?:[a-z]+_)?(helm|armor|hands|feet)/.exec(o.name)||/^(arm)_[a-z]+_(helm|armor|hands|feet)$/.exec(o.name);if(m)o.visible=m[1]==='arm'?on[m[2]]:!on[m[2]];});}
