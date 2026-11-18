@@ -1241,7 +1241,8 @@ function buildSpiceStall(T){const x=SPICE_AT.x,z=SPICE_AT.z,st=new THREE.Group()
   st.add(mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6));
   T.add(st);TOWN_COL.push([x-1.8,x+1.8,z-1.5,z+1.6]);occluder(st,x-1.9,x+1.9,z-1.6,z+1.7,true,'town');
   if(THREE.GLTFLoader)loadModelData('spice').then(gl=>{const m=gl.scene;m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()),k=Math.min(3.0/sz.x,2.3/sz.z);
-    m.scale.setScalar(k);m.position.set(-c.x*k,0.32-b.min.y*k,-c.z*k);m.rotation.y=Math.PI;st.add(m);}).catch(()=>{});}
+    m.scale.setScalar(k);m.position.set(-c.x*k,0.32-b.min.y*k,-c.z*k);m.rotation.y=Math.PI;st.add(m);}).catch(()=>{});
+  {const put=()=>{const cb=coinBagMesh();if(!cb){setTimeout(put,700);return;}cb.scale.setScalar(0.42);cb.position.set(1.3,0.32,-1.05);cb.rotation.y=0.7;st.add(cb);};if(THREE.GLTFLoader)put();}}
 // spices from Rafi make the next meal you eat last a few seconds longer (the best one you carry is used)
 const SPICES={salt:{n:'Sea Salt',s:2,p:20,c:'#efe9dc'},pepper:{n:'Black Pepper',s:3,p:40,c:'#3a3230'},cumin:{n:'Desert Cumin',s:4,p:70,c:'#8a5a2a'},saffron:{n:'Saffron',s:6,p:150,c:'#e86a1a'}},SPICE_MAX=9;
 function spiceUse(){INV.spices=INV.spices||{};let best=null;for(const k in SPICES)if(INV.spices[k]>0&&(!best||SPICES[k].s>SPICES[best].s))best=k;if(!best)return null;INV.spices[best]--;return SPICES[best];}
@@ -2828,7 +2829,11 @@ function loadPotions(){if(POT.st!=='none'||!THREE.GLTFLoader)return;POT.st='load
 const COIN={g:null,mat:null};
 function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,20);COIN.mat=new THREE.MeshStandardMaterial({color:0xb8892a,metalness:0.75,roughness:0.32,emissive:0x2a1a04});}
   const g=new THREE.Group();[[0,0,0,0],[0.05,0.024,0.03,0.25],[-0.04,0.048,-0.02,-0.2]].forEach(([x,y,z,r])=>{const c=new THREE.Mesh(COIN.g,COIN.mat);c.position.set(x,y,z);c.rotation.set(r,0,r*0.6);c.castShadow=true;g.add(c);});return g;}
-function lootMesh(kind){if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+// the leather coin purse: every bag in the game (loot on the dungeon floor, the pouch icon, Rafi's counter)
+const COINBAG={st:'none',m:null};
+function loadCoinBag(){if(COINBAG.st!=='none'||!THREE.GLTFLoader)return;COINBAG.st='loading';loadModelData('coinbag').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)COINBAG.m=o;});COINBAG.st=COINBAG.m?'ready':'fail';}).catch(()=>{COINBAG.st='fail';});}
+function coinBagMesh(){if(COINBAG.st!=='ready'){loadCoinBag();return null;}const m=new THREE.Mesh(COINBAG.m.geometry,COINBAG.m.material);m.castShadow=true;return m;}
+function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
 // the Gate Captain's job list is a rolled parchment scroll with a leather tie
 const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
@@ -2897,13 +2902,13 @@ function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&
 function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
   return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
-function dropPickup(kind,x,z,val=0,item=null){loadPotions();
+function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();
   const map=kind==='scroll'?TX.glow:kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
   if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
     if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
-  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
+  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -3049,7 +3054,7 @@ function partIcon(g,P,it){const t=document.createElement('canvas');t.width=t.hei
   if(it.set){g.fillStyle=tint;g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.moveTo(24,-34);g.lineTo(34,-24);g.lineTo(24,-14);g.lineTo(14,-24);g.closePath();g.fill();g.stroke();}}
 function iconURL(it){
   const A3s=it.type==='gear'&&PART_KINDS.includes(it.kind)?setShot(H.cls,it.kind,it.tier):null,A3=A3s||(it.type==='gear'&&PART_KINDS.includes(it.kind)?armShot(H.cls,it.kind,it.tier):null),P=!A3&&it.type==='gear'&&PART_KINDS.includes(it.kind)?partShot(H.cls,it.kind):null,W=it.type==='gear'&&it.kind==='weapon'?wpnShot(H.cls,it.tier):null,S3=A3||(!P&&!W&&it.type!=='empty'?stuIcon(it):null);
-  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}${A3s?'d':''}`:it.type==='goods'?'o'+it.i:it.type==='crystal'?'c'+it.t+(GEMCUT.st==='ready'?'g':''):it.type==='jewel'?'j'+it.id+it.tier+(GEMCUT.st==='ready'?'g':''):'x'+it.type);
+  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}${A3s?'d':''}`:it.type==='goods'?'o'+it.i+(it.i==='pouch'&&COINBAG.st==='ready'?'b':''):it.type==='crystal'?'c'+it.t+(GEMCUT.st==='ready'?'g':''):it.type==='jewel'?'j'+it.id+it.tier+(GEMCUT.st==='ready'?'g':''):'x'+it.type);
   if(ICON[key])return ICON[key];
   const c=document.createElement('canvas');c.width=c.height=72;const g=c.getContext('2d');g.translate(36,36);
   if(it.type==='gear'){const gc=GRADES[it.grade].c;const gr=g.createRadialGradient(0,0,4,0,0,34);gr.addColorStop(0,gc+'66');gr.addColorStop(1,gc+'00');g.fillStyle=gr;g.fillRect(-36,-36,72,72);
@@ -4750,7 +4755,7 @@ const HOODT=new Map(),HOODR=new Map();function hoodMap(t){if(!t||!t.image)return
   g.putImageData(d,0,0);const nt=new THREE.CanvasTexture(c);nt.flipY=t.flipY;nt.encoding=t.encoding;nt.wrapS=t.wrapS;nt.wrapT=t.wrapT;nt.anisotropy=t.anisotropy;HOODT.set(t,nt);HOODR.set(nt,t);return nt;}
 const hoodSwap=(o,mi)=>{if(!/^body_/.test(o.name)||!o.material||!o.material.map)return;const base=HOODR.get(o.material.map)||o.material.map,want=mi.hood?hoodMap(base):base;if(o.material.map!==want){o.material.map=want;o.material.needsUpdate=true;}};
 const modelInfo=(cls,h)=>{const mi=MODEL_FOR[cls]||MODEL_FOR.barbarian;if(!mi.outfits)return mi;h=h||(H&&H.cls===cls?H:null);const t=h&&h.armor?h.armor.tier:0;const sx=h&&h.sex==='f'?'f':'m';let o=null;for(const x of mi.outfits)if(t>=x.min&&(x.sex||'m')===sx)o=x;return o?Object.assign({},mi,{roles:null,outfits:null},o):mi;};let ANIMS=null,animState='none';
-function loadReal(cls,fOverride){loadWpn();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
+function loadReal(cls,fOverride){loadWpn();loadCoinBag();if(ARM_FIT[cls||(H&&H.cls)||S.cls])loadArm();if(animState==='none'&&THREE.GLTFLoader){animState='loading';loadModelData('anims_t').then(g=>{ANIMS=g.animations;animState='ready';}).catch(e=>{console.warn('anims',e);animState='fail';});}
   if(animState==='fail')return 'fail';
   if(!fOverride){const m=modelInfo(cls||(H&&H.cls)||S.cls);if(m.arm){const a=loadReal(null,m.f),b=loadReal(null,m.arm);return a==='ready'&&b==='loading'?'loading':a;}}
   const mi=fOverride?{f:fOverride}:modelInfo(cls||(H&&H.cls)||S.cls);const REAL=REALS[mi.f]||(REALS[mi.f]={state:'none'});
@@ -4891,7 +4896,7 @@ function goodsModel(i){const M=(c,o)=>o,G=THREE;
     for(const [x,y,r] of [[-0.2,0,0.3],[0.22,0.08,-0.5]]){const d=K.add(p,new G.BoxGeometry(0.34,0.34,0.34),K.mat('#ffffff',{map:tx,rough:0.45}),x,y,0);d.rotation.set(0.5,r,0.2);}},
   candle:(p,K)=>{K.add(p,K.lathe([[0,0],[0.3,0],[0.3,0.04],[0.12,0.08],[0.06,0.12],[0.05,0.5],[0.14,0.56],[0.15,0.6],[0,0.6]]),K.mat('#ffffff',{metal:true,rough:0.4,map:surf(K,'brass')}),0,-0.5,0);
     K.add(p,new G.CylinderGeometry(0.075,0.075,0.32,12),K.mat('#f2ead8'),0,0.26,0);K.add(p,new G.SphereGeometry(0.06,8,6),K.glowMat('#ffb04a',1),0,0.5,0).scale.y=1.8;K.add(p,new G.SphereGeometry(0.13,8,6),K.glowMat('#ff8a2a',0.3),0,0.5,0);},
-  pouch:(p,K)=>{const s=K.add(p,K.lathe([[0,-0.35],[0.25,-0.3],[0.34,-0.1],[0.3,0.1],[0.12,0.25],[0.1,0.3],[0.18,0.38],[0.05,0.4]],18),K.mat('#ffffff',{rough:0.9,map:surf(K,'burlap')}),0,0,0);K.add(p,new G.TorusGeometry(0.11,0.025,6,14),K.mat('#5a3418',{map:surf(K,'leather')}),0,0.26,0).rotation.x=Math.PI/2;},
+  pouch:(p,K)=>{{const cb=coinBagMesh();if(cb){cb.rotation.y=0.5;p.add(cb);return;}}const s=K.add(p,K.lathe([[0,-0.35],[0.25,-0.3],[0.34,-0.1],[0.3,0.1],[0.12,0.25],[0.1,0.3],[0.18,0.38],[0.05,0.4]],18),K.mat('#ffffff',{rough:0.9,map:surf(K,'burlap')}),0,0,0);K.add(p,new G.TorusGeometry(0.11,0.025,6,14),K.mat('#5a3418',{map:surf(K,'leather')}),0,0.26,0).rotation.x=Math.PI/2;},
   silk:(p,K)=>bolt(p,K,'#5e2a8a','#b88ae0'),silk2:(p,K)=>bolt(p,K,'#7a1e24','#d9a63a',1),
   goblet:(p,K)=>{K.add(p,K.lathe([[0,0],[0.24,0],[0.25,0.03],[0.06,0.08],[0.05,0.38],[0.1,0.44],[0.25,0.6],[0.28,0.9],[0.26,0.9],[0.22,0.62],[0,0.55]],28),K.mat('#ffffff',{metal:true,rough:0.3,map:surf(K,'silver')}),0,-0.45,0);
     for(let k=0;k<4;k++){const a=k*1.57;K.gem(p,'#e8344e',0.04,Math.cos(a)*0.24,0.2,Math.sin(a)*0.24);}},
@@ -4914,7 +4919,7 @@ function stuIcon(it){if(!portraitInit())return null;
   if(it.type==='gear'&&it.kind==='cape')return studio('cape2'+it.tier,capeModel(it.tier),{rx:0.15,ry:0.55});
   if(it.type==='jewel'){const m=jewelModel(it.id,it.tier);return studio('j'+it.id+it.tier+(GEMCUT.st==='ready'?'g':''),m.b,m);}
   if(it.type==='crystal'){const m=crystalModel(it.t);return studio('c'+it.t+(GEMCUT.st==='ready'?'g':''),m.b,m);}
-  if(it.type==='goods'){const m=goodsModel(it.i);return m?studio('o'+it.i+(WPN_ST==='ready'?'w':''),m.b,m):null;}
+  if(it.type==='goods'){const m=goodsModel(it.i);return m?studio('o'+it.i+(WPN_ST==='ready'?'w':'')+(it.i==='pouch'&&COINBAG.st==='ready'?'b':''),m.b,m):null;}
   return null;}
 function wpnShot(cls,tier){const k=cls+tier;if(WSHOT[k])return WSHOT[k];if(WPN_ST!=='ready'||!WPN_SET[cls]||!portraitInit())return null;
   const mats=[],w=wpnMesh(cls,tier,mats),hold=new THREE.Group(),outer=new THREE.Group();hold.add(w);hold.rotation.x=-Math.PI/2;outer.add(hold);outer.rotation.z=cls==='archer'?-0.25:-0.78;
