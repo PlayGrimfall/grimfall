@@ -2617,10 +2617,13 @@ function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
     let tg=null,bd=8;for(const e of S.enemies){if(e.state==='dead'||e.remove)continue;const d=Math.hypot(e.x-m.x,e.z-m.z);if(d<bd&&Math.hypot(e.x-H.x,e.z-H.z)<13){bd=d;tg=e;}}
     if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,m.dmg||spDmg(10,2)*(setN(H)>=4?1.3:1),m.fx,m.fz,false);}return;}
     if(m.state==='strike'){if(--m.t<=0)m.state='walk';return;}
+    // a skeleton that makes no headway for about a second (stuck behind a door or wall) pops back beside the Necromancer
+    const home=()=>{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0;poof(m.x,0,m.z,0.6);m.x=H.x+Math.cos(a)*1.9;m.z=H.z+Math.sin(a)*1.9;clampPos(m);poof(m.x,0,m.z,0.7);m.stuck=0;m.lastD=undefined;},prog=d=>{if(m.lastD!==undefined&&d>m.lastD-0.012)m.stuck=(m.stuck||0)+1;else m.stuck=0;m.lastD=d;};
+    if(m.stuck>70){home();return;}
     if(tg){const dx=tg.x-m.x,dz=tg.z-m.z,d=Math.hypot(dx,dz)||1;m.fx=dx/d;m.fz=dz/d;
-      if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;}else if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}
+      if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;prog(d);}else{m.stuck=0;if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}}
     else{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0,gx=H.x+Math.cos(a)*1.9,gz=H.z+Math.sin(a)*1.9,dx=gx-m.x,dz=gz-m.z,d=Math.hypot(dx,dz);
-      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);}else if(d>0.5){const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;}else{m.fx=H.fx;m.fz=H.fz;}}
+      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);m.stuck=0;}else if(d>0.5){const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;if(d>2.5)prog(d);else m.stuck=0;}else{m.fx=H.fx;m.fz=H.fz;m.stuck=0;}}
     for(const o of L){if(o===m||o.state==='dead')continue;const ox=m.x-o.x,oz=m.z-o.z,od=Math.hypot(ox,oz);if(od<0.75&&od>0.001){m.x+=ox/od*(0.75-od)*0.2;m.z+=oz/od*(0.75-od)*0.2;}}
     clampPos(m);});
   for(const m of L)if(m.remove)minionDrop(m);S.minions=L.filter(m=>!m.remove);}
