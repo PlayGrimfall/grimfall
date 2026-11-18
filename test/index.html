@@ -106,6 +106,9 @@ body.phone .tb button[data-b="pow"].big{background:rgba(110,70,10,.85);border-co
 @keyframes powPulse{50%{transform:scale(1.08)}}@media (prefers-reduced-motion:reduce){body.phone .tb button[data-b="pow"]{animation:none}}
 body.phone .tb button,body.phone .tm button,body.phone .tp button{background-color:rgba(14,10,26,.72)}
 .tm{position:absolute;top:max(8px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto}
+/* phones: one HERO button under the health panel (bag and settings are inside it); tap the corner map to open the big map */
+body.phone .tm{top:calc(100vh*112/540);top:calc(100dvh*112/540);left:calc(max(8px,env(safe-area-inset-left,0px)) + 6px);transform:none}
+body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.phone .tm button[data-m="set"]{display:none}
 .tm button,.tp button{min-width:42px;height:36px;padding:0 9px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(20,14,34,.62);color:#fff;font:800 12px var(--body);touch-action:manipulation}
 .tp{position:absolute;right:max(160px,calc(env(safe-area-inset-right,0px) + 150px));bottom:max(18px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;pointer-events:auto}
 .tp button{width:44px;height:44px;border-radius:50%;padding:0;font-size:17px}
@@ -2224,7 +2227,7 @@ function drawMaze(g){
   // full map
   if(S.mapOn){g.fillStyle='rgba(6,4,12,.82)';g.fillRect(0,0,HW,HH);const p2=Math.floor(Math.min((HW-60)/W,(HH-120)/MZ.H)),ox=(HW-W*p2)/2,oy=70;
     paint(ox,oy,p2,0,0,W,MZ.H);g.textAlign='center';g.font=`800 26px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;const ttl=FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name;g.strokeText(ttl,HW/2,46);g.fillStyle='#f2e7cf';g.fillText(ttl,HW/2,46);
-    g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.75)';g.fillText('Gold door: needs the '+GKEY[S.floor]+'   ·   Brown door: needs a Rusty Key   ·   Red: barred during a fight   ·   '+(isTouch?'tap MAP':'M')+' to close',HW/2,HH-24);}
+    g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.75)';g.fillText('Gold door: needs the '+GKEY[S.floor]+'   ·   Brown door: needs a Rusty Key   ·   Red: barred during a fight   ·   '+(isTouch?'tap anywhere':'M')+' to close',HW/2,HH-24);}
 }
 
 // ================= sprites (2D characters in 3D) =================
@@ -3935,8 +3938,8 @@ function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
       <div class="scard">${Object.keys(LOOKS).map(k=>`<p class="sub l">${LOOK_N[k]}</p><div class="sws">${LOOKS[k].map(c=>`<button class="sw ${L[k]===c?'sel':''}" type="button" style="--c:${c}" data-act="look-${k}-${c.slice(1)}" aria-label="${LOOK_N[k]} color"></button>`).join('')}</div>`).join('')}
       <p class="note l">Helmets, gloves, boots, capes and off-hands you wear show up on your hero too.</p></div></div>`;}
   openDlg(`<h1 class="logo sm"><small>Level ${H.lvl} ${esc(d.name)}</small>${esc(H.name||d.name)}</h1><div class="tabs">${tabs}</div>${body}
-    <div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'hero',(act)=>{
-    const [k,x,y]=act.split('-');
+    <div class="row"><button class="btn alt" type="button" data-act="bag">Bag</button><button class="btn alt" type="button" data-act="set">Settings</button><button class="btn" type="button" data-act="close">Done</button></div>`,'hero',(act)=>{
+    const [k,x,y]=act.split('-');if(k==='set'){closeDlg();openSettings();return;}
     if(k==='tab'){heroTab=x;heroSel=null;resetArm=false;}
     if(k==='bag'){openInv();return;}
     if(k==='slot')heroSel=heroSel===x?null:x;
@@ -5137,7 +5140,7 @@ function drawHUD(){
     g.beginPath();g.moveTo(cx,cy-8);g.lineTo(cx+7,cy-2);g.lineTo(cx,cy+8);g.lineTo(cx-7,cy-2);g.closePath();fillOut(g,'#7fd8ff',2);}
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
   drawBelt(g);
-  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'Pinch to zoom':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E turn · R / F up and down · C to change':SET.cam==='behind'?'Behind the hero · arrows turn · A / D side-step · C to change':'Side view · C to change',px,py+106);
+  g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E turn · R / F up and down · C to change':SET.cam==='behind'?'Behind the hero · arrows turn · A / D side-step · C to change':'Side view · C to change',px,py+106);
   drawJobs(g,px,py+130);
   if(S.level==='dungeon'&&MZ)drawMaze(g);
   // boss bar
@@ -5400,6 +5403,8 @@ function updateTouch(){touchIcons();powUI();document.getElementById('touch').hid
   stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
   document.querySelectorAll('#touch [data-m]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(S.state!=='play')return;const m=b.dataset.m;
     if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set')openSettings();else drinkPotion(m);}));
+  // tap the corner map to open or close the big map
+  glc.addEventListener('pointerdown',e=>{if(!isTouch||S.state!=='play'||S.level!=='dungeon'||!MZ)return;const r=glc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*HW,y=(e.clientY-r.top)/r.height*HH;const mx=HW-44*4-14;if(S.mapOn||(x>=mx-10&&y>=64&&y<=74+32*4+10)){S.mapOn=!S.mapOn;}});
   const pts=new Map();let pd0=0;glc.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2){const [a,c]=[...pts.values()];pd0=Math.hypot(a[0]-c[0],a[1]-c[1]);}}});
   glc.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2&&pd0>0){const [a,c]=[...pts.values()],d=Math.hypot(a[0]-c[0],a[1]-c[1]);const k=pd0/d;pd0=d;if(camMode()==='diablo')CAM.distD=clamp(CAM.distD*k,11,24);else CAM.dist=clamp(CAM.dist*k,6,19);}});
   for(const ev of ['pointerup','pointercancel'])glc.addEventListener(ev,e=>{pts.delete(e.pointerId);if(pts.size<2)pd0=0;});
