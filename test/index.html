@@ -1125,9 +1125,22 @@ function house(o){
   for(const s of [-1,1]){g.add(mesh(new THREE.PlaneGeometry(1.3,1.1),M.window,s*w/3,3.6,d/2+0.03,false,false));if(o.noDoor||true)g.add(mesh(new THREE.PlaneGeometry(1.2,1),M.window,s*w/3,1.6,d/2+0.03,false,false));}
   g.userData.box=[...g.children];if(o.bld)TOWN_BLD.push({g,o});
   if(o.name){const sm=new THREE.MeshLambertMaterial({map:signTex(o.name,o.icon),transparent:true,alphaTest:0.4,side:THREE.DoubleSide});
-    const sg=mesh(new THREE.PlaneGeometry(2.6,0.98),sm,0,3.05,d/2+0.25,false,false);g.add(sg);}
+    const sg=mesh(new THREE.PlaneGeometry(2.6,0.98),sm,0,3.05,d/2+0.25,false,false);g.add(sg);SIGN_SPOTS.push({par:g,plane:sg,p:sg.position.clone(),name:o.name,icon:o.icon});loadSigns();signsUpgrade();}
   return g;
 }
+// ---- carved hanging signs from the 3DT Fantasy Signs pack; the shop or house name is painted on the board ----
+const SIGN_OF={anchor:20,magic:6,gems:9,smith:5,armory:16,home:18,spice:2};
+const SIGN_BOARD={20:[-0.2,-0.56,0.8,0.55,0.13],6:[0,-0.45,1.05,0.55,0.11],9:[0.03,-0.3,1.05,0.5,0.12],5:[0,-0.45,0.72,0.62,0.11],16:[0,0.12,0.72,0.42,0.11],18:[-0.02,-0.85,1.0,0.6,0.08],2:[0,-0.15,1.0,0.5,0.1]}; // board centre x,y, width, height, front
+const SIGN_SPOTS=[];let SIGNS3=null;
+function signText(name){return canvasTex(512,256,(g,w,h)=>{g.clearRect(0,0,w,h);const words=String(name).split(' ');let lines=[name],fs=96;g.font=`bold ${fs}px Georgia,serif`;
+  while(fs>40&&g.measureText(lines.join(' ')).width>w-40){fs-=6;g.font=`bold ${fs}px Georgia,serif`;}
+  if(words.length>1&&String(name).length>9){const half=Math.ceil(words.length/2);lines=[words.slice(0,half).join(' '),words.slice(half).join(' ')];fs=96;g.font=`bold ${fs}px Georgia,serif`;while(fs>36&&Math.max(...lines.map(l=>g.measureText(l).width))>w-40){fs-=6;g.font=`bold ${fs}px Georgia,serif`;}}
+  g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';const lh=fs*1.05,y0=h/2-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{g.lineWidth=fs*0.16;g.strokeStyle='rgba(20,10,4,.9)';g.strokeText(l,w/2,y0+i*lh);g.fillStyle='#f0d898';g.fillText(l,w/2,y0+i*lh);});});}
+function signsUpgrade(){if(!SIGNS3)return;for(const s of SIGN_SPOTS){if(s.done)continue;const num=SIGN_OF[s.icon],src=num&&SIGNS3[num];if(!src)continue;const k=s.k||1.25,b=SIGN_BOARD[num],g=new THREE.Group(),m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;g.add(m);
+    const t=new THREE.Mesh(new THREE.PlaneGeometry(b[2],b[3]),new THREE.MeshLambertMaterial({map:signText(s.name),transparent:true,alphaTest:0.05}));t.position.set(b[0],b[1],b[4]);g.add(t);
+    const ry=s.ry||0;g.rotation.y=ry;g.scale.setScalar(k);g.position.set(s.p.x-b[0]*k*Math.cos(ry),s.p.y+(s.icon==='anchor'?0.45:0)-b[1]*k,s.p.z+b[0]*k*Math.sin(ry)+(s.dz||0));s.par.add(g);s.plane.visible=false;s.done=1;}}
+function loadSigns(){if(SIGNS3||!THREE.GLTFLoader||loadSigns.busy)return;loadSigns.busy=1;loadModelData('signs').then(gl=>{const L={};gl.scene.traverse(o=>{if(o.isMesh){const n=+String(o.name).replace(/\D+/g,'');if(n)L[n]=o;}});SIGNS3=L;signsUpgrade();}).catch(e=>console.warn('signs',e));}
 function lamp(x,z,grp,light=true){
   const wd=DN.postM||(DN.postM=new THREE.MeshStandardMaterial({color:0x5a3d24,roughness:0.95})),ir=DN.ironM||(DN.ironM=new THREE.MeshStandardMaterial({color:0x2a2622,roughness:0.6,metalness:0.6}));
   grp.add(mesh(new THREE.CylinderGeometry(0.11,0.15,3.1,7),wd,x,1.55,z));
@@ -1242,7 +1255,7 @@ function buildSpiceStall(T){const x=SPICE_AT.x,z=SPICE_AT.z,st=new THREE.Group()
   const aw=canvasTex(128,64,(g,w,h)=>{for(let k=0;k<8;k++){g.fillStyle=k%2?'#f2e7cf':'#c8641e';g.fillRect(k*16,0,16,h);}g.fillStyle='rgba(0,0,0,.15)';g.fillRect(0,h-6,w,6);});
   const awn=mesh(new THREE.PlaneGeometry(3.8,3.3),new THREE.MeshLambertMaterial({map:aw,side:THREE.DoubleSide}),0,2.75,0.05);awn.rotation.x=-Math.PI/2+0.22;st.add(awn);
   const sign=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#5a3a20';g.fillRect(0,0,w,h);g.fillStyle='#f2d38a';g.font='bold 30px Georgia';g.textAlign='center';g.fillText("Rafi's Spices",w/2,42);});
-  st.add(mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6));
+  {const sb=mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6);st.add(sb);SIGN_SPOTS.push({par:st,plane:sb,p:new THREE.Vector3(0,2.05,-1.62),name:"Rafi's Spices",icon:'spice',k:0.95,ry:Math.PI});loadSigns();signsUpgrade();}
   T.add(st);TOWN_COL.push([x-1.8,x+1.8,z-1.5,z+1.6]);occluder(st,x-1.9,x+1.9,z-1.6,z+1.7,true,'town');
   if(THREE.GLTFLoader)loadModelData('spice').then(gl=>{const m=gl.scene;m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()),k=Math.min(3.0/sz.x,2.3/sz.z);
     m.scale.setScalar(k);m.position.set(-c.x*k,0.32-b.min.y*k,-c.z*k);m.rotation.y=Math.PI;st.add(m);}).catch(()=>{});
