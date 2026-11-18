@@ -5165,11 +5165,12 @@ function chatSend(){const i=document.getElementById('chatIn'),t=chatClean(i.valu
 function chatSeen(k){if(!k)return false;const L=NET.seenK||(NET.seenK=[]);if(L.includes(k))return true;L.push(k);if(L.length>40)L.shift();return false;}
 function netChatOut(from,name,t,k){for(const c of NET.conns)if(c.open&&c.peer!==from)c.send({t:'chat',f:from,n:name,x:t,k});}
 function netChatIn(from,name,t,k){if(chatSeen(k))return false;t=chatClean(t);if(!t)return;chatAdd(String(name||'Friend').slice(0,16),t);netBubble(from,t);}
-function bubbleSpr(t){const c=document.createElement('canvas');c.width=512;c.height=112;const g=c.getContext('2d');g.font='600 30px system-ui,sans-serif';
-  const lines=[''];for(const w of t.split(' ')){const tl=(lines[lines.length-1]+' '+w).trim();if(g.measureText(tl).width>460&&lines[lines.length-1]){if(lines.length===2){lines[1]+='…';break;}lines.push(w);}else lines[lines.length-1]=tl;}
-  const w=Math.min(500,Math.max(...lines.map(l=>g.measureText(l).width))+30),h=lines.length*36+18;g.fillStyle='rgba(250,246,234,.95)';g.beginPath();if(g.roundRect)g.roundRect(256-w/2,4,w,h,14);else g.rect(256-w/2,4,w,h);g.fill();
-  g.fillStyle='#1a1410';g.textAlign='center';lines.forEach((l,i)=>g.fillText(l,256,40+i*36));
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(4.8,1.05,1);s.renderOrder=1000;return s;}
+function bubbleSpr(t){const c=document.createElement('canvas');c.width=512;c.height=186;const g=c.getContext('2d');g.font='600 30px system-ui,sans-serif';
+  const lines=[''];for(const w of t.split(' ')){const tl=(lines[lines.length-1]+' '+w).trim();if(g.measureText(tl).width>460&&lines[lines.length-1]){if(lines.length===4){lines[3]+='…';break;}lines.push(w);}else lines[lines.length-1]=tl;}
+  const w=Math.min(500,Math.max(...lines.map(l=>g.measureText(l).width))+30),h=lines.length*36+18;g.fillStyle='rgba(22,16,12,.9)';g.beginPath();if(g.roundRect)g.roundRect(256-w/2,4,w,h,14);else g.rect(256-w/2,4,w,h);g.fill();g.strokeStyle='rgba(201,150,46,.85)';g.lineWidth=3;g.stroke();
+  // dark bubble, warm light text: easy to read on bright town days and dark dungeons alike
+  g.fillStyle='#f2e7cf';g.textAlign='center';lines.forEach((l,i)=>g.fillText(l,256,40+i*36));
+  const tx=new THREE.CanvasTexture(c);tx.encoding=THREE.sRGBEncoding;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true,toneMapped:false,fog:false}));s.scale.set(4.8,1.74,1);s.renderOrder=1000;return s;}
 function bubbleKill(o){if(!o.bub)return;scene.remove(o.bub);o.bub.material.map.dispose();o.bub.material.dispose();o.bub=null;}
 function netBubble(id,t){const o=id===NET.myId?NET:NET.peers[id];if(!o)return;bubbleKill(o);o.bub=bubbleSpr(t);o.bubT=performance.now()+5500;scene.add(o.bub);}
 function netBubbles(){const now=performance.now(),upd=(o,h,vis)=>{if(!o.bub)return;if(now>o.bubT||!h){bubbleKill(o);return;}o.bub.visible=vis;o.bub.position.set(h.x,h.y+(modelInfo(h.cls).tall||1.62)+1.15,h.z);};
