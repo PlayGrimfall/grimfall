@@ -81,7 +81,8 @@ button:focus-visible{outline:3px solid var(--torch);outline-offset:2px}
 /* ---- phone layout ---- */
 body.phone{padding:0;overflow:hidden;background:#000}
 body.phone #wrap{position:fixed;inset:0;height:100vh;height:100dvh;display:grid;place-items:center;gap:0}
-body.phone #stage{width:min(100vw,calc(100vh*16/9));width:min(100vw,calc(100dvh*16/9));height:auto;border-radius:0;box-shadow:none}
+body.phone #tpanel{display:none!important}
+body.phone #stage{width:100vw;height:100vh;height:100dvh;aspect-ratio:auto;border-radius:0;box-shadow:none}
 body.phone .strip{display:none}
 body.phone #touch{inset:0;align-items:stretch;padding:0}
 body.phone #stick{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));width:130px;height:130px;background:rgba(255,255,255,.07)}
@@ -926,7 +927,7 @@ addEventListener('pointerdown',musStart);addEventListener('keydown',musStart);
 
 // ================= three setup =================
 const stage=document.getElementById('stage'), glc=document.getElementById('gl'), hud=document.getElementById('hud'), hx=hud.getContext('2d');
-const HW=960,HH=540;
+let HW=960;const HH=540; // HUD drawing space: 540 tall, as wide as the screen's shape
 function fail(msg){const e=document.getElementById('err');e.hidden=false;e.textContent=msg;document.getElementById('start').hidden=true;throw new Error(msg);}
 if(!window.THREE)fail('The 3D engine could not load. Check your connection and reload the page.');
 let renderer;
@@ -957,7 +958,7 @@ function setupComposer(){
 }
 function renderScene(){if(composer&&SET.glow){composer.render();}else renderer.render(scene,camera);}
 let RS=null;const rsCap=()=>SET.speed==='quality'?Math.min(window.devicePixelRatio||1,2):SET.speed==='fast'?0.75:(matchMedia('(pointer: coarse) and (hover: none)').matches?1:Math.min(window.devicePixelRatio||1,1.5));
-function resize(){const r=stage.getBoundingClientRect();if(!r.width)return;if(RS===null||RS>rsCap()||SET.speed!=='auto')RS=rsCap();const pr=RS;renderer.setPixelRatio(pr);renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
+function resize(){const r=stage.getBoundingClientRect();if(!r.width)return;if(RS===null||RS>rsCap()||SET.speed!=='auto')RS=rsCap();const pr=RS;renderer.setPixelRatio(pr);renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();HW=Math.max(720,Math.round(HH*r.width/r.height));if(hud.width!==HW)hud.width=HW;
   if(composer){composer.setPixelRatio(pr);composer.setSize(r.width,r.height);}}
 try{new ResizeObserver(resize).observe(stage);}catch(e){addEventListener('resize',resize);}
 setupComposer();resize();
