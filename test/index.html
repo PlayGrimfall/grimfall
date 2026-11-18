@@ -3312,9 +3312,71 @@ function drawSea(g,id){g.lineJoin='round';g.lineCap='round';
     g.fillStyle='#8a3a4a';g.beginPath();g.moveTo(-34,4);g.lineTo(-18,20);g.lineTo(-10,8);g.closePath();g.fill();g.stroke();g.fillStyle='#fff';for(let k=0;k<4;k++){g.beginPath();g.moveTo(-30+k*5,7+k*3);g.lineTo(-27+k*5,12+k*3);g.lineTo(-25+k*5,6+k*3);g.fill();}
     g.fillStyle='#14080a';g.beginPath();g.arc(-22,-6,2.6,0,7);g.fill();g.beginPath();g.moveTo(-8,0);g.lineTo(-8,8);g.moveTo(-4,0);g.lineTo(-4,8);g.moveTo(0,0);g.lineTo(0,8);g.lineWidth=1.5;g.stroke();}}
 const SEA_PIC={},MEAL_PIC={};
-function seaPic(id){if(SEA_PIC[id])return SEA_PIC[id];const im=SEA_IMG[id];if(im)return im.complete&&im.naturalWidth?(SEA_PIC[id]=im):null;
+// ---- 3D deep-sea creatures and the meals made from them, in the same studio light as the weapons ----
+function seaTex(K,kind,base,spots){return K.tex(128,128,(q,w,h)=>{let sd=11;const rn=()=>{sd=(sd*9301+49297)%233280;return sd/233280;};q.fillStyle=base;q.fillRect(0,0,w,h);
+  const blot=(n,cols,a,r0,r1)=>{for(let k=0;k<n;k++){q.globalAlpha=a*(0.4+rn()*0.6);q.fillStyle=cols[(rn()*cols.length)|0];q.beginPath();q.ellipse(rn()*w,rn()*h,r0+rn()*(r1-r0),r0+rn()*(r1-r0),rn()*3,0,7);q.fill();}q.globalAlpha=1;};
+  if(kind==='skin')blot(80,spots,0.35,2,9);
+  if(kind==='wood'){q.strokeStyle='rgba(50,28,12,.5)';for(let y=0;y<h;y+=3+rn()*4){q.lineWidth=0.6+rn();q.beginPath();q.moveTo(0,y);q.bezierCurveTo(w*0.3,y+rn()*6-3,w*0.7,y+rn()*6-3,w,y+rn()*4-2);q.stroke();}blot(10,['#3a2010'],0.4,1,4);}
+  if(kind==='iron'){blot(70,['#2a2a30','#5a5a62','#4a3a30'],0.5,2,12);}
+  if(kind==='glaze'){blot(40,spots,0.3,4,18);}});}
+function seaBody(id,K,p,cooked){const G=K.G,ck=c=>{const x=new G.Color(c);if(cooked)x.lerp(new G.Color('#4a2810'),0.35);return '#'+x.getHexString();};
+  const M=(c,o={})=>K.mat(ck(c),o),add=(geo,m,x=0,y=0,z=0)=>K.add(p,geo,m,x,y,z),ell=(m,sx,sy,sz,x,y,z)=>{const e=add(new G.SphereGeometry(1,20,14),m,x,y,z);e.scale.set(sx,sy,sz);return e;};
+  const stick=(m,a,b,r)=>{const A=new G.Vector3(...a),B=new G.Vector3(...b),d=B.clone().sub(A),c=add(new G.CylinderGeometry(r,r*0.8,d.length(),6),m);c.position.copy(A).add(B).multiplyScalar(0.5);c.quaternion.setFromUnitVectors(new G.Vector3(0,1,0),d.normalize());return c;};
+  const glow=(c,r,x,y,z)=>{add(new G.SphereGeometry(r,12,10),K.mat(c,{glow:1.2,rough:0.2}),x,y,z);add(new G.SphereGeometry(r*2.2,12,10),K.glowMat(c,0.35),x,y,z);};
+  const teeth=(n,x0,x1,y,z,s,dn)=>{const m=K.mat('#f2ead8',{rough:0.3});for(let i=0;i<n;i++){const t=add(new G.ConeGeometry(s*0.35,s,5),m,x0+(x1-x0)*i/(n-1),y,z);t.rotation.z=dn?Math.PI:0;}};
+  if(id==='isopod'){const sk=M('#ffffff',{rough:0.42,map:seaTex(K,'skin','#6e6880',['#4e4a5e','#9a94aa','#5a5040'])});
+    for(let i=0;i<9;i++){const x=0.55-i*0.13,w=0.36-Math.abs(i-3.5)*0.025;ell(sk,0.085,0.15,w,x,0,0);}
+    ell(sk,0.12,0.11,0.24,0.66,-0.01,0);for(const s of [-1,1]){stick(M('#8a8098'),[0.74,0,s*0.12],[1.0,0.02,s*0.42],0.012);ell(M('#1a1420',{rough:0.1}),0.03,0.03,0.04,0.7,0.04,s*0.17);}
+    for(const s of [-1,0,1]){const f=ell(sk,0.12,0.03,0.08,-0.62,-0.02,s*0.11);f.rotation.y=s*0.5;}
+    for(let i=0;i<7;i++)for(const s of [-1,1])stick(M('#8a8098'),[0.45-i*0.13,-0.06,s*0.3],[0.42-i*0.13,-0.16,s*0.42],0.012);return {rx:0.75,ry:-0.35};}
+  if(id==='shrimp'){const sh=M('#ffffff',{rough:0.25,glow:cooked?0:0.25,glowCol:'#ff4a1a',map:seaTex(K,'skin','#e8541e',['#ff8a3a','#b02a10','#ffc070'])});
+    for(let i=0;i<8;i++){const a=-0.4+i*0.38,r=0.4,s=0.17-i*0.012;ell(sh,s*1.1,s,s*0.95,Math.cos(a)*r,Math.sin(a)*r,0);}
+    ell(sh,0.24,0.16,0.15,0.36,-0.2,0).rotation.z=-0.5;for(const z of [-1,1]){const f=ell(sh,0.1,0.02,0.07,-0.36+0.04*z,0.2,z*0.06);f.rotation.z=0.9;}
+    for(const s of [-1,1]){stick(M('#ff9a5a'),[0.5,-0.25,s*0.05],[0.95,0.2,s*0.2],0.008);ell(M('#101010',{rough:0.1}),0.03,0.03,0.03,0.5,-0.15,s*0.08);}
+    for(let i=0;i<5;i++)stick(M('#e8743a'),[0.3-i*0.1,-0.28+i*0.02,0.05],[0.32-i*0.1,-0.45+i*0.02,0.12],0.01);return {rx:0.2,ry:0.2};}
+  if(id==='angler'){const sk=M('#ffffff',{rough:0.6,map:seaTex(K,'skin','#3a2a24',['#5a4434','#1e1410','#6a5a3a'])});ell(sk,0.42,0.36,0.32,0,0,0);
+    ell(M('#120808',{rough:0.9}),0.26,0.2,0.27,0.3,-0.08,0);teeth(7,0.12,0.5,0.06,0.2,0.09,true);teeth(7,0.12,0.5,-0.24,0.2,0.08,false);
+    const rod=new G.TubeGeometry(new G.QuadraticBezierCurve3(new G.Vector3(0.1,0.32,0),new G.Vector3(0.35,0.75,0),new G.Vector3(0.62,0.45,0)),12,0.012,5);add(rod,M('#5a4434'));glow('#7affd8',0.05,0.63,0.4,0);
+    for(const s of [-1,1])ell(M('#d8e8f0',{rough:0.05}),0.04,0.04,0.04,0.2,0.16,s*0.22);const t=ell(sk,0.18,0.2,0.03,-0.48,0,0);t.rotation.z=0.2;return {rx:0.1,ry:-0.6};}
+  if(id==='spider'){const sk=M('#ffffff',{rough:0.5,map:seaTex(K,'skin','#e2d4b6',['#c8a878','#f4ead0','#a07a50'])});for(let i=0;i<4;i++)ell(sk,0.08,0.065,0.08,0.18-i*0.13,0,0);ell(sk,0.05,0.04,0.04,0.3,0.02,0);
+    for(let i=0;i<8;i++){const s=i%2?1:-1,j=(i>>1),bx=0.15-j*0.1,a=s*(0.6+j*0.15),kx=bx+Math.sin(a)*0.05,kz=s*0.38,ky=0.28;stick(sk,[bx,0,s*0.05],[kx,ky,kz],0.028);stick(sk,[kx,ky,kz],[kx+(j-1.5)*0.18,-0.3,s*0.7],0.02);ell(sk,0.035,0.035,0.035,kx,ky,kz);
+      ell(M('#f4f0e6',{rough:0.9,op:0.6}),0.03,0.06,0.03,kx,ky*0.5,kz*0.8);}return {rx:1.0,ry:0.3};}
+  if(id==='squid'){const sk=M('#ffffff',{rough:0.45,map:seaTex(K,'skin','#6a1420',['#8a2030','#3a0a12','#a03a40'])});const m=add(K.lathe([[0,0.6],[0.12,0.55],[0.2,0.4],[0.22,0.15],[0.2,0]],20),sk,0,0,0);
+    for(const s of [-1,1]){const f=ell(sk,0.12,0.04,0.02,s*0.22,0.45,0);f.rotation.z=s*0.5;}
+    add(K.lathe([[0.2,0],[0.32,-0.12],[0.45,-0.28],[0.5,-0.38]],24),M('#4a0c16',{side:THREE.DoubleSide,rough:0.5}));
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;stick(sk,[Math.cos(a)*0.18,-0.02,Math.sin(a)*0.18],[Math.cos(a)*0.52,-0.42,Math.sin(a)*0.52],0.03);}
+    for(const s of [-1,1]){ell(M('#2a6aff',{glow:0.9,rough:0.05}),0.07,0.08,0.05,s*0.15,0.12,0.15);}return {rx:0.25,ry:0};}
+  if(id==='gulper'){const sk=M('#ffffff',{rough:0.35,map:seaTex(K,'skin','#1e1622',['#3a2a40','#0e0a12','#4a3a58'])});const pts=[];for(let i=0;i<=24;i++){const u=i/24;pts.push(new G.Vector3(0.2-u*0.9,Math.sin(u*7)*0.12-u*0.2,Math.cos(u*5)*0.15));}
+    const tg=new G.TubeGeometry(new G.CatmullRomCurve3(pts),48,0.11,8),P=tg.attributes.position;const cv=new G.CatmullRomCurve3(pts);for(let k=0;k<P.count;k++){const u=Math.floor(k/9)/48,c=cv.getPoint(u),v=new G.Vector3(P.getX(k),P.getY(k),P.getZ(k)).sub(c).multiplyScalar(1-u*0.85).add(c);P.setXYZ(k,v.x,v.y,v.z);}tg.computeVertexNormals();add(tg,sk);
+    ell(M('#2a1424',{rough:0.6}),0.26,0.17,0.17,0.36,0.04,0);ell(sk,0.16,0.05,0.15,0.4,0.2,0);teeth(6,0.22,0.56,0.16,0.12,0.05,true);glow('#ff4aa8',0.035,-0.7,-0.18,0.02);return {rx:0.2,ry:-0.3};}
+  if(id==='shark'){const sk=M('#ffffff',{rough:0.45,map:seaTex(K,'skin','#d89a9a',['#c08080','#ecc0b8','#a87070'])});const b=add(K.lathe([[0,-0.65],[0.08,-0.5],[0.2,-0.15],[0.22,0.1],[0.16,0.35],[0.08,0.5],[0,0.55]],18),sk);b.rotation.z=-Math.PI/2;
+    const sn=ell(sk,0.3,0.03,0.08,0.75,0.04,0);ell(M('#401820',{rough:0.7}),0.14,0.07,0.1,0.48,-0.12,0);teeth(6,0.38,0.6,-0.08,0.06,0.04,true);teeth(6,0.38,0.6,-0.17,0.06,0.04,false);
+    const fin=(x,y,z,rx,rz,s)=>{const f=add(new G.ConeGeometry(0.09*s,0.3*s,4),sk,x,y,z);f.rotation.set(rx,0,rz);f.scale.z=0.25;};fin(0,0.24,0,0,-0.35,1);fin(0.1,-0.18,0.14,0.9,0.6,0.9);fin(0.1,-0.18,-0.14,-0.9,0.6,0.9);fin(-0.68,0.14,0,0,-0.7,1.2);fin(-0.68,-0.12,0,0,-2.4,0.9);
+    for(const s of [-1,1])ell(M('#101010',{rough:0.05}),0.025,0.025,0.025,0.36,0.08,s*0.14);return {rx:0.15,ry:-0.45};}
+  if(id==='bobbit'){const cols=['#7a4a8a','#4a7a5a','#8a6a3a','#5a4a7a'];for(let i=0;i<14;i++){const u=i/13,x=0.5-u*1.1,y=Math.sin(u*5)*0.12,s=0.09-u*0.03;const sg=ell(K.mat(ck(cols[i%4]),{rough:0.2,metal:false}),s*0.9,s,s,x,y,0);sg.material.metalness=0.4;sg.material.envMapIntensity=1.8;}
+    for(const a of [-0.6,-0.2,0.2,0.6]){const j=add(new G.ConeGeometry(0.025,0.18,5),M('#2a1a10',{rough:0.3}),0.62,0.02+a*0.12,a*0.1);j.rotation.z=-Math.PI/2+a*0.6;}
+    for(const s of [-1,1])for(const a of [0.2,0.5])stick(M('#c8a070'),[0.55,0.05,s*0.03],[0.72,0.18+a*0.1,s*0.12],0.008);return {rx:0.35,ry:-0.2};}
+  return {rx:0,ry:0};}
+// colours are picked as screen colours, so convert them once to the renderer's linear space for rich, not washed-out, tones
+function seaLin(p){const seen=new Set();p.traverse(o=>{const m=o.material;if(!o.isMesh||!m||seen.has(m))return;seen.add(m);if(m.color)m.color.convertSRGBToLinear();if(m.emissive)m.emissive.convertSRGBToLinear();});}
+function seaModel(id){return {b:(p0,K)=>{const p=new K.G.Group();p0.add(p);const o=seaBody(id,K,p,false);p.rotation.set(o.rx||0,o.ry||0,0);seaLin(p);}};}
+function mealModel(id){const v=MEAL_OF[id]&&MEAL_OF[id].v;return {b:(p0,K)=>{const G=K.G,p=new G.Group(),food=new G.Group();p0.add(p);p.add(food);const o=seaBody(id,K,food,true);food.rotation.set(0,o.ry||0,0);
+  const wood=K.mat('#ffffff',{rough:0.7,map:seaTex(K,'wood','#8a5a32')}),liquid=(c,r,y)=>{const d=K.add(p,new G.CircleGeometry(r,28),K.mat(c,{rough:0.1,glow:0.25}),0,y,0);d.rotation.x=-Math.PI/2;};
+  if(v==='bake'){K.add(p,K.lathe([[0,-0.2],[0.75,-0.2],[0.82,-0.12],[0.86,0.02],[0.8,0.02],[0.74,-0.13],[0,-0.13]],32),K.mat('#ffffff',{rough:0.35,map:seaTex(K,'glaze','#a0542a',['#7a3a1a','#c87a4a'])}));food.scale.setScalar(0.85);food.rotation.y=0.3;food.position.y=0.05;}
+  if(v==='pot'){K.add(p,K.lathe([[0,-0.4],[0.5,-0.38],[0.62,-0.15],[0.62,0.12],[0.55,0.2],[0.58,0.24],[0.5,0.24],[0.5,0.15],[0,0.15]],32),K.mat('#ffffff',{metal:true,rough:0.6,map:seaTex(K,'iron','#3a3a42')}));liquid('#c8501e',0.5,0.16);food.scale.setScalar(0.6);food.position.y=0.3;
+    for(const s of [-1,1])K.add(p,new G.TorusGeometry(0.1,0.025,6,14),K.mat('#2a2a30',{metal:true}),s*0.66,0.12,0);}
+  if(v==='stick'){food.scale.setScalar(0.75);for(const z of [-0.06,0.06]){const c=K.add(p,new G.CylinderGeometry(0.02,0.012,1.9,6),wood,0,0,z);c.rotation.z=1.2;}}
+  if(v==='mug'){const mug=K.add(p,new G.CylinderGeometry(0.36,0.32,0.72,24,1,true),K.mat('#ffffff',{rough:0.7,side:THREE.DoubleSide,map:seaTex(K,'wood','#6a4428')}),0,-0.2,0);
+    for(const y of [-0.45,0.05])K.add(p,new G.TorusGeometry(0.35,0.025,6,28),K.mat('#4a4a52',{metal:true}),0,y,0).rotation.x=Math.PI/2;K.add(p,new G.CircleGeometry(0.33,24),K.mat('#120610',{rough:0.05}),0,0.08,0).rotation.x=-Math.PI/2;
+    K.add(p,new G.TorusGeometry(0.17,0.04,8,16,Math.PI),K.mat('#5a3a22'),0.4,-0.18,0).rotation.z=-Math.PI/2;food.scale.setScalar(0.45);food.position.set(-0.05,0.2,0);}
+  if(v==='bowl'){K.add(p,K.lathe([[0,-0.3],[0.25,-0.3],[0.5,-0.15],[0.62,0.08],[0.58,0.08],[0.46,-0.12],[0,-0.24]],32),K.mat('#ffffff',{rough:0.3,map:seaTex(K,'glaze','#e6dcc4',['#c8bca0','#f4eedc'])}));liquid('#8a6a3a',0.52,0.02);food.scale.setScalar(0.55);food.position.y=0.12;}
+  if(v==='board'){const bd=K.add(p,new G.BoxGeometry(1.4,0.08,0.75),wood,0,-0.2,0);for(let i=0;i<4;i++){const j=K.add(p,new G.BoxGeometry(0.6,0.03,0.09),K.mat('#5a2414',{rough:0.75}),-0.25+i*0.06,-0.14+i*0.012,-0.25+i*0.13);j.rotation.y=0.3-i*0.15;}food.scale.setScalar(0.42);food.position.set(0.25,0.0,0.05);}
+  if(v==='vial'){K.add(p,K.lathe([[0,-0.4],[0.18,-0.38],[0.22,-0.2],[0.2,0.1],[0.08,0.2],[0.07,0.38],[0,0.38]],24),K.mat('#d8f0e0',{rough:0.05,op:0.35}),-0.35,0,0);K.add(p,new G.CylinderGeometry(0.17,0.19,0.4,20),K.mat('#4aff6a',{glow:0.7,rough:0.1,op:0.85}),-0.35,-0.15,0);
+    K.add(p,new G.CylinderGeometry(0.075,0.065,0.12,10),K.mat('#8a6a42',{rough:0.9}),-0.35,0.42,0);food.scale.setScalar(0.5);food.position.set(0.25,-0.15,0);}
+  p.rotation.set(0.35,v==='stick'?0.2:0,0);seaLin(p);}};}
+function seaPic(id){if(SEA_PIC[id])return SEA_PIC[id];{const c=SEA_OF[id]&&studio('sea3'+id,seaModel(id).b);if(c)return SEA_PIC[id]=c;}const im=SEA_IMG[id];if(im)return im.complete&&im.naturalWidth?(SEA_PIC[id]=im):null;
   const c=document.createElement('canvas');c.width=c.height=112;const g=c.getContext('2d');g.translate(56,56);drawSea(g,id);return SEA_PIC[id]=c;}
-function mealPic(id){if(MEAL_PIC[id])return MEAL_PIC[id];const sp=seaPic(id);if(!sp)return null;const M=MEAL_OF[id],c=document.createElement('canvas');c.width=c.height=112;const g=c.getContext('2d');g.translate(56,56);g.strokeStyle=OUT;g.lineWidth=3;g.lineJoin='round';
+function mealPic(id){if(MEAL_PIC[id])return MEAL_PIC[id];{const c=MEAL_OF[id]&&studio('meal3'+id,mealModel(id).b);if(c)return MEAL_PIC[id]=c;}const sp=seaPic(id);if(!sp)return null;const M=MEAL_OF[id],c=document.createElement('canvas');c.width=c.height=112;const g=c.getContext('2d');g.translate(56,56);g.strokeStyle=OUT;g.lineWidth=3;g.lineJoin='round';
   const steam=()=>{g.strokeStyle='rgba(255,255,255,.7)';g.lineWidth=3;for(const x of [-14,0,14]){g.beginPath();g.moveTo(x,-26);g.bezierCurveTo(x-8,-36,x+8,-42,x,-54);g.stroke();}};
   if(M.v==='vial'){g.fillStyle='#3a2a1a';g.fillRect(-34,-46,16,10);g.strokeRect(-34,-46,16,10);const vg=g.createLinearGradient(-44,0,-8,0);vg.addColorStop(0,'#2a8a3a');vg.addColorStop(0.5,'#8aff7a');vg.addColorStop(1,'#2a8a3a');g.fillStyle=vg;
     g.beginPath();g.moveTo(-31,-36);g.lineTo(-31,-22);g.quadraticCurveTo(-50,-8,-44,18);g.quadraticCurveTo(-26,34,-8,18);g.quadraticCurveTo(-2,-8,-21,-22);g.lineTo(-21,-36);g.closePath();g.fill();g.stroke();
@@ -4691,10 +4753,20 @@ function offModel(cls,t){t=Math.max(0,Math.min(4,t|0));
       const fl=t>=3?'#8fe3ff':'#d94a3a';for(let i=0;i<(t>=2?5:4);i++){const a=i*1.3,x=Math.cos(a)*0.07,z=Math.sin(a)*0.07,ar=new K.G.Group();ar.position.set(x,0.5,z);ar.rotation.set(Math.sin(a)*0.15,0,Math.cos(a)*0.15);p.add(ar);
         K.add(ar,new K.G.CylinderGeometry(0.012,0.012,0.36,5),K.mat('#d8c49a'),0,0,0);for(let f=0;f<3;f++){const fe=K.add(ar,new K.G.BoxGeometry(0.004,0.13,0.05),K.mat(fl,{rough:0.8}),0,0.12,0);fe.rotation.y=f*Math.PI/3;fe.geometry.translate(0,0,0.025);}}},rz:-0.35,rx:0.2};
   return null;}
-function capeModel(t){return (p,K)=>{const g=new K.G.PlaneGeometry(0.9,1.3,18,18),P=g.attributes.position;for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),d=(0.65-y)/1.3;P.setX(i,x*(1+d*0.35));P.setZ(i,Math.sin(x*11)*0.05*d+Math.cos(y*3)*0.03);}g.computeVertexNormals();
-  const col=CAPE_COL[t]||CAPE_COL[0],tx=K.tex(64,128,(q,w,h)=>{q.fillStyle=col;q.fillRect(0,0,w,h);q.fillStyle='rgba(0,0,0,.18)';for(let y=0;y<h;y+=4)q.fillRect(0,y,w,1);if(t>=3){q.fillStyle=t===4?'#ffd35c':'#cfe8ff';for(let k=0;k<14;k++){q.fillRect((k*37)%w,(k*53)%h,2,2);}}q.fillStyle=t>=2?'#e1b23d':'#c9b48a';q.fillRect(0,h-6,w,6);q.fillRect(0,0,w,4);});
-  K.add(p,g,K.mat('#ffffff',{map:tx,side:THREE.DoubleSide,rough:0.8}),0,0,0);const bar=K.add(p,new K.G.CylinderGeometry(0.03,0.03,0.96,8),K.mat(t>=2?'#e1b23d':'#8a5a2c',{metal:t>=2}),0,0.66,0.02);bar.rotation.z=Math.PI/2;
-  for(const x of [-0.3,0.3])K.gem(p,t>=3?'#8fe3ff':'#e8344e',0.05,x,0.66,0.06);};}
+function capeModel(t){return (p,K)=>{const G=K.G,col=CAPE_COL[t]||CAPE_COL[0],L=c=>{const m=c;m.color.convertSRGBToLinear();return m;};
+  // a heavy cloak hanging in folds, with a fur collar and gem clasps, seen from behind and a little to the side
+  const g=new G.CylinderGeometry(0.3,0.58,1.35,48,24,true,-Math.PI*0.62,Math.PI*1.24),P=g.attributes.position;
+  for(let i=0;i<P.count;i++){const x=P.getX(i),y=P.getY(i),z=P.getZ(i),v=(0.675-y)/1.35,a=Math.atan2(x,z),r=Math.hypot(x,z)+Math.sin(a*9+v*1.5)*0.035*(0.2+v)+Math.sin(a*4)*0.02*v;P.setXYZ(i,Math.sin(a)*r,y-Math.cos(a*2)*0.03*v,Math.cos(a)*r);}g.computeVertexNormals();
+  let sd=5;const rn=()=>{sd=(sd*9301+49297)%233280;return sd/233280;};
+  const tx=K.tex(128,256,(q,w,h)=>{q.fillStyle=col;q.fillRect(0,0,w,h);for(let k=0;k<160;k++){q.globalAlpha=0.08+rn()*0.1;q.fillStyle=rn()<0.5?'#000':'#fff';q.fillRect(rn()*w,rn()*h,1+rn()*3,2+rn()*8);}q.globalAlpha=1;
+    const gr=q.createLinearGradient(0,0,0,h);gr.addColorStop(0,'rgba(0,0,0,.25)');gr.addColorStop(0.3,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.2)');q.fillStyle=gr;q.fillRect(0,0,w,h);
+    const trim=t>=2?'#d9a63a':'#b8a070';q.fillStyle=trim;q.fillRect(0,h-14,w,10);if(t>=2){q.strokeStyle=trim;q.lineWidth=2;for(let x=0;x<w;x+=12){q.beginPath();q.arc(x+6,h-22,4,0,7);q.stroke();}}
+    if(t>=3){q.fillStyle=t===4?'#ffd35c':'#cfe8ff';for(let k=0;k<30;k++){q.globalAlpha=0.7;q.beginPath();q.arc(rn()*w,rn()*(h-40),1.2,0,7);q.fill();}q.globalAlpha=1;}});
+  const cm=L(K.mat('#ffffff',{map:tx,rough:0.72}));K.add(p,g,cm,0,0,0).scale.z=0.62;K.add(p,g,L(K.mat(t>=2?'#5a0e18':'#3a2a1e',{rough:0.45,side:THREE.BackSide})),0,0,0).scale.z=0.62;const hd=K.add(p,new G.SphereGeometry(0.24,24,16,0,Math.PI*2,0,Math.PI*0.62),cm,0,0.58,0.1);hd.rotation.x=-1.25;hd.scale.set(1,1.15,0.9);
+  const fur=K.tex(64,64,(q,w,h)=>{q.fillStyle='#6a5240';q.fillRect(0,0,w,h);for(let k=0;k<400;k++){q.strokeStyle=rn()<0.5?'#3a2a1e':'#a08668';q.globalAlpha=0.6;q.beginPath();const x=rn()*w,y=rn()*h;q.moveTo(x,y);q.lineTo(x+rn()*4-2,y+3+rn()*5);q.stroke();}});
+  const collar=K.add(p,new G.TorusGeometry(0.31,0.085,10,40,Math.PI*1.3),L(K.mat('#ffffff',{map:fur,rough:0.95})),0,0.66,0);collar.rotation.set(Math.PI/2,0,-Math.PI*0.15);collar.scale.set(1,0.62,0.7);
+  const met=L(K.mat(t>=2?'#e1b23d':'#8a8a92',{metal:true,rough:0.3}));for(const s of [-1,1]){const cx=s*0.27,cz=-0.1;K.add(p,new G.CylinderGeometry(0.06,0.06,0.025,16),met,cx,0.62,cz).rotation.x=Math.PI/2;K.gem(p,t>=3?'#8fe3ff':'#e8344e',0.04,cx,0.62,cz-0.02);}
+  K.add(p,new G.TorusGeometry(0.27,0.008,5,24,Math.PI),met,0,0.6,-0.1).rotation.z=Math.PI;};}
 function jewelModel(id,t){const mc=METAL_COL[Math.max(0,Math.min(3,t|0))],gc=RING_GEM[Math.max(0,Math.min(3,t|0))];
   // a real cut stone (from the gem file) in a metal setting; falls back to the simple shape until the cuts load
   const cut=(p,K,name,size,x,y,z,rx)=>{const g=GEMCUT.st==='ready'&&GEMCUT.g[name];if(!g){loadGemCuts();return K.gem(p,gc,size*0.45,x,y,z);}
@@ -4767,7 +4839,7 @@ function goodsModel(i){const M=(c,o)=>o,G=THREE;
   return B[i]?{b:B[i],rx:0.2,ry:0.3}:null;}
 function stuIcon(it){if(!portraitInit())return null;
   if(it.type==='gear'&&it.kind==='off'){const m=offModel(H.cls,it.tier);return m?studio(`off${H.cls}${it.tier}${m.shield&&WPN_ST==='ready'?'w':''}`,m.b,m):null;}
-  if(it.type==='gear'&&it.kind==='cape')return studio('cape'+it.tier,capeModel(it.tier),{rx:-0.1,ry:0.5});
+  if(it.type==='gear'&&it.kind==='cape')return studio('cape2'+it.tier,capeModel(it.tier),{rx:0.15,ry:0.55});
   if(it.type==='jewel'){const m=jewelModel(it.id,it.tier);return studio('j'+it.id+it.tier+(GEMCUT.st==='ready'?'g':''),m.b,m);}
   if(it.type==='crystal'){const m=crystalModel(it.t);return studio('c'+it.t+(GEMCUT.st==='ready'?'g':''),m.b,m);}
   if(it.type==='goods'){const m=goodsModel(it.i);return m?studio('o'+it.i+(WPN_ST==='ready'?'w':''),m.b,m):null;}
