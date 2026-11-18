@@ -5011,16 +5011,20 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'demon',tall:2.7},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skelwl',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skelwl',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
   REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
+// a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)
+function bossWpn(R,name,len,grip){if(WPN_ST!=='ready'){loadWpn();setTimeout(()=>bossWpn(R,name,len,grip),800);return;}const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/RightHand(_\d+)?$/.test(o.name))b=o;});if(!b)return;
+  const w=wpnMesh('barbarian',2,R.mats||(R.mats=[]),name,len).children[0],bb=w.geometry.boundingBox,sc=w.scale.x;w.position.z=-(bb.min.z+(bb.max.z-bb.min.z)*grip)*sc;
+  const ws=new G.Vector3();b.getWorldScale(ws);const c=new G.Group();c.applyMatrix4(HAND_R);c.scale.multiplyScalar(1/ws.x);c.add(w);b.add(c);R.bossW=c;}
 function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(REAL.gltf.scene):REAL.gltf.scene,root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(REAL.s0*info.tall/REAL.h0);
   const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);o.material.skinning=!!o.isSkinnedMesh;o.userData.tr0=o.material.transparent;
     if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.3;}}});
   const R={root,model,mats,info,yaw:Math.atan2(e.fx,e.fz),cur:null,lock:0,clock:new G.Clock(),mixer:new G.AnimationMixer(model),act:{}};for(const cl of (info.quad?REAL.gltf.animations:clipsFor(REAL)))R.act[cl.name]=R.mixer.clipAction(cl);
-  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);
+  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);
   if(info.crossbow){let hb=null,hd=null;model.traverse(o=>{if(o.isBone&&!hb&&/RightHand$/.test(o.name))hb=o;if(o.isBone&&!hd&&/Head$/.test(o.name))hd=o;});model.updateMatrixWorld(true);
     const ws=new G.Vector3();const mm=(c,m)=>new G.MeshStandardMaterial({color:c,roughness:0.6,metalness:m||0});
     if(hb){hb.getWorldScale(ws);const cb=new G.Group();cb.applyMatrix4(HAND_R);cb.scale.multiplyScalar(1/ws.x);const inner=new G.Group();inner.rotation.x=-0.35;cb.add(inner);
@@ -5080,6 +5084,8 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   else if(st==='charge'){R.play('run',false,1.4);R.lock=now+200;}
   else if((st==='wind'||st==='strike')&&e.def.ranged){const rc=e.def.archer?'aim':'magic';if(R.cur!==rc)R.play(rc,false,0.6);R.lock=now+300;}
   else if(st==='wind'||st==='chargeWind'){const n=e.def.boss||Math.random()<0.5?'chop':'slash';if(R.cur!=='chop'&&R.cur!=='slash')once(n,(e.def.wind+16)/60);}
+  // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira)
+  else if(e.def.boss&&R.act.capo&&partyAllDown()){R.play('capo');}
   else if(now>R.lock){if(e.moving)R.play('run',false,0.75);else R.play('idle');}
   for(const m of R.mats)if(m.emissive)m.emissiveIntensity=e.flash>0?1.2:0.3;
   R.mixer.update(dt);if(R.rider)poseRider(R,e,dt);}
@@ -5130,6 +5136,7 @@ function netHurt(id,d,dx,dz,kd){netSend(id,{t:'hurt',d:Math.round(d),dx:+(+dx).t
 function netHit(e,d,dx,dz,kd){if(e.hp<=0)NET.gdead[e.nid]=1;if(NET.hostConn&&NET.hostConn.open)NET.hostConn.send({t:'hit',n:e.nid,d,dx:+(+dx||0).toFixed(2),dz:+(+dz||0).toFixed(2),kd:!!kd});}
 function netHostHit(m){if(S.level!=='dungeon')return;const e=S.enemies.find(x=>x.nid===m.n);if(!e||e.state==='dead')return;const d=Math.max(1,Math.min(99999,Math.round(+m.d||0)));
   e.hp-=d;e.flash=7;floatText(e.x,1.4*e.scale+0.4,e.z,String(d),'#9fe3ff',15);if(e.hp<=0)killEnemy(e,+m.dx||0,+m.dz||0);}
+function partyAllDown(){if(!H||H.state!=='down')return false;if(!NET.on)return true;for(const id in NET.states){if(id===NET.myId)continue;const q=NET.states[id].s;if(q&&q.lvl==='dungeon'&&q.floor===S.floor&&q.state!=='down')return false;}return true;}
 function netCoopPeers(){const o=[];if(!NET.on||!NET.host||S.level!=='dungeon')return o;for(const id in NET.states){if(id===NET.myId)continue;const s=NET.states[id].s;if(s&&s.lvl==='dungeon'&&s.floor===S.floor)o.push([id,s]);}return o;}
 function netProxy(id,s){const o=NET.px[id]||(NET.px[id]={proxy:id,inv:0,dash:0,hp:1,maxHp:1,mp:0,rage:0});return Object.assign(o,{x:s.x,y:s.y,z:s.z,fx:s.fx,fz:s.fz,cls:s.cls,state:s.state==='down'?'down':(s.state||'ok')});}
 function netTarget(e){let best=null,bd=H&&H.state!=='down'?Math.hypot(H.x-e.x,H.z-e.z):1e9;
