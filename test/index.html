@@ -5023,7 +5023,10 @@ function poseReal(R,h,blink){
 }
 const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
-  REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
+  REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});
+  // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
+  const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)has.add(o.name);});
+  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
 // a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)
