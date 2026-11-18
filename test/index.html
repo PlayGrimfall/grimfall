@@ -1229,6 +1229,25 @@ function fenceKit(){
 }
 
 // ================= crystal fountain =================
+// ---- Rafi's spice stall, south of the fountain: an awning over a low stand of spice baskets ----
+const SPICE_AT={x:-2,z:10};
+function buildSpiceStall(T){const x=SPICE_AT.x,z=SPICE_AT.z,st=new THREE.Group();st.position.set(x,0,z);
+  const wood=lam({color:0x7a5230}),dark=lam({color:0x4a3220});
+  for(const [a,b] of [[-1.7,-1.4],[1.7,-1.4],[-1.7,1.5],[1.7,1.5]])st.add(mesh(new THREE.CylinderGeometry(0.08,0.09,2.7,8),wood,a,1.35,b));
+  st.add(mesh(new THREE.BoxGeometry(3.3,0.32,2.6),dark,0,0.16,0));
+  const aw=canvasTex(128,64,(g,w,h)=>{for(let k=0;k<8;k++){g.fillStyle=k%2?'#f2e7cf':'#c8641e';g.fillRect(k*16,0,16,h);}g.fillStyle='rgba(0,0,0,.15)';g.fillRect(0,h-6,w,6);});
+  const awn=mesh(new THREE.PlaneGeometry(3.8,3.3),new THREE.MeshLambertMaterial({map:aw,side:THREE.DoubleSide}),0,2.75,0.05);awn.rotation.x=-Math.PI/2+0.22;st.add(awn);
+  const sign=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#5a3a20';g.fillRect(0,0,w,h);g.fillStyle='#f2d38a';g.font='bold 30px Georgia';g.textAlign='center';g.fillText("Rafi's Spices",w/2,42);});
+  st.add(mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6));
+  T.add(st);TOWN_COL.push([x-1.8,x+1.8,z-1.5,z+1.6]);occluder(st,x-1.9,x+1.9,z-1.6,z+1.7,true,'town');
+  if(THREE.GLTFLoader)loadModelData('spice').then(gl=>{const m=gl.scene;m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()),k=Math.min(3.0/sz.x,2.3/sz.z);
+    m.scale.setScalar(k);m.position.set(-c.x*k,0.32-b.min.y*k,-c.z*k);m.rotation.y=Math.PI;st.add(m);}).catch(()=>{});}
+// spices from Rafi make the next meal you eat last a few seconds longer (the best one you carry is used)
+const SPICES={salt:{n:'Sea Salt',s:2,p:20,c:'#efe9dc'},pepper:{n:'Black Pepper',s:3,p:40,c:'#3a3230'},cumin:{n:'Desert Cumin',s:4,p:70,c:'#8a5a2a'},saffron:{n:'Saffron',s:6,p:150,c:'#e86a1a'}},SPICE_MAX=9;
+function spiceUse(){INV.spices=INV.spices||{};let best=null;for(const k in SPICES)if(INV.spices[k]>0&&(!best||SPICES[k].s>SPICES[best].s))best=k;if(!best)return null;INV.spices[best]--;return SPICES[best];}
+function spiceCard(G0){INV.spices=INV.spices||{};return `<p class="sub l">Spices: each one makes the next meal you eat last longer. Your best spice is used first.</p>`
+  +Object.entries(SPICES).map(([k,S0])=>buyBtn('spice-'+k,`${S0.n} (you have ${INV.spices[k]||0})`,`+${S0.s} seconds on your next meal`,upP(S0.p),G0>=upP(S0.p)&&(INV.spices[k]||0)<SPICE_MAX)).join('')
+  +`<p class="note l">"Gil's deep-sea dishes are good. With a pinch of my saffron, they are legendary!"</p>`;}
 function buildFountain(T){
   const fo=new THREE.Group();fo.position.set(0,0,1);
   const brick=(rx,ry)=>{const d=photoTex('cobble_d',rx,ry),n=photoTex('cobble_n',rx,ry,false);return d?new THREE.MeshStandardMaterial({map:d,normalMap:n,roughness:0.92,color:0xe0dad0}):null;}; // the clean grey brick
@@ -1511,6 +1530,7 @@ function buildTown(){
     const awn=mesh(new THREE.PlaneGeometry(3.2,1.7),new THREE.MeshLambertMaterial({map:aw,side:THREE.DoubleSide}),0,2.45,-0.1);awn.rotation.x=-1.1;st.add(awn);
     for(let k=0;k<3;k++)st.add(mesh(new THREE.SphereGeometry(0.18,8,6),lam({color:[0xd94a3a,0xe8b03a,0x6ab04a][k]}),-0.7+k*0.7,1.05,0));
     T.add(st);occluder(st,x-1.6,x+1.6,10,11.6,true,'town');});
+  buildSpiceStall(T);
   // fountain: the Crystal Fountain
   fountainFx=buildFountain(T);
   // lamps
@@ -1739,6 +1759,7 @@ function makeHarborFolk(){
   const gil={x:-53.1,z:4.7,y:0.3,tx:-53.1,tz:4.7,vx:-1,pause:1e9,anim:0,col:'#3a6a8a',hat:1,skin:'#d9a07a',face:-1,fx:0,fz:-1,rm:'mage',tint:'#bcd0e0',tall:1.74,keeper:true,gil:true,spr:sp()};S.npcs.push(gil);DKFX.gil=gil;
   const maren={x:-37.6,z:-6.6,tx:-37.6,tz:-6.6,vx:-1,pause:1e9,anim:0,col:'#5a6a7a',hat:0,skin:'#d9a07a',face:1,fx:0.3,fz:1,rm:'girl',tint:'#c8bca8',tall:1.62,keeper:true,maren:true,spr:sp()};S.npcs.push(maren);DKFX.maren=maren;
   const msgr={x:9.9,z:-4.4,tx:9.9,tz:-4.4,hx:9.9,hz:-4.4,vx:-1,pause:1e9,anim:0,col:'#8a6a3a',hat:2,skin:'#a8714e',face:1,fx:0,fz:-1,rm:'guard',tint:'#d8c090',tall:1.76,keeper:true,messenger:true,spr:sp()};S.npcs.push(msgr);DKFX.msgr=msgr;
+  const spicer={x:SPICE_AT.x,z:SPICE_AT.z+2.3,tx:SPICE_AT.x,tz:SPICE_AT.z+2.3,vx:-1,pause:1e9,anim:0,col:'#c8641e',hat:1,skin:'#a8714e',face:1,fx:0,fz:-1,rm:'mage',tint:'#e0a060',tall:1.76,keeper:true,spicer:true,spr:sp()};S.npcs.push(spicer);DKFX.spicer=spicer;
   const R=[[[-31,-6.2],[-36.6,2.2],[-41.5,2.2],[-42.6,3.6],[-42.6,12.3],[-53.5,12.3]],
            [[-25,-6.2],[-36.6,1.9],[-41.5,1.9],[-42.4,0.6],[-42.4,-8.3],[-53.5,-8.3]],
            [[-22,6.4],[-36.6,2.5],[-56.5,2.5]],
@@ -3417,7 +3438,7 @@ function gilGift(){INV.ingr=INV.ingr||{};const ks=DEEP.filter(x=>x.id!=='bobbit'
 const buffOn=id=>!!(H&&H.buffs&&H.buffs[id]&&H.buffs[id].t>0);
 function eatMeal(id){INV.meals=INV.meals||{};if(!id||!(INV.meals[id]>0)){toast('No meals packed. Buy them from Gil at the docks, or cook them at your fireplace.');return;}if(H.state==='down')return;
   const M=MEAL_OF[id];H.buffs=H.buffs||{};const b=H.buffs[id],st=b&&b.t>0?b.st+1:1;if(st>3){toast(M.n+' is already stacked 3 times. Wait for it to wear off.');return;}
-  INV.meals[id]--;H.buffs[id]={t:M.dur[st-1]*60,st};save();sfx('potion');
+  INV.meals[id]--;H.buffs[id]={t:M.dur[st-1]*60,st};{const sp=spiceUse();if(sp){H.buffs[id].t+=sp.s*60;floatText(H.x,3.0,H.z,`${sp.n}: +${sp.s} seconds`,sp.c==='#3a3230'?'#c8c0b0':sp.c,15);}}save();sfx('potion');
   floatText(H.x,2.5,H.z,(M.v==='vial'?'Weapon poisoned!':M.n)+(st>1?' ×'+st:''),M.v==='vial'?'#8aff6a':'#ffd38a',18);for(let i=0;i<12;i++)addPart({x:H.x+rnd(-.4,.4),y:rnd(.3,1.8),z:H.z+rnd(-.4,.4),vy:rnd(.01,.04),g:0,life:26,size:.07,color:M.v==='vial'?'#8aff6a':'#ffd38a',kind:'star'});
   if(!INV.meals[id])nextMeal(true);}
 function nextMeal(quiet){INV.meals=INV.meals||{};const have=MEALS.filter(m=>INV.meals[m.id]>0).map(m=>m.id);if(!have.length){INV.mealSel=null;if(!quiet)toast('No meals packed.');return;}
@@ -3804,6 +3825,7 @@ function interactables(){
     for(const id of SHOP_IDS){const B=SHOP_BOARDS[id];if(B&&B.visible&&walkable(id))L.push({x:B.userData.x,z:B.userData.z,r:2.4,y:3.1,label:KEEPER_OF[id].shop+': boarded up',act:()=>shutMsg(id)});}
     if(DKFX.msgr&&won()&&!H.onShip)L.push({x:DKFX.msgr.x,z:DKFX.msgr.z,r:2.4,y:2.8,label:INV.letter?'Read the letter from Kemet again':'Take the letter',act:()=>showLetter()});
     if(DKFX.king&&won()&&!H.onShip&&FW.party<=0)L.push({x:6.6,z:-3.4,r:2.6,y:3.6,label:'Speak with the King and Queen',act:royalTalk});
+    if(DKFX.spicer)L.push({x:SPICE_AT.x,z:SPICE_AT.z-2.3,r:2.6,y:3.2,label:'Shop with Rafi the spice merchant',act:()=>renderShop3('spice')});
     if(DKFX.maren)L.push({x:DKFX.maren.x,z:DKFX.maren.z+0.9,r:2.3,y:2.8,label:'Shop with Old Maren',act:()=>{gemSel=null;renderShop3('maren');}});
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
     if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push(freed().gil?{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()}:{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:"Gil's fish boat: empty",act:()=>toast("Gil's fish boat is empty. Gil went into the castle to fight the Lich Queen and never came back.")});
@@ -3908,7 +3930,7 @@ function ingrLine(){const I=INV.ingr||{},ks=FISH.filter(f=>I[f.id]);return ks.le
 function goldLine(){return `<div class="purses"><span>Your gold: <span class="coin"></span><b>${INV.gold}</b></span><span>Bag: <b>${INV.bag.length}/${BAG_MAX}</b></span></div>`;}
 function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickable?`<button class="sock full" type="button" style="--gc:${GEMS[s.t].c}" data-act="unsock-${kind}-${i}" title="Take out the ${GEM_LV[s.lv]} ${GEMS[s.t].n}">${gemSpan(s.t)}</button>`:`<span class="gem" style="--gc:${GEMS[s.t].c}" title="${GEM_LV[s.lv]} ${GEMS[s.t].n}"></span>`)
   :(clickable?`<button class="sock" type="button" data-act="sock-${kind}-${i}" title="Empty setting">${gemSel?'+':''}</button>`:'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>')).join(' ');}
-const SHOP_T={maren:['Old Maren','Basic potions for the road, and she buys what you find'],smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
+const SHOP_T={spice:["Rafi's Spices",'A pinch of spice makes your next meal last longer'],maren:['Old Maren','Basic potions for the road, and she buys what you find'],smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
   gems:['Crystals & Jewels','Real crystals with real powers. Set them in your weapon, armor and jewelry, or combine three into a better one'],magic:['Runes & Magic','Runes power up your specials, elixirs make you stronger for good, and potions fill your belt']};
 const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25};
 // every shop price is 25% higher than the base numbers above
@@ -3948,6 +3970,7 @@ function renderShop3(id){
   if(id==='maren'){card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
       +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
       +(SHOP_IDS.some(i=>!shopOpen(i))?`<p class="note l">"The Lich Queen's dead dragged our shopkeepers into the castle. Free them and their shops will open again."</p>`:'');}
+  else if(id==='spice'){card=spiceCard(G0);}
   else if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set}))}</b> ${socketsHtml(w,'weapon',false)}</div>`
       +buyBtn('wtier',w.tier<5?`Forge ${WEAPON_TIERS[w.tier+1]} ${HEROES[H.cls].weapon}`:'Best metal reached','+25% damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
@@ -4002,6 +4025,7 @@ function renderShop3(id){
     if(k==='xtier'&&H[x]&&H[x].tier<4&&pay(COST.xtier(H[x].tier)))H[x].tier++;
     if(k==='xgrade'&&H[x]&&H[x].grade<4&&pay(COST.xgrade(H[x].grade)))setGrade(H[x],H[x].grade+1);
     if(k==='pot'&&INV.belt[x]<BELT_MAX&&pay(COST.potion))INV.belt[x]++;
+  if(k==='spice'&&SPICES[x]&&(INV.spices=INV.spices||{},(INV.spices[x]||0)<SPICE_MAX)&&pay(upP(SPICES[x].p))){INV.spices[x]=(INV.spices[x]||0)+1;sfx('coin');}
     if(k==='scr'&&SCR_TIER[+x]&&pay(SCR_PRICE[+x])){const id=SCR_IDS[ri(0,SCR_IDS.length-1)];scrGive(id,+x);toast(`You got a ${scrName(id,+x)}: ${scrDesc(id,+x)}.`);}
     if(k==='rune'&&H.rune!==x&&pay(COST.rune))H.rune=x;
     if(k==='vit'&&pay(upP(60+25*H.vit))){H.vit++;recalc(H);H.hp=H.maxHp;}
