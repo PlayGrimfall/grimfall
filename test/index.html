@@ -80,8 +80,8 @@ button:focus-visible{outline:3px solid var(--torch);outline-offset:2px}
 
 /* ---- phone layout ---- */
 body.phone{padding:0;overflow:hidden;background:#000}
-body.phone #wrap{position:fixed;inset:0;display:grid;place-items:center;gap:0}
-body.phone #stage{width:min(100vw,calc(100dvh*16/9));width:min(100vw,calc(100vh*16/9));height:auto;border-radius:0;box-shadow:none}
+body.phone #wrap{position:fixed;inset:0;height:100vh;height:100dvh;display:grid;place-items:center;gap:0}
+body.phone #stage{width:min(100vw,calc(100vh*16/9));width:min(100vw,calc(100dvh*16/9));height:auto;border-radius:0;box-shadow:none}
 body.phone .strip{display:none}
 body.phone #touch{inset:0;align-items:stretch;padding:0}
 body.phone #stick{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));width:130px;height:130px;background:rgba(255,255,255,.07)}
@@ -89,7 +89,14 @@ body.phone #nub{width:54px;height:54px;margin:-27px 0 0 -27px}
 body.phone .tb{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));grid-template-columns:repeat(2,56px);gap:10px}
 body.phone .tb button{width:56px;height:56px;display:grid;place-items:center;padding:0;color:#f2e7cf}
 body.phone .tb button[data-b="attack"]{width:68px;height:68px;margin:-6px;background:rgba(140,40,30,.6)}
-body.phone .tb button[data-b="sp1"],body.phone .tb button[data-b="sp2"]{display:none}
+body.phone .tb{display:block;width:176px;height:168px}
+body.phone .tb button{position:absolute}
+body.phone .tb button[data-b="attack"]{right:0;bottom:0;margin:0;width:74px;height:74px}
+body.phone .tb button[data-b="jump"]{right:86px;bottom:0;width:50px;height:50px}
+body.phone .tb button[data-b="sp1"]{right:74px;bottom:58px;width:56px;height:56px;background:rgba(26,34,92,.8)}
+body.phone .tb button[data-b="sp2"]{right:6px;bottom:88px;width:60px;height:60px;background:rgba(80,50,10,.8);border-color:rgba(255,210,120,.6)}
+body.phone .tb button.low{opacity:.4}
+body.phone .tb button[data-b="pow"]{display:none!important}
 body.phone .tb{position:absolute}body.phone .tb button[data-b="pow"]{position:absolute;right:4px;bottom:86px;width:62px;height:62px;background:rgba(26,34,92,.85);border-color:#8fc0ff;box-shadow:0 0 16px rgba(120,170,255,.8);animation:powPulse 1.1s ease-in-out infinite}
 body.phone .tb button[data-b="pow"].big{background:rgba(110,70,10,.85);border-color:#ffd27a;box-shadow:0 0 22px rgba(255,200,90,.95)}
 @keyframes powPulse{50%{transform:scale(1.08)}}@media (prefers-reduced-motion:reduce){body.phone .tb button[data-b="pow"]{animation:none}}
@@ -2929,7 +2936,7 @@ function iconURL(it){
   else if(it.type==='empty'){g.globalAlpha=0.25;g.font=`800 26px ${BF}`;g.fillStyle='#fff';g.textAlign='center';g.fillText(it.label||'',0,9);}
   return ICON[key]=c.toDataURL();
 }
-function drawBelt(g){
+function drawBelt(g){spLow();
   const x=12,y=HH-40;drawBuffs(g,x,y-46);const ml=INV.meals||{};if(INV.mealSel&&!(ml[INV.mealSel]>0))INV.mealSel=null;if(!INV.mealSel&&MEALS.some(m=>ml[m.id]>0))nextMeal(true);
   if(INV.mealSel){const mx=x+160,pic=mealPic(INV.mealSel);g.fillStyle='rgba(16,12,28,.8)';rrp(g,mx,y,96,30,8);g.fill();g.strokeStyle='rgba(255,255,255,.15)';g.lineWidth=1;g.stroke();g.font=`800 12px ${BF}`;g.textAlign='left';g.fillStyle='rgba(255,255,255,.6)';g.fillText('3',mx+8,y+19);if(pic)g.drawImage(pic,mx+18,y+1,28,28);g.fillStyle='#f2e7cf';g.font=`800 14px ${BF}`;g.fillText('×'+ml[INV.mealSel],mx+48,y+20);g.font=`800 10px ${BF}`;g.fillStyle='rgba(255,255,255,.45)';g.fillText('4 ⇄',mx+74,y+19);}
   g.fillStyle='rgba(16,12,28,.8)';rrp(g,x,y,152,30,8);g.fill();g.strokeStyle='rgba(255,255,255,.15)';g.lineWidth=1;g.stroke();
@@ -5370,11 +5377,12 @@ let touchCls=null;function touchIcons(){if(!H||touchCls===H.cls)return;touchCls=
 // phone specials: slay 3 foes and your special is ready, keep going to 8 for the big one; tap the glowing button to use it (no mana needed)
 const CHG1=3,CHG2=8;
 function powUI(){const b=document.querySelector('#touch [data-b="pow"]');if(!b||!H)return;const c=S.chg||0,n=c>=CHG2?2:c>=CHG1?1:0;b.hidden=!n;if(!n)return;const f=ICO_FOR[H.cls]||ICO_FOR.barbarian,k=f[n]+(n===2?'2':'1');if(b.dataset.k!==k){b.dataset.k=k;b.innerHTML=svgI(f[n]);b.setAttribute('aria-label',HEROES[H.cls]['s'+n].name);}b.classList.toggle('big',n===2);}
-function powCharge(){if(!isTouch||!H)return;const was=S.chg||0;S.chg=Math.min(CHG2,was+1);if(was<CHG1&&S.chg>=CHG1)floatText(H.x,2.6,H.z,HEROES[H.cls].s1.name+' ready!','#8fc0ff',18);if(was<CHG2&&S.chg>=CHG2)floatText(H.x,2.6,H.z,HEROES[H.cls].s2.name+' ready!','#ffd27a',20);powUI();}
+function powCharge(){return;if(!isTouch||!H)return;const was=S.chg||0;S.chg=Math.min(CHG2,was+1);if(was<CHG1&&S.chg>=CHG1)floatText(H.x,2.6,H.z,HEROES[H.cls].s1.name+' ready!','#8fc0ff',18);if(was<CHG2&&S.chg>=CHG2)floatText(H.x,2.6,H.z,HEROES[H.cls].s2.name+' ready!','#ffd27a',20);powUI();}
 function powFire(){if(S.state!=='play'||!H)return;const c=S.chg||0,n=c>=CHG2?2:c>=CHG1?1:0;if(!n)return;H.freeSp=1;H.spOK=0;special(n);H.freeSp=0;if(H.spOK){S.chg=0;powUI();}}
 // the first tap on a phone fills the screen (hides the browser bar where the phone allows it)
 function phoneFull(){if(!isTouch||document.fullscreenElement)return;try{const el=document.documentElement,p=el.requestFullscreen?el.requestFullscreen({navigationUI:'hide'}):null;if(p&&p.catch)p.catch(()=>{});if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
 addEventListener('pointerdown',()=>{if(isTouch&&H&&S.state!=='start')phoneFull();},{passive:true});
+function spLow(){if(!isTouch||!H)return;for(const n of [1,2]){const b=document.querySelector('#touch [data-b="sp'+n+'"]');if(b){const low=H.mp<spCost(n);if(b.classList.contains('low')!==low)b.classList.toggle('low',low);}}}
 function updateTouch(){touchIcons();powUI();document.getElementById('touch').hidden=!(isTouch&&S.state==='play');document.body.classList.toggle('playing',!!H&&S.state!=='start');}
 (function(){
   const stick=document.getElementById('stick'),nub=document.getElementById('nub');let id=null,ox=0,oy=0;
