@@ -148,11 +148,26 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 .slotb img{width:40px;height:40px;flex:none}
 .slotb small{display:block;color:var(--dim);font-weight:500}
 .slotb.sel{border-color:var(--gold)}
+.doll{display:grid;grid-template-columns:66px minmax(0,1fr) 66px;gap:10px;align-items:center;max-width:440px;margin:0 auto}
+.wslot img,.cell img{-webkit-user-drag:none;user-select:none}
+.dcol{display:grid;gap:8px;justify-items:center}
+.jrow{display:flex;gap:8px;justify-content:center;margin:6px 0 10px}
+.wslot{width:62px;height:62px;border-radius:10px;border:2px solid var(--line);background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.06),rgba(0,0,0,.45));position:relative;padding:0;cursor:pointer;display:grid;place-items:center;touch-action:none}
+.wslot img{width:80%;height:80%;margin-top:-6px}
+.wslot i{position:absolute;bottom:2px;left:0;right:0;font:700 9px var(--body);color:var(--dim);font-style:normal;text-align:center;white-space:nowrap;overflow:hidden}
+.wslot.hot{border-color:#7dff9a!important;box-shadow:0 0 12px #7dff9a}
+.hotz{outline:2px dashed #7dff9a;outline-offset:4px}
+@media (max-height:520px){.wslot{width:48px;height:48px}.wslot i{font-size:8px}.doll{grid-template-columns:52px minmax(0,1fr) 52px;max-width:360px}.dcol{gap:5px}.jrow{gap:5px}}
+.cell{touch-action:none}
 .bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
 .cell{aspect-ratio:1;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);display:grid;place-items:center;padding:0;cursor:pointer;position:relative;min-width:0}
 .cell img{width:82%;height:82%}
 .cell.empty{cursor:default;opacity:.5}
-.cell.up::after{content:'▲';position:absolute;right:4px;top:2px;color:var(--good);font-size:11px}
+.cell.up{border-color:#4fd07a;box-shadow:inset 0 0 14px rgba(79,208,122,.45)}
+.cell.down{border-color:#d9534a;box-shadow:inset 0 0 14px rgba(217,83,74,.45)}
+.glow{animation:bagglow 1.2s ease-in-out infinite}
+@keyframes bagglow{0%,100%{box-shadow:0 0 0 rgba(125,255,154,0)}50%{box-shadow:0 0 14px 3px rgba(125,255,154,.85)}}
+@media (prefers-reduced-motion:reduce){.glow{animation:none;box-shadow:0 0 10px 2px rgba(125,255,154,.85)}}
 .cell.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,211,92,.4)}
 .cell .q{position:absolute;right:4px;bottom:2px;font:800 11px var(--body);color:var(--parch)}
 .detail{display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -2882,8 +2897,9 @@ function collect(p){
   else if(p.kind==='scroll'){scrGive(p.item.id,p.item.tier);sfx('chest');floatText(H.x,2.4,H.z,scrName(p.item.id,p.item.tier)+'!',SCR_COL[p.item.tier],18);sparks(H.x,1.2,H.z,8,SCR_COL[p.item.tier]);
     if(!INV.scrTip){INV.scrTip=1;say(H,isTouch?'A magic scroll! I can read it from my bag.':'A magic scroll! Press 5 to read it.',4000);}}
   else{if(!addToBag(p.item)){if(bagFullT<=0){floatText(H.x,2.4,H.z,'Bag full!','#ff9a8a',18);bagFullT=90;}return;}
-    sfx('chest');const up=isUpgrade(p.item);floatText(H.x,2.4,H.z,itemLabel(p.item)+(up?'  ▲ upgrade':''),p.item.type==='gear'?GRADES[p.item.grade].c:'#f2e7cf',p.item.type==='gear'?18:15);
-    if(up){const bi=INV.bag.indexOf(p.item);if(bi>=0){equipFromBag(bi);floatText(H.x,2.9,H.z,'Equipped!','#7dffa0',16);if(!S.upTip){S.upTip=1;toast('Better gear is equipped automatically. Your old piece goes into your bag.');}}}}
+    sfx('chest');const up=isUpgrade(p.item);floatText(H.x,2.4,H.z,itemLabel(p.item)+(up?' - better!':''),p.item.type==='gear'?GRADES[p.item.grade].c:'#f2e7cf',p.item.type==='gear'?18:15);
+    // no auto-equip: the hero points it out and the Bag button glows until you look
+    if(up){bagGlow(true);const nm=SLOT_N[p.item.kind].toLowerCase(),L=[`Ooh, a better ${nm}! I should check my bag.`,`That ${nm} looks better than mine!`,`A new ${nm}! Let me try it on.`];say(H,L[ri(0,L.length-1)],2800);}}
   p.dead=true;scene.remove(p.spr);p.spr.material.dispose();
 }
 function drinkPotion(k,auto){
@@ -2944,6 +2960,7 @@ function itemValue(it){return it.type==='gear'?Math.round(22*(1+it.tier)*(1+it.g
 function affScore(it){let v=0;for(const a of it.aff||[])v+=a.v*({def:0.5,life:0.2,mana:0.15,crit:2}[a.s]||(a.s===PRIM[H.cls]?2:a.s==='vit'?1:0.6));return v;}
 function gearScore(it){if(!it)return -1;const base=it.kind==='weapon'?(1+0.25*it.tier)*(1+0.08*it.grade)*40:itemRating(it.kind,it,H.cls)+(it.kind==='off'&&H.cls!=='barbarian'?2*(2+it.tier*3+it.grade):0);return base+affScore(it)+(it.sockets||[]).length*0.5;}
 const worn=k=>H[k]?Object.assign({kind:k},H[k]):null;
+function isDowngrade(it){return it.type==='gear'&&!!worn(it.kind)&&gearScore(it)<gearScore(worn(it.kind))-1e-6;}
 function isUpgrade(it){return it.type==='gear'&&gearScore(it)>gearScore(worn(it.kind))+1e-6;}
 function pushStack(arr,it,max){if(it.type==='goods'){const s0=arr.find(o=>o.type==='goods'&&o.n===it.n&&(o.q||1)+(it.q||1)<=STACK);if(s0){s0.q=(s0.q||1)+(it.q||1);return true;}}if(arr.length>=max)return false;arr.push(it);return true;}
 function addToBag(it){return pushStack(INV.bag,it,BAG_MAX);}
@@ -4008,16 +4025,41 @@ let invSel=null,dropArm=false;
 function armorPct(){return Math.round(100*drPct());}
 function heroPortrait(){const c=document.createElement('canvas');c.width=200;c.height=210;const g=c.getContext('2d');g.fillStyle='rgba(0,0,0,.3)';ell(g,100,196,50,10);g.fill();g.save();g.translate(100,196);g.scale(1.4,1.4);
   drawHero(g,heroView());g.restore();return c.toDataURL();}
-function openInv(){
+let invWS=null;
+function bagGlow(on){S.bagNew=!!on;for(const el of [document.getElementById('bBag'),document.querySelector('[data-m="hero"]')])if(el)el.classList.toggle('glow',!!on);}
+// one worn-item square on the paper doll; empty squares show the slot name
+function wslot(k){const isJ=!SLOT_N[k],it=isJ?H.jewels[k]:H[k],J=isJ?JEWELS.find(j=>j.id===k):null,ic=it?(isJ?{type:'jewel',id:k,tier:it.tier}:{type:'gear',kind:k,...it}):null,
+  col=it?(isJ?METAL_COL[it.tier]:GRADES[it.grade].c):'var(--line)',nm=isJ?J.n:SLOT_N[k];
+  return `<button class="wslot ${invWS===k?'sel':''}" type="button" data-act="ws-${k}" data-slot="${k}" title="${esc(nm)}" style="border-color:${invWS===k?'var(--gold)':col}">${ic?`<img src="${iconURL(ic)}" alt="">`:''}<i>${esc(nm)}</i></button>`;}
+// drag and drop between the bag and the worn squares (mouse and touch)
+let INVD=null,INVD_ON=false,INVD_EAT=false;
+function invDnD(){if(INVD_ON)return;INVD_ON=true;
+  addEventListener('pointerdown',ev=>{const el=ev.target.closest&&ev.target.closest('#dlg [data-bi],#dlg [data-slot]');if(!el)return;const bi=el.dataset.bi,sl=el.dataset.slot,it=bi!==undefined?INV.bag[+bi]:(sl&&SLOT_N[sl]?H[sl]:null);
+    if(!it||(bi!==undefined&&it.type!=='gear'))return;INVD={bi:bi!==undefined?+bi:null,sl:bi!==undefined?null:sl,it,x:ev.clientX,y:ev.clientY,go:false,img:el.querySelector('img')};},true);
+  addEventListener('pointermove',ev=>{const d=INVD;if(!d)return;if(!d.go&&Math.hypot(ev.clientX-d.x,ev.clientY-d.y)>8&&d.img){d.go=true;d.g=d.img.cloneNode();Object.assign(d.g.style,{position:'fixed',width:'60px',height:'60px',pointerEvents:'none',zIndex:999,opacity:'0.92',filter:'drop-shadow(0 6px 10px #000)'});document.body.appendChild(d.g);
+      const want=d.bi!==null?d.it.kind:null;document.querySelectorAll('#dlg [data-slot]').forEach(e=>e.classList.toggle('hot',want===e.dataset.slot));if(d.sl)document.querySelector('#dlg [data-bagzone]')?.classList.add('hotz');}
+    if(d.go){d.g.style.left=ev.clientX-30+'px';d.g.style.top=ev.clientY-30+'px';ev.preventDefault();}},{passive:false});
+  addEventListener('pointerup',ev=>{const d=INVD;INVD=null;if(!d||!d.go)return;d.g.remove();document.querySelectorAll('#dlg .hot,#dlg .hotz').forEach(e=>e.classList.remove('hot','hotz'));INVD_EAT=true;setTimeout(()=>INVD_EAT=false,50);
+    const t=document.elementFromPoint(ev.clientX,ev.clientY),slotEl=t&&t.closest('#dlg [data-slot]'),doll=t&&t.closest('#dlg .doll,#dlg .jrow'),bag=t&&t.closest('#dlg [data-bagzone]');
+    if(d.bi!==null&&(slotEl||doll)){const k=slotEl?slotEl.dataset.slot:d.it.kind;if(k!==d.it.kind){toast(`That goes in the ${SLOT_N[d.it.kind].toLowerCase()} slot.`);return;}invSel=null;invWS=null;equipFromBag(d.bi);openInv();return;}
+    if(d.sl&&bag){if(!EXTRA.includes(d.sl)){toast('You always need your '+SLOT_N[d.sl].toLowerCase()+'. Drag a new one on to swap it.');return;}invWS=null;unequip(d.sl);openInv();}},true);
+  addEventListener('dragstart',ev=>{if(ev.target.closest&&ev.target.closest('#dlg [data-bi],#dlg [data-slot]'))ev.preventDefault();},true);
+  addEventListener('pointercancel',()=>{if(INVD&&INVD.g)INVD.g.remove();INVD=null;document.querySelectorAll('#dlg .hot,#dlg .hotz').forEach(e=>e.classList.remove('hot','hotz'));},true);
+  addEventListener('click',ev=>{if(INVD_EAT&&ev.target.closest&&ev.target.closest('#dlg')){ev.stopPropagation();ev.preventDefault();}},true);}
+function openInv(){bagGlow(false);
   const eq=['weapon','off','helm','armor','hands','feet','cape'].map(k=>{const it=H[k];return [k,it?{type:'gear',kind:k,...it}:{type:'empty',label:'+'},it?`${GRADES[it.grade].n} ${gearName({kind:k,tier:it.tier,set:it.set})}`:`No ${SLOT_N[k].toLowerCase()}`,it?GRADES[it.grade].c:'var(--dim)',it];})
     .concat(JEWELS.map(J=>{const it=H.jewels[J.id];return [J.id,it?{type:'jewel',id:J.id,tier:it.tier}:{type:'empty',label:'+'},it?`${METALS[it.tier]} ${J.n}`:`No ${J.n.toLowerCase()}`,it?METAL_COL[it.tier]:'var(--dim)',it];}));
-  const cells=[];for(let i=0;i<BAG_MAX;i++){const it=INV.bag[i];cells.push(it?`<button class="cell ${isUpgrade(it)?'up':''} ${invSel===i?'sel':''}" type="button" data-act="sel-${i}" title="${esc(itemLabel(it))}"><img src="${iconURL(it)}" alt="">${(it.q||1)>1?`<span class="q">${it.q}</span>`:''}</button>`:'<div class="cell empty"></div>');}
-  let det='<p class="note l">Tap an item in your bag to see it. Items with a green ▲ are better than what you have on.</p>';
+  const cells=[];for(let i=0;i<BAG_MAX;i++){const it=INV.bag[i];cells.push(it?`<button class="cell ${isUpgrade(it)?'up':isDowngrade(it)?'down':''} ${invSel===i?'sel':''}" type="button" data-act="sel-${i}" data-bi="${i}" title="${esc(itemLabel(it))}"><img src="${iconURL(it)}" alt="">${(it.q||1)>1?`<span class="q">${it.q}</span>`:''}</button>`:'<div class="cell empty"></div>');}
+  let det='<p class="note l">Tap an item in your bag to see it. Green items are better than what you have on, red ones are weaker.</p>';
   const it=invSel!==null?INV.bag[invSel]:null;
+  if(!it&&invWS){const isJ=!SLOT_N[invWS],w=isJ?H.jewels[invWS]:H[invWS],J=isJ?JEWELS.find(j=>j.id===invWS):null;
+    if(w){const g=isJ?null:{type:'gear',kind:invWS,...w},ic=isJ?{type:'jewel',id:invWS,tier:w.tier}:g;det=`<div class="detail"><div class="itemline"><img src="${iconURL(ic)}" width="48" height="48" alt=""><div><h4 style="color:${isJ?METAL_COL[w.tier]:GRADES[w.grade].c}">${esc(isJ?METALS[w.tier]+' '+J.n:GRADES[w.grade].n+' '+gearName({kind:invWS,tier:w.tier,set:w.set}))}</h4><span class="note l">You are wearing this</span></div></div>
+      ${isJ?'':`<div class="stats3">${gearLines(g)}</div>${w.sockets&&w.sockets.some(Boolean)?`<div class="itemline">${socketsHtml(g,'',false)}</div>`:''}`}
+      <div class="row left">${!isJ&&EXTRA.includes(invWS)?`<button class="btn alt" type="button" data-act="unwear" style="font-size:18px">Take it off</button>`:`<span class="note l">${isJ?'Jewelry stays on. Buy better at Crystals &amp; Jewels.':'You always need this. Swap it by dragging a new one on.'}</span>`}</div></div>`;}}
   if(it){
     let stats='';
     if(it.type==='gear'){const cur=worn(it.kind),dd=gearScore(it)-gearScore(cur);
-      stats=gearLines(it)+`<span>Crystal settings <b>${it.sockets.length}</b></span><span>${cur?'Compared to yours':'Your '+SLOT_N[it.kind].toLowerCase()+' slot is empty'} <b class="${dd>0.01?'good':dd<-0.01?'bad':''}">${dd>0.01?'▲ better':dd<-0.01?'▼ weaker':'about the same'}</b></span>`;}
+      stats=gearLines(it)+`<span>Crystal settings <b>${it.sockets.length}</b></span><span>${cur?'Compared to yours':'Your '+SLOT_N[it.kind].toLowerCase()+' slot is empty'} <b class="${dd>0.01?'good':dd<-0.01?'bad':''}">${dd>0.01?'better':dd<-0.01?'weaker':'about the same'}</b></span>`;}
     stats+=`<span>Sells for <b>${itemValue(it)} gold</b></span>`;
     det=`<div class="detail"><div class="itemline"><img src="${iconURL(it)}" width="48" height="48" alt=""><div><h4 style="color:${it.type==='gear'?GRADES[it.grade].c:'var(--parch)'}">${esc(itemLabel(it))}</h4><span class="note l">${it.type==='gear'?SLOT_N[it.kind]:'Goods. Sell them at any shop, or use them to craft at your workbench'}</span></div></div>
       <div class="stats3">${stats}</div>${it.sockets&&it.sockets.some(Boolean)?`<div class="itemline">${socketsHtml(it,'',false)}</div>`:''}
@@ -4025,23 +4067,26 @@ function openInv(){
   }
   const owned=Object.keys(INV.gems).sort();
   openDlg(`<h1 class="logo sm"><small>${esc(HEROES[H.cls].name)}</small>Your Bag</h1>${goldLine()}
-    <div class="inv"><div class="scard">${heroPic(170)}
+    <div class="inv" style="grid-template-columns:1fr"><div class="scard">
+      <div class="doll"><div class="dcol">${['helm','armor','hands','feet'].map(wslot).join('')}</div><div style="min-width:0">${heroPic(170)}</div><div class="dcol">${['weapon','off','cape'].map(wslot).join('')}</div></div>
+      <div class="jrow">${JEWELS.map(J=>wslot(J.id)).join('')}</div>
       <div class="stats3" style="justify-content:center"><span>Health <b>${Math.round(H.hp)}/${H.maxHp}</b></span><span>Mana <b>${Math.round(H.mp)}/${H.maxMp}</b></span><span>Damage <b>×${dmgMult().toFixed(2)}</b></span><span>Protection <b>${armorPct()}%</b></span>${H.rune?`<span>Rune <b>${esc(RUNES[H.rune].n)}</b></span>`:''}</div>
-      <button class="btn alt" type="button" data-act="hero" style="font-size:18px">Hero sheet${H.pts||H.sp?` · ${H.pts+H.sp} points to spend`:''}</button>${ingrLine()}
-      <p class="sub l">Wearing</p><div class="eq">${eq.map(([k,ic,label,col,item])=>`<div class="slotb"><img src="${iconURL(ic)}" alt=""><span style="min-width:0"><span style="color:${col}">${esc(label)}</span><small>${item?item.sockets.map(s=>s?gemSpan(s.t):'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>').join(' '):(SLOT_N[k]?'Find one or buy at the Armory':'Buy at Crystals & Jewels')}</small></span></div>`).join('')}</div>
-      <p class="sub l">Potion belt</p><div class="stats3"><span>1 · Health <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana <b>${INV.belt.mp}/${BELT_MAX}</b></span></div></div>
-    <div class="scard"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><div class="bag">${cells.join('')}</div>${det}
+      <div class="stats3" style="justify-content:center"><span>1 · Health potions <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana potions <b>${INV.belt.mp}/${BELT_MAX}</b></span></div>
+      <button class="btn alt" type="button" data-act="hero" style="font-size:18px">Hero sheet${H.pts||H.sp?` · ${H.pts+H.sp} points to spend`:''}</button>${ingrLine()}</div>
+    <div class="scard" data-bagzone="1"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><p class="note l">${isTouch?'Drag':'Drag'} an item onto your hero to wear it, or drag something you wear down into the bag to take it off. Tapping works too.</p><div class="bag">${cells.join('')}</div>${det}
       <p class="sub l">Crystal pouch</p>${owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<span class="chip" title="${esc(GEMS[t].e)}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</span>`;}).join('')}</div><p class="note l">Set crystals at the Crystals &amp; Jewels shop in town.</p>`:'<p class="note l">No crystals yet.</p>'}
       <p class="sub l">Scrolls</p>${scrChips()}</div></div>
     <div class="row"><button class="btn" type="button" data-act="close">Close</button></div>`,'inv',(act)=>{
       const [k,x]=act.split('-');
       if(k==='hero'){openHero('gear');return;}
       if(k==='read'){if(readScroll(x)){closeDlg();return;}}
-      if(k==='sel'){invSel=invSel===+x?null:+x;dropArm=false;}
+      if(k==='sel'){invSel=invSel===+x?null:+x;invWS=null;dropArm=false;}
+      if(k==='ws'){invWS=invWS===x?null:x;invSel=null;dropArm=false;}
+      if(k==='unwear'&&invWS){unequip(invWS);invWS=null;}
       if(k==='equip'&&invSel!==null){equipFromBag(invSel);}
       if(k==='drop'&&invSel!==null){if(dropArm){const t=INV.bag[invSel];if(t&&t.sockets)for(const s of t.sockets)if(s)addGem(INV,s.t,s.lv);INV.bag.splice(invSel,1);invSel=null;dropArm=false;}else dropArm=true;}
       openInv();});
-  mountPortrait();
+  mountPortrait();invDnD();
 }
 
 // ================= hero sheet =================
