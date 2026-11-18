@@ -86,6 +86,9 @@ body.phone #stage{width:100vw;height:100vh;height:100dvh;aspect-ratio:auto;borde
 body.phone .strip{display:none}
 body.phone #touch{inset:0;align-items:stretch;padding:0}
 body.phone #stick{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:max(18px,env(safe-area-inset-bottom,0px));width:130px;height:130px;background:rgba(255,255,255,.07)}
+body.phone #runBtn{position:absolute;left:calc(max(18px,env(safe-area-inset-left,0px)) + 138px);bottom:max(18px,env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(14,10,26,.72);color:#f2e7cf;font:800 12px var(--body);pointer-events:auto;touch-action:none}
+body.phone #runBtn.on{background:rgba(150,100,20,.85);border-color:#ffd27a;box-shadow:0 0 14px rgba(255,200,90,.8)}
+#runBtn{display:none}body.phone #runBtn{display:block}
 body.phone #nub{width:54px;height:54px;margin:-27px 0 0 -27px}
 body.phone .tb{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));grid-template-columns:repeat(2,56px);gap:10px}
 body.phone .tb button{width:56px;height:56px;display:grid;place-items:center;padding:0;color:#f2e7cf}
@@ -351,6 +354,7 @@ body.phone .tb button,body.phone .tm button,body.phone .tp button{background-col
 
 <div id="touch" hidden>
   <div id="stick"><div id="nub"></div></div>
+  <button id="runBtn" type="button" aria-label="Run" aria-pressed="false">RUN</button>
   <div class="tm"><button data-m="map" type="button">MAP</button><button data-m="bag" type="button">BAG</button><button data-m="hero" type="button">HERO</button><button data-m="set" type="button" aria-label="Settings">⚙</button></div>
   <div class="tp"><button data-m="hp" type="button" aria-label="Health potion">❤</button><button data-m="mp" type="button" aria-label="Mana potion">✦</button></div>
   <div class="tb">
@@ -2322,7 +2326,7 @@ function readInput(){
   const k=c=>!!keys[c];
   const r={mx:(k('KeyD')||k('ArrowRight')?1:0)-(k('KeyA')||k('ArrowLeft')?1:0),my:(k('KeyS')||k('ArrowDown')?1:0)-(k('KeyW')||k('ArrowUp')?1:0),
     attack:k('KeyJ')||k('Comma')||k('Space'),jump:k('KeyK')||k('Period'),sp1:k('KeyL')||k('Slash'),sp2:k('KeyI')||k('Semicolon'),rot:(k('KeyE')?1:0)-(k('KeyQ')?1:0),run:k('ShiftLeft')||k('ShiftRight'),sx:(k('KeyD')?1:0)-(k('KeyA')?1:0),tn:(k('ArrowRight')?1:0)-(k('ArrowLeft')?1:0)};
-  if(touch.mx||touch.my){r.mx=touch.mx;r.my=touch.my;}r.attack=r.attack||touch.attack;r.jump=r.jump||touch.jump;r.sp1=r.sp1||touch.sp1;r.sp2=r.sp2||touch.sp2;
+  if(touch.mx||touch.my){r.mx=touch.mx;r.my=touch.my;}r.attack=r.attack||touch.attack;r.jump=r.jump||touch.jump;r.run=r.run||!!touch.run;r.sp1=r.sp1||touch.sp1;r.sp2=r.sp2||touch.sp2;
   try{const gp=navigator.getGamepads&&navigator.getGamepads()[0];if(gp){const ax=gp.axes[0]||0,ay=gp.axes[1]||0,b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
     if(Math.abs(ax)>0.35)r.mx=sgn(ax);if(Math.abs(ay)>0.35)r.my=sgn(ay);r.attack=r.attack||b(2);r.jump=r.jump||b(0);r.sp1=r.sp1||b(1);r.sp2=r.sp2||b(3);r.run=r.run||b(10);
     const rx=gp.axes[2]||0;if(Math.abs(rx)>0.3)r.rot=rx;if(b(4))r.rot=-1;if(b(5))r.rot=1;}}catch(e){}
@@ -5391,6 +5395,7 @@ function updateTouch(){touchIcons();powUI();document.getElementById('touch').hid
   const stick=document.getElementById('stick'),nub=document.getElementById('nub');let id=null,ox=0,oy=0;
   stick.addEventListener('pointerdown',e=>{id=e.pointerId;const r=stick.getBoundingClientRect();ox=r.left+r.width/2;oy=r.top+r.height/2;try{stick.setPointerCapture(id);}catch(_){}mv(e);});
   const mv=e=>{if(e.pointerId!==id)return;let dx=e.clientX-ox,dy=e.clientY-oy;const m=Math.hypot(dx,dy),lim=40;if(m>lim){dx*=lim/m;dy*=lim/m;}nub.style.transform=`translate(${dx}px,${dy}px)`;touch.mx=dx>14?1:dx<-14?-1:0;touch.my=dy>14?1:dy<-14?-1:0;};
+  {const rb=document.getElementById('runBtn');rb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();touch.run=!touch.run;rb.classList.toggle('on',touch.run);rb.setAttribute('aria-pressed',String(touch.run));});}
   stick.addEventListener('pointermove',mv);const end=e=>{if(e.pointerId!==id)return;id=null;touch.mx=touch.my=0;nub.style.transform='';};
   stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
   document.querySelectorAll('#touch [data-m]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(S.state!=='play')return;const m=b.dataset.m;
