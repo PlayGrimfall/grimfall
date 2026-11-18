@@ -2781,7 +2781,7 @@ function updFx(f){
       for(let i=0;i<12;i++)addPart({x:f.x,y:.1,z:f.z,vx:rnd(-.1,.1),vy:rnd(.04,.13),vz:rnd(-.1,.1),life:ri(18,30),size:rnd(.08,.16),color:i%2?'#ffcf5a':'#ff5a2a',g:.006});}}
 }
 const GEMG={},GEMM={};
-function gemMesh(t){if(!GEMG.a){GEMG.a=new THREE.OctahedronGeometry(0.2,0);GEMG.a.scale(1,1.7,1);GEMG.b=new THREE.OctahedronGeometry(0.11,0);GEMG.b.scale(1,1.6,1);}
+function gemMesh(t){{const cm=gemCutMesh(t);if(cm){cm.scale.setScalar(0.55);cm.rotation.x=0.3;const g=new THREE.Group();g.add(cm);return g;}}if(!GEMG.a){GEMG.a=new THREE.OctahedronGeometry(0.2,0);GEMG.a.scale(1,1.7,1);GEMG.b=new THREE.OctahedronGeometry(0.11,0);GEMG.b.scale(1,1.6,1);}
   const c=new THREE.Color(GEMS[t].c),m=GEMM[t]||(GEMM[t]=new THREE.MeshStandardMaterial({color:c,emissive:c.clone().multiplyScalar(0.55),metalness:0.15,roughness:0.06,flatShading:true,transparent:true,opacity:0.9}));
   const g=new THREE.Group(),a=new THREE.Mesh(GEMG.a,m);g.add(a);for(const s of [-1,1]){const b=new THREE.Mesh(GEMG.b,m);b.position.set(s*0.17,-0.12,0.05);b.rotation.z=-s*0.5;g.add(b);}return g;}
 // ================= real loot: painted glass potion bottles and metal gold coins instead of flat neon pictures =================
@@ -3008,7 +3008,7 @@ function partIcon(g,P,it){const t=document.createElement('canvas');t.width=t.hei
   if(it.set){g.fillStyle=tint;g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.moveTo(24,-34);g.lineTo(34,-24);g.lineTo(24,-14);g.lineTo(14,-24);g.closePath();g.fill();g.stroke();}}
 function iconURL(it){
   const A3s=it.type==='gear'&&PART_KINDS.includes(it.kind)?setShot(H.cls,it.kind,it.tier):null,A3=A3s||(it.type==='gear'&&PART_KINDS.includes(it.kind)?armShot(H.cls,it.kind,it.tier):null),P=!A3&&it.type==='gear'&&PART_KINDS.includes(it.kind)?partShot(H.cls,it.kind):null,W=it.type==='gear'&&it.kind==='weapon'?wpnShot(H.cls,it.tier):null,S3=A3||(!P&&!W&&it.type!=='empty'?stuIcon(it):null);
-  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}${A3s?'d':''}`:it.type==='goods'?'o'+it.i:it.type==='crystal'?'c'+it.t:it.type==='jewel'?'j'+it.id+it.tier:'x'+it.type);
+  const key=(S3?'s':'')+(it.type==='gear'?`g${it.kind}${it.tier}${it.grade}${H.cls}${it.set||''}${P?'r':''}${W?'w':''}${A3s?'d':''}`:it.type==='goods'?'o'+it.i:it.type==='crystal'?'c'+it.t+(GEMCUT.st==='ready'?'g':''):it.type==='jewel'?'j'+it.id+it.tier:'x'+it.type);
   if(ICON[key])return ICON[key];
   const c=document.createElement('canvas');c.width=c.height=72;const g=c.getContext('2d');g.translate(36,36);
   if(it.type==='gear'){const gc=GRADES[it.grade].c;const gr=g.createRadialGradient(0,0,4,0,0,34);gr.addColorStop(0,gc+'66');gr.addColorStop(1,gc+'00');g.fillStyle=gr;g.fillRect(-36,-36,72,72);
@@ -4703,7 +4703,13 @@ function jewelModel(id,t){const mc=METAL_COL[Math.max(0,Math.min(3,t|0))],gc=RIN
   return {b:(p,K)=>{const r=K.add(p,new K.G.TorusGeometry(0.34,0.075,14,40),K.mat(mc,{metal:true}),0,0,0);r.rotation.x=Math.PI/2;
     K.add(p,new K.G.CylinderGeometry(0.14,0.11,0.1,8),K.mat(mc,{metal:true}),0,0,0.38).rotation.x=Math.PI/2;K.gem(p,gc,0.15,0,0,0.47);},rx:-0.55,ry:0.3};}
 const CRY_CUT={ruby:'oct',fireopal:'round',emerald:'prism',amethyst:'cluster',tourmaline:'prism',smoky:'cluster',citrine:'oct',diamond:'brill',moonstone:'round',amber:'round'};
-function crystalModel(tp){const col=(GEMS[tp]||{c:'#fff'}).c,cut=CRY_CUT[tp]||'oct';return {b:(p,K)=>{
+// real cut gems (gems.fbx): each crystal gets its own cut and colour
+const GEMCUT={st:'none',g:{},m:{}},GEM_CUT_OF={ruby:'cushion',fireopal:'oval',emerald:'baguette',amethyst:'pear',tourmaline:'trillion',smoky:'marquise',citrine:'princess',diamond:'round',moonstone:'oval',amber:'heart'};
+function loadGemCuts(){if(GEMCUT.st!=='none'||!THREE.GLTFLoader)return;GEMCUT.st='loading';loadModelData('gems').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh){const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry;g.computeVertexNormals();GEMCUT.g[o.name.replace('gem_','')]=g;}});GEMCUT.st='ready';}).catch(()=>{GEMCUT.st='fail';});}
+function gemCutMat(t){if(GEMCUT.m[t])return GEMCUT.m[t];const dark=t==='tourmaline',c=new THREE.Color(GEMS[t].c).convertSRGBToLinear().multiplyScalar(dark?2.2:0.75);
+  return GEMCUT.m[t]=new THREE.MeshStandardMaterial({color:c,metalness:dark?0.6:0.55,roughness:t==='moonstone'?0.35:0.12,emissive:c.clone().multiplyScalar(dark?0.02:0.12),flatShading:true,transparent:!dark,opacity:0.93});}
+function gemCutMesh(t){if(GEMCUT.st!=='ready'){loadGemCuts();return null;}const g=GEMCUT.g[GEM_CUT_OF[t]];return g&&GEMS[t]?new THREE.Mesh(g,gemCutMat(t)):null;}
+function crystalModel(tp){{const cm=gemCutMesh(tp);if(cm)return {b:p=>{cm.rotation.set(0.35,0.6,0.1);p.add(cm);}};}const col=(GEMS[tp]||{c:'#fff'}).c,cut=CRY_CUT[tp]||'oct';return {b:(p,K)=>{
   if(cut==='cluster'){for(const [x,h,a] of [[0,1,0],[-0.22,0.7,0.45],[0.22,0.75,-0.4],[0.08,0.5,-0.15]]){const c=new K.G.Group();c.position.set(x,-0.3,0);c.rotation.z=a;p.add(c);
       K.add(c,new K.G.CylinderGeometry(0.11,0.12,h*0.7,6),K.mat(col,{rough:0.08,flat:true,glow:0.3,op:0.9}),0,h*0.35,0);K.add(c,new K.G.ConeGeometry(0.11,h*0.3,6),K.mat(col,{rough:0.08,flat:true,glow:0.3,op:0.9}),0,h*0.85,0);}
     K.add(p,new K.G.DodecahedronGeometry(0.28,0),K.mat('#5a5060',{flat:true}),0,-0.38,0).scale.set(1.3,0.5,1);return;}
@@ -4745,7 +4751,7 @@ function stuIcon(it){if(!portraitInit())return null;
   if(it.type==='gear'&&it.kind==='off'){const m=offModel(H.cls,it.tier);return m?studio(`off${H.cls}${it.tier}${m.shield&&WPN_ST==='ready'?'w':''}`,m.b,m):null;}
   if(it.type==='gear'&&it.kind==='cape')return studio('cape'+it.tier,capeModel(it.tier),{rx:-0.1,ry:0.5});
   if(it.type==='jewel'){const m=jewelModel(it.id,it.tier);return studio('j'+it.id+it.tier,m.b,m);}
-  if(it.type==='crystal'){const m=crystalModel(it.t);return studio('c'+it.t,m.b,m);}
+  if(it.type==='crystal'){const m=crystalModel(it.t);return studio('c'+it.t+(GEMCUT.st==='ready'?'g':''),m.b,m);}
   if(it.type==='goods'){const m=goodsModel(it.i);return m?studio('o'+it.i+(WPN_ST==='ready'?'w':''),m.b,m):null;}
   return null;}
 function wpnShot(cls,tier){const k=cls+tier;if(WSHOT[k])return WSHOT[k];if(WPN_ST!=='ready'||!WPN_SET[cls]||!portraitInit())return null;
@@ -5460,7 +5466,9 @@ const ICO={
  staff:'<path d="M7 21L15 9"/><circle cx="16.5" cy="6.5" r="3.2" fill="currentColor"/><path d="M15.3 6.2h.01M17.8 6.2h.01" stroke="#000" stroke-width="1.6"/>',
  bow:'<path d="M6 3c7 3 7 15 0 18"/><path d="M6 3v18" stroke-width="1"/><path d="M4 12h16"/><path d="M17 9l3 3-3 3"/>',
  knives:'<path d="M5 19L15 5l2 1-8 14z" fill="currentColor"/><path d="M19 19L9 5 7 6l8 14z" fill="currentColor" opacity=".7"/>',
- beam:'<path d="M3 12h18" stroke-width="3"/><path d="M6 8l2 2M6 16l2-2M18 8l-2 2M18 16l-2-2"/><circle cx="4" cy="12" r="2" fill="currentColor"/>',
+ ice:'<path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10" stroke-width="2.2"/><path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5M3.6 10.4l3.4-1-1-3.4M20.4 13.6l-3.4 1 1 3.4M3.6 13.6l3.4 1-1 3.4M20.4 10.4l-3.4-1 1-3.4"/>',
+lance:'<path d="M21 3L17 11.5L5.5 21L3 18.5L12.5 7z" fill="currentColor"/><path d="M21 3L9 15" stroke="#2a2238" stroke-width="1"/><path d="M5 5l1.5 1.5M7.5 3.5v2M3.5 7.5h2M18 17l1.5 1.5M20.5 15.5v2" stroke-width="1.4"/>',
+beam:'<path d="M3 12h18" stroke-width="3"/><path d="M6 8l2 2M6 16l2-2M18 8l-2 2M18 16l-2-2"/><circle cx="4" cy="12" r="2" fill="currentColor"/>',
  fire:'<path d="M12 21c-4 0-6-3-6-6 0-4 4-6 4-10 3 2 3 5 3 6 1-1 2-2 2-4 3 2 3 5 3 8 0 3-2 6-6 6z" fill="currentColor"/>',
  skull:'<path d="M12 3c-4.4 0-8 3.1-8 7.2 0 2.4 1.2 4.3 3 5.5V19h10v-3.3c1.8-1.2 3-3.1 3-5.5C20 6.1 16.4 3 12 3z" fill="currentColor"/><circle cx="9" cy="11" r="1.9" fill="#000" stroke="none"/><circle cx="15" cy="11" r="1.9" fill="#000" stroke="none"/><path d="M10 19v2M14 19v2"/>',
   meteor:'<circle cx="16" cy="16" r="4" fill="currentColor"/><path d="M4 4l9 9M8 3l7 7M3 8l7 7"/>',
@@ -5473,7 +5481,7 @@ const ICO={
  bolt:'<path d="M13 2L5 14h6l-2 8 9-13h-6z" fill="currentColor"/>',
  heal:'<path d="M12 4v16M4 12h16" stroke-width="4"/>',
  jump:'<path d="M6 14l6-6 6 6M6 20l6-6 6 6"/>'};
-const ICO_FOR={necromancer:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['beam','bolt','heal']};
+const ICO_FOR={necromancer:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['ice','lance','heal']};
 const svgI=k=>`<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k]}</svg>`;
 let touchCls=null;function touchIcons(){if(!H||touchCls===H.cls)return;touchCls=H.cls;const f=ICO_FOR[H.cls]||ICO_FOR.barbarian,d=HEROES[H.cls];
   const set=(b,k,label)=>{const el=document.querySelector('#touch .tb [data-b="'+b+'"]');if(el){el.innerHTML=svgI(k);el.setAttribute('aria-label',label);}};
