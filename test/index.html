@@ -2774,6 +2774,10 @@ const COIN={g:null,mat:null};
 function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,20);COIN.mat=new THREE.MeshStandardMaterial({color:0xb8892a,metalness:0.75,roughness:0.32,emissive:0x2a1a04});}
   const g=new THREE.Group();[[0,0,0,0],[0.05,0.024,0.03,0.25],[-0.04,0.048,-0.02,-0.2]].forEach(([x,y,z,r])=>{const c=new THREE.Mesh(COIN.g,COIN.mat);c.position.set(x,y,z);c.rotation.set(r,0,r*0.6);c.castShadow=true;g.add(c);});return g;}
 function lootMesh(kind){if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+// the Gate Captain's job list is a rolled parchment scroll with a leather tie
+const SCRL={st:'none',g:null,icon:null};
+function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
+function scrollIcon(){if(SCRL.icon)return SCRL.icon;if(SCRL.st!=='ready'){loadScroll();return null;}const c=studio('scroll',p=>{p.add(SCRL.g.clone());},{rx:0.35,ry:0.3,rz:-0.35});if(c)SCRL.icon=c;return c||null;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
 function dropPickup(kind,x,z,val=0,item=null){loadPotions();
   const map=kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
@@ -3686,9 +3690,9 @@ function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=job
   else if(!ready.length)lines.push(Object.keys(INV.jobs).length?'Your jobs are on your list. Come back when they are done.':'No work right now. Go deeper, then come see me.');
   GATE.talk={i:-1,t:0,lines,cb,vo:lines.map(t=>/^Good work/.test(t)?'c_good':/^Here is your pay/.test(t)?'c_pay':/new job/.test(t)?'c_new':voText(t))};}
 function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length)return;const show=list.slice(0,7);
-  g.save();g.textAlign='left';const w=262,h=24+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
-  g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Captain's jobs",x+10,y+16);
-  show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+34+i*18,w-18);});
+  g.save();g.textAlign='left';const w=262,h=28+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
+  {const si=scrollIcon();if(si)g.drawImage(si,25,45,110,70,x+4,y+2,44,28);g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Captain's jobs",x+(si?50:10),y+20);}
+  show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+38+i*18,w-18);});
   if(list.length>7){g.font=`600 11px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(`and ${list.length-7} more`,x+10,y+h-8);}g.restore();}
 // a relic waits on a stone stand in a far room of its floor
 function relicSpawn(fi){if(!MZ)return;MZ.relic=null;jobState();const j=JOBS.find(j=>j.kind==='relic'&&j.fl===fi&&INV.jobs[j.id]&&!INV.relics[j.id]);if(!j)return;
