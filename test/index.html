@@ -157,6 +157,9 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 .wslot i{position:absolute;bottom:2px;left:0;right:0;font:700 9px var(--body);color:var(--dim);font-style:normal;text-align:center;white-space:nowrap;overflow:hidden}
 .wslot.hot{border-color:#7dff9a!important;box-shadow:0 0 12px #7dff9a}
 .hotz{outline:2px dashed #7dff9a;outline-offset:4px}
+.pwrap{position:relative;display:block}.pwrap input{width:100%;padding-right:64px;box-sizing:border-box}
+.pweye{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--parch);font:700 13px var(--body);cursor:pointer}
+.pweye:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media (max-height:520px){.wslot{width:48px;height:48px}.wslot i{font-size:8px}.doll{grid-template-columns:52px minmax(0,1fr) 52px;max-width:360px}.dcol{gap:5px}.jrow{gap:5px}}
 .cell{touch-action:none}
 .bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
@@ -5511,7 +5514,11 @@ function acctView(v){const P=document.getElementById('acctPanel'),close='<button
   else if(v==='parent')h=`<h2>Parent settings</h2><form data-f="pin"><label>Parent PIN<input type="password" name="pin" inputmode="numeric" maxlength="4" required></label><button class="btn" type="submit">Open</button></form><div class="err"></div><p class="note"><button class="lnk" type="button" data-a="me">Back</button></p>${close}`;
   else if(v==='parent2')h=`<h2>Parent settings</h2><div class="toggles"><label class="chk"><input type="checkbox" id="pcChat" ${ACCT.md.chat_ok?'checked':''}> Allow typed chat (bad words are filtered)</label><label class="chk"><input type="checkbox" id="pcVoice" ${ACCT.md.voice_ok?'checked':''}> Allow voice chat</label></div>
     <button class="btn" type="button" data-a="psave">Save</button><div class="err"></div><p class="note"><button class="lnk" type="button" data-a="me">Back</button></p>${close}`;
-  P.innerHTML=h;}
+  P.innerHTML=h;
+  // a Show/Hide button next to every password and PIN box, so you can check what you typed
+  P.querySelectorAll('input[type="password"]').forEach(inp=>{const w=document.createElement('span');w.className='pwrap';inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+    const b=document.createElement('button');b.type='button';b.className='pweye';b.textContent='Show';b.setAttribute('aria-label','Show what you typed');
+    b.onclick=()=>{const on=inp.type==='password';inp.type=on?'text':'password';b.textContent=on?'Hide':'Show';b.setAttribute('aria-label',on?'Hide what you typed':'Show what you typed');inp.focus();};w.appendChild(b);});}
 async function acctSubmit(f,fd){const sb=await acctLib();if(!sb)return;acctMsg('Working…');
   try{
     if(f==='signin'){const {error}=await sb.auth.signInWithPassword({email:fd.get('email'),password:fd.get('pw')});if(error)throw error;acctClose();toast('Signed in. Welcome back!');return;}
