@@ -3132,7 +3132,7 @@ function updNpc(n){
 
 // ================= houses =================
 const HOUSES=[
- {id:'home',x:-26,name:'Your House',sign:'Your House',roof:'#6a4a3a'},
+ {id:'home',x:-26,get name(){return homeName();},get sign(){return won()?'Your Home':'Guest Hut';},roof:'#6a4a3a'}, // a guest hut while you fight; after the Lich Queen falls it is yours for good
  {id:'baker',x:-12,name:"Tolly the Baker's House",roof:'#3e5a6a',npc:{name:'Tolly',x:2.4,z:-1.2,col:'#efe6d8',skin:'#f1c8a5',hat:1,lines:['Fresh bread every morning! Well, most mornings.','Break the old pots you find. Folks hide all sorts of goods in them.','My cousin found a Fairy Amber once. The fairy inside saved him down in the crypt.']}},
  {id:'sailor',x:8,name:"Captain Brin's House",roof:'#7a5a3a',npc:{name:'Captain Brin',x:-2.2,z:-1.4,col:'#3a5a8a',skin:'#d9a07a',hat:0,lines:['When the Lich Queen falls, my ship sails for Kemet. Mind the sea serpents.','I left something in that chest for a brave raider. Go on, take it.','Sell your goods at any shop in town. Golden idols fetch the best price.']}},
  {id:'weaver',x:22,name:"Weaver Nell's House",roof:'#5a3a5a',npc:{name:'Nell',x:-1.8,z:-0.6,col:'#a463f2',skin:'#f6d5b8',hat:2,lines:['Black tourmaline keeps harm away. Set it in your armor, dear.','Citrine draws gold to you, and smoky quartz keeps you on your feet.','If your bag fills up, keep things in the chest at your own house.']}},
@@ -3573,8 +3573,9 @@ function makeRoyals(){const sp=()=>makeSprite(512,512,256,472,2);
   const k={x:DAIS.x-0.95,z:DAIS.z-0.35,y:DAIS.h,tx:0,tz:0,vx:0,pause:1e9,anim:0,col:'#8a1a2a',hat:0,skin:'#e9b58d',face:1,fx:0,fz:1,rm:'king',tall:1.9,keeper:true,royal:true,spr:sp()};
   const q={x:DAIS.x+0.95,z:DAIS.z-0.35,y:DAIS.h,tx:0,tz:0,vx:0,pause:1e9,anim:0,col:'#6a3a9a',hat:2,skin:'#f6d5b8',face:1,fx:0,fz:1,rm:'queen',tall:1.78,keeper:true,royal:true,spr:sp()};
   S.npcs.push(k,q);DKFX.king=k;DKFX.queen=q;}
+const homeName=()=>won()?'Your Home':'The Guest Hut';
 function royalTalk(){const k=DKFX.king,q=DKFX.queen;if(!k||S.royalT>performance.now())return;S.royalT=performance.now()+9000;
-  say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you.',3800);
+  say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you. The guest hut is yours now. You will always have a home here.',4600);
   schedule(150,()=>say(q,INV.letter?'Kemet needs you now. Captain Brin will sail when you are ready.':'A letter came for you from across the sea. Our messenger is bringing it.',4200));}
 function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS.z);g.visible=false;T.add(g);
   const stone=lam({map:TX.stone,color:0xb8b0a8}),dark=lam({color:0x2a2630}),red=new G.MeshStandardMaterial({color:0x26030a,roughness:1}),green=new G.MeshStandardMaterial({color:0x123a1c,roughness:1}),carpet=new G.MeshStandardMaterial({roughness:0.95,map:canvasTex(64,256,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#c9a03a';c.fillRect(3,0,5,h);c.fillRect(w-8,0,5,h);c.fillStyle='#1e4a26';c.fillRect(11,0,4,h);c.fillRect(w-15,0,4,h);})}),banM=new G.MeshStandardMaterial({side:G.DoubleSide,roughness:0.95,map:canvasTex(128,384,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#1e4a26';c.fillRect(0,h*0.62,w,h*0.16);c.fillStyle='#c9a03a';c.fillRect(0,0,w,10);c.fillRect(0,h*0.6,w,6);c.fillRect(0,h*0.78,w,6);c.fillRect(6,0,6,h);c.fillRect(w-12,0,6,h);c.beginPath();c.moveTo(w/2,70);c.lineTo(w/2+30,130);c.lineTo(w/2,190);c.lineTo(w/2-30,130);c.closePath();c.fill();c.fillStyle='#1e4a26';c.beginPath();c.arc(w/2,130,12,0,7);c.fill();c.fillStyle='#5a0a14';c.beginPath();c.moveTo(0,h);c.lineTo(w/2,h-40);c.lineTo(w,h);c.fill();})}),gold=new G.MeshStandardMaterial({color:0xd4a83a,metalness:0.85,roughness:0.3}),
@@ -4134,7 +4135,7 @@ function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
 // ================= storage chest =================
 function showStash(){
   const grid=(arr,max,pre)=>{const out=[];for(let i=0;i<max;i++){const it=arr[i];out.push(it?`<button class="cell ${it.type==='gear'&&isUpgrade(it)?'up':''}" type="button" data-act="${pre}-${i}" title="${esc(itemLabel(it))}"><img src="${iconURL(it)}" alt="">${(it.q||1)>1?`<span class="q">${it.q}</span>`:''}</button>`:'<div class="cell empty"></div>');}return out.join('');};
-  openDlg(`<h1 class="logo sm"><small>Your House</small>Storage Chest</h1><p class="tag">Tap something in your bag to put it in the chest. Tap something in the chest to take it back.</p>
+  openDlg(`<h1 class="logo sm"><small>${homeName()}</small>Storage Chest</h1><p class="tag">Tap something in your bag to put it in the chest. Tap something in the chest to take it back.</p>
     <div class="shopgrid"><div class="scard"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><div class="bag">${grid(INV.bag,BAG_MAX,'in')}</div></div>
       <div class="scard"><h3>Chest ${INV.stash.length}/${STASH_MAX}</h3><div class="bag">${grid(INV.stash,STASH_MAX,'out')}</div></div></div>
     <div class="row"><button class="btn" type="button" data-act="close">Close the chest</button><button class="btn alt" type="button" data-act="allgoods">Store all goods</button></div>`,'stash',(act)=>{
@@ -4188,7 +4189,7 @@ function showCraft(){
     return `<div class="scard recipe"><div class="itemline"><img src="${iconURL(r.icon)}" width="44" height="44" alt=""><div><h3 style="font-size:21px">${esc(r.n)}</h3><span class="note l">${esc(r.d)}</span></div></div>
       <div class="need">${have.map(([n,k,c])=>`<span class="${c>=k?'good':'bad'}">${k}× ${esc(n)} (you have ${c})</span>`).join('')}</div>
       <button class="buy" type="button" data-act="craft-${r.id}" ${ready&&ok===true?'':'disabled'}><span><b>${ready?(ok===true?'Craft':esc(ok)):'Missing materials'}</b></span><span class="cost">Free</span></button></div>`;}).join('');
-  openDlg(`<h1 class="logo sm"><small>${atHome()?'Your House':'The Blacksmith'}</small>Workbench</h1>
+  openDlg(`<h1 class="logo sm"><small>${atHome()?homeName():'The Blacksmith'}</small>Workbench</h1>
     <p class="tag">Turn the goods you find into potions, upgrades, crystals and more. ${atHome()?'You can use goods from your bag and your storage chest here.':'Only goods in your bag count here. The workbench at home can also use your storage chest.'}</p>
     <div class="shopgrid">${cards}</div><div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'craft',a=>{
       const r=RECIPES.find(x=>'craft-'+x.id===a);if(!r||r.ok()!==true)return;if(!Object.entries(r.need).every(([n,k])=>countGood(n)>=k))return;
@@ -5391,7 +5392,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['"Ugh... where am I?"','Cold water. The creak of old wood. Gulls crying somewhere above.','"How did I get here? I can\'t remember anything."'],INTRO_BLACK_VO=['h_wake1','','h_wake2'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','We have a guest hut for you. Keep your things there while you help us fight the Lich Queen.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'who',t0:performance.now()};S.state='intro';S.banner=null;
@@ -5416,7 +5417,7 @@ function introWakeUp(){if(!INTRO)return;const el=introEl();INTRO.phase='wake';IN
 function endIntro(){if(!INTRO)return;voStop();const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
   const n=INTRO.npc;if(n){killSprite(n.spr);if(n.spr.rfig)n.spr.rfig=null;S.npcs=S.npcs.filter(x=>x!==n);}INTRO=null;introWaves(false);
   Object.assign(H,{state:'ok',inv:30});S.state='play';S.banner={top:'Sumera',text:'Town of Grimfall',t:170};camUpdate(true);updateTouch();save();
-  schedule(120,()=>toast(INV.gift?'Press H to change your name or look. Your house is the first one across the street.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
+  schedule(120,()=>toast(INV.gift?'Press H to change your name or look. The guest hut is the first one across the street. Keep your things there.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
 function introWaves(on){try{if(!on){if(INTRO_W){const w=INTRO_W;INTRO_W=null;w.g.gain.setTargetAtTime(0,AC.currentTime,0.6);setTimeout(()=>{try{w.src.stop();}catch(e){}},2500);}return;}
   if(muted)return;musStart();const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();
   const b=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate),d=b.getChannelData(0);let v=0;for(let i=0;i<d.length;i++){v=v*0.97+(Math.random()*2-1)*0.03;d[i]=v*6;}src.buffer=b;src.loop=true;
