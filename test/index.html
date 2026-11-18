@@ -2796,7 +2796,7 @@ const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
 function scrollIcon(){if(SCRL.icon)return SCRL.icon;if(SCRL.st!=='ready'){loadScroll();return null;}const c=studio('scroll',p=>{p.add(SCRL.g.clone());},{rx:0.35,ry:0.3,rz:-0.35});if(c)SCRL.icon=c;return c||null;}
 // ---- magic scrolls: 8 kinds in 4 tiers; the tie and wax seal show the tier ----
-const SCR_TIER=['Bronze','Silver','Gold','Platinum'],SCR_COL=['#d08a4a','#d4dae2','#f5c842','#e4f0ff'],SCR_TIE=[0x9a5826,0xa9b0b8,0xd9a21e,0xcfe0f6],SCR_PRICE=[40,100,250,600];
+const SCR_TIER=['Bronze','Silver','Gold','Platinum'],SCR_COL=['#d08a4a','#d4dae2','#f5c842','#e4f0ff'],SCR_TIE=[0x9a5826,0x9aa2ac,0xd9a21e,0xb8e2ff],SCR_PRICE=[40,100,250,600];
 const SCROLLS={
  summon:{n:'Summoning',s:'Summon',e:t=>['1 skeleton fights for you for 30 seconds','2 skeletons fight for you for 45 seconds','3 skeleton warriors fight for you for 1 minute','4 skeletons and a big captain fight for you for 90 seconds'][t]},
  heal:{n:'Healing',s:'Heal',party:1,v:[0.3,0.5,0.75,1],e:t=>(t<3?`Heals ${[30,50,75][t]}% of your health`:'Full heal, then 5% a second for 2 minutes')+', whole party'},
@@ -2814,9 +2814,10 @@ function scrDesc(id,t){const Q=SCROLLS[id];if(id==='summon'&&H&&H.cls==='necroma
 const scrV=id=>{const b=H&&H.scr&&H.scr[id];return b&&b.t>0?b.v/100:0;};
 const SCR_MAT=[];let SCR_SEAL=null;
 function scrollModel(t){const o=SCRL.g.clone(true),tie=o.getObjectByName('scroll_tie');
-  if(!SCR_MAT[t]){const c=new THREE.Color(SCR_TIE[t]).convertSRGBToLinear();SCR_MAT[t]=new THREE.MeshStandardMaterial({color:c,metalness:0.45,roughness:0.3,emissive:c.clone().multiplyScalar(0.12)});}
-  if(tie){tie.material=SCR_MAT[t];if(!SCR_SEAL){tie.geometry.computeBoundingBox();const bb=tie.geometry.boundingBox;SCR_SEAL={g:new THREE.CylinderGeometry(0.075,0.075,0.025,24),c:bb.getCenter(new THREE.Vector3()),z:bb.max.z+0.01};}
-    const seal=new THREE.Mesh(SCR_SEAL.g,SCR_MAT[t]);seal.rotation.x=Math.PI/2;seal.position.set(SCR_SEAL.c.x,SCR_SEAL.c.y,SCR_SEAL.z);o.add(seal);}return o;}
+  if(!SCR_MAT[t]){const c=new THREE.Color(SCR_TIE[t]).convertSRGBToLinear();SCR_MAT[t]=new THREE.MeshStandardMaterial({color:c,metalness:0.7,roughness:0.25,emissive:c.clone().multiplyScalar(t===3?0.6:0.25)});}
+  if(tie){tie.material=SCR_MAT[t];if(!SCR_SEAL){tie.geometry.computeBoundingBox();const bb=tie.geometry.boundingBox;SCR_SEAL={g:new THREE.CylinderGeometry(0.12,0.12,0.035,28),c:bb.getCenter(new THREE.Vector3()),z:bb.max.z+0.015};const pp=o.getObjectByName('scroll_paper');pp.geometry.computeBoundingBox();const pb=pp.geometry.boundingBox,ps=pb.getSize(new THREE.Vector3());SCR_SEAL.ax=ps.x>=ps.z?'x':'z';SCR_SEAL.pb=pb;SCR_SEAL.rr=Math.min(ps.y,SCR_SEAL.ax==='x'?ps.z:ps.x)*0.36;SCR_SEAL.cap=new THREE.TorusGeometry(SCR_SEAL.rr,0.045,10,28);}
+    const seal=new THREE.Mesh(SCR_SEAL.g,SCR_MAT[t]);seal.rotation.x=Math.PI/2;seal.position.set(SCR_SEAL.c.x,SCR_SEAL.c.y,SCR_SEAL.z);o.add(seal);// metal end caps in the tier colour make bronze/silver/gold/platinum easy to tell apart
+    const pb=SCR_SEAL.pb,c=pb.getCenter(new THREE.Vector3());for(const e of [0.03,0.97]){const cap=new THREE.Mesh(SCR_SEAL.cap,SCR_MAT[t]);if(SCR_SEAL.ax==='x'){cap.position.set(pb.min.x+(pb.max.x-pb.min.x)*e,c.y,c.z);cap.rotation.y=Math.PI/2;}else cap.position.set(c.x,c.y,pb.min.z+(pb.max.z-pb.min.z)*e);o.add(cap);}}return o;}
 const SCR_ICON=[],SCR_URL=[];
 function scrIcon(t){if(SCR_ICON[t])return SCR_ICON[t];if(SCRL.st!=='ready'){loadScroll();return null;}const c=studio('scroll'+t,p=>{p.add(scrollModel(t));},{rx:0.35,ry:0.3,rz:-0.35});if(c)SCR_ICON[t]=c;return c||null;}
 function scrURL(t){if(SCR_URL[t])return SCR_URL[t];const c=scrIcon(t);return c?(SCR_URL[t]=c.toDataURL()):'';}
