@@ -1670,7 +1670,7 @@ function crewTick(){const c=ship&&ship.userData.crew;if(!c){if(ship&&ship.visibl
 // Pearl model units: z along the hull (bow -z, stern +z), y up. Ship-local: x along the hull with the bow at +x, so local x = ox - z*s, local z = x*s
 const PEARL={s:22/4200/1.4,ox:1.2,y0:0.304,look:null,hull:null,sail:null,tex:{}};
 const pearlLX=mz=>PEARL.ox-mz*PEARL.s,pearlMZ=lx=>(PEARL.ox-lx)/PEARL.s;
-function pearlDeck(lx){const z=pearlMZ(lx);let y;if(z<-850)y=460;else if(z<-750)y=460-(z+850)*1.7;else if(z<1000)y=290;else if(z<1450)y=340;else if(z<1550)y=340+(z-1450)*3.1;else y=650+Math.min(600,z-1550)*0.15;return y*PEARL.s+PEARL.y0;}
+function pearlDeck(lx){const z=pearlMZ(lx);let y;if(z<-850)y=460;else if(z<-750)y=460-(z+850)*1.7;else if(z<1000)y=290;else if(z<1450)y=340;else if(z<1550)y=340+(z-1450)*3.1;else if(z<1700)y=650+(z-1550)*0.15;else y=722+Math.max(0,Math.min(400,z-2000))*0.1;return y*PEARL.s+PEARL.y0;} // the raised stern deck at the back is a step higher
 const PEARL_HW=[[-1250,300],[-1100,320],[-900,370],[-700,470],[-300,500],[300,480],[900,465],[1200,430],[1500,395],[1800,355],[2140,320]];
 function pearlHW(lx){const z=pearlMZ(lx),T=PEARL_HW;let w=T[0][1];for(let i=1;i<T.length;i++){if(z<=T[i][0]){const a=T[i-1],b=T[i],k=(z-a[0])/(b[0]-a[0]);w=a[1]+(b[1]-a[1])*Math.max(0,Math.min(1,k));break;}w=T[i][1];}return w*0.82*PEARL.s;}
 function pearlLoad(){if(!THREE.GLTFLoader||!ship)return;loadModelData('pearl').then(gl=>{const o=gl.scene;o.rotation.y=-Math.PI/2;o.scale.setScalar(PEARL.s);o.position.set(PEARL.ox,PEARL.y0,0);
@@ -1695,13 +1695,19 @@ function pearlFurl(on){const m=PEARL.sailM;if(!m||!!PEARL.furled===on)return;PEA
   P.array.set(on?PEARL.sailDn:PEARL.sailUp);P.needsUpdate=true;g.computeBoundingSphere();}
 function pearlLook(won){if(!PEARL.hull||PEARL.look===won)return;PEARL.look=won;PEARL.hull.color.setHex(won?0xffffff:0x262428);PEARL.sail.map=pearlTex(won);PEARL.sail.needsUpdate=true;}
 // walking on the warship's decks (ship-local coordinates: x along the hull, bow +x; the ship is turned round and scaled 1.4)
-function shipTopY(x){if(ship&&ship.userData.pearl)return pearlDeck(x);return x<-4.2?2.67:x<-3.7?2.67+(2.02-2.67)*(x+4.2)/0.5:2.02;} // the plank decks: stern deck 2.67, main deck 2.02
+// the real plank height under a spot on the Pearl, measured once per small square and remembered
+const DECKC={};
+function pearlDeckAt(lx,lz){const f=pearlDeck(lx),o=ship&&ship.userData.pearl;if(!o)return f;const gx=Math.round(lx*5)/5,gz=Math.round(lz*5)/5,k=gx+','+gz;if(DECKC[k]!==undefined)return DECKC[k];
+  if(!DECKC._m){DECKC._m=[];o.traverse(m=>{if(m.isMesh&&m!==PEARL.sailM)DECKC._m.push(m);});}
+  ship.updateMatrixWorld(true);const from=ship.localToWorld(new THREE.Vector3(gx,f+0.7,gz)),dir=ship.localToWorld(new THREE.Vector3(gx,f-1,gz)).sub(from).normalize();
+  const h=new THREE.Raycaster(from,dir,0,2.5).intersectObjects(DECKC._m,false)[0];let y=f;if(h){y=ship.worldToLocal(h.point.clone()).y;if(Math.abs(y-f)>0.6)y=f;}return DECKC[k]=y;}
+function shipTopY(x,z){if(ship&&ship.userData.pearl)return z===undefined?pearlDeck(x):pearlDeckAt(x,z);return x<-4.2?2.67:x<-3.7?2.67+(2.02-2.67)*(x+4.2)/0.5:2.02;} // the plank decks: stern deck 2.67, main deck 2.02
 const SHIPV=new THREE.Vector3();
 function shipDeck(){const sc=1.4,p=ship.position;let lx=(p.x-H.x)/sc,lz=(p.z-H.z)/sc;
   const PL=ship.userData.pearl;if(lx>-3.2&&lx<-2.0&&lz<(PL?-(pearlHW(lx)-0.1):-1.75)){H.onShip=false;H.shipMoved=false;if(ship.userData.lateen)ship.userData.lateen.visible=true;Object.assign(H,{x:H.x,z:2.15,y:0,vy:0});toast('You step down onto the pier.');return;} // gangway on the pier side
   if(PL)lx=clamp(lx,pearlLX(2140),pearlLX(-1240));else lx=clamp(lx,-7.0,5.0);const hw=PL?pearlHW(lx):2.2*(lx>2.5?1-0.9*Math.pow((lx-2.5)/6.3,1.6):lx<-5?1-0.25*((-5-lx)/2.6):1)*0.82;lz=clamp(lz,-hw,hw);
   for(const mx of (PL?[pearlLX(-870),pearlLX(500),pearlLX(1430)]:[4.8,0.6,-5.4])){const dx=lx-mx,dl=Math.hypot(dx,lz);if(dl<0.45){const k=0.45/(dl||0.01);lx=mx+dx*k;lz*=k;}} // masts
-  H.x=p.x-lx*sc;H.z=p.z-lz*sc;ship.updateMatrixWorld();H.y=ship.localToWorld(SHIPV.set(lx,shipTopY(lx),lz)).y+0.02;H.vy=0;} // exactly on the planks, even as the ship rocks
+  H.x=p.x-lx*sc;H.z=p.z-lz*sc;ship.updateMatrixWorld();H.y=ship.localToWorld(SHIPV.set(lx,shipTopY(lx,lz),lz)).y+0.02;H.vy=0;} // exactly on the planks, even as the ship rocks
 function dockTick(){if(!DKFX.boat)return;crewTick();const t=(DKFX.t+=0.016);const b=DKFX.boat;b.position.y=-0.28+Math.sin(t*1.3)*0.05;b.rotation.z=Math.sin(t*1.1)*0.04;b.rotation.x=Math.sin(t*0.9+1)*0.03;
   for(const q of DKFX.gulls){const a=q.ph+t*q.sp,g=q.g;g.position.set(q.cx+Math.cos(a)*q.r,q.h+Math.sin(t*0.7+q.ph)*0.4,q.cz+Math.sin(a)*q.r);g.rotation.y=-a+(q.sp>0?0:Math.PI);g.rotation.z=(q.sp>0?-1:1)*0.25;
     const fl=Math.sin(t*9+q.ph)*0.5;g.userData.wings[0].rotation.z=fl;g.userData.wings[1].rotation.z=-fl;}
@@ -2801,9 +2807,10 @@ const SCROLLS={
  arm:{n:'Armor Find',s:'Armor',party:1,v:[10,15,20,30],d:[5,10,20,20],e:'more armor'},
  haste:{n:'Haste',s:'Haste',v:[10,15,20,25],d:[2,3,5,5],e:'faster moving'}};
 const SCR_IDS=Object.keys(SCROLLS);
+const SCR_MANA=[10,15,20,30]; // the Necromancer already raises the dead, so for him a Summoning scroll means endless mana
 const scrParty=(id,t)=>!!(SCROLLS[id].party||(id==='haste'&&t===3));
 const scrName=(id,t)=>`${SCR_TIER[t]} Scroll of ${SCROLLS[id].n}`;
-function scrDesc(id,t){const Q=SCROLLS[id];return typeof Q.e==='function'?Q.e(t):`+${Q.v[t]}% ${Q.e} for ${Q.d[t]} minutes`+(scrParty(id,t)?', whole party':'');}
+function scrDesc(id,t){const Q=SCROLLS[id];if(id==='summon'&&H&&H.cls==='necromancer')return `Your Necromancer gets endless mana for ${SCR_MANA[t]} seconds`;return typeof Q.e==='function'?Q.e(t):`+${Q.v[t]}% ${Q.e} for ${Q.d[t]} minutes`+(scrParty(id,t)?', whole party':'');}
 const scrV=id=>{const b=H&&H.scr&&H.scr[id];return b&&b.t>0?b.v/100:0;};
 const SCR_MAT=[];let SCR_SEAL=null;
 function scrollModel(t){const o=SCRL.g.clone(true),tie=o.getObjectByName('scroll_tie');
@@ -2821,7 +2828,7 @@ function readScroll(key){INV.scrolls=INV.scrolls||{};if(!key||!(INV.scrolls[key]
 function nextScroll(quiet){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length){INV.scrSel=null;return;}const i=ks.indexOf(INV.scrSel);INV.scrSel=ks[(i+1)%ks.length];
   if(!quiet){const id=INV.scrSel.slice(0,-1),t=+INV.scrSel.slice(-1);toast('Scroll ready (press 5): '+scrName(id,t)+' ×'+INV.scrolls[INV.scrSel]);}}
 function scrApply(id,t,from){if(!H)return;const Q=SCROLLS[id],col=SCR_COL[t];H.scr=H.scr||{};
-  if(id==='summon'){if(from)return;scrSummon(t);}
+  if(id==='summon'){if(from)return;if(H.cls==='necromancer'){H.mp=H.maxMp;H.scr.mana={t:SCR_MANA[t]*60,v:0,tier:t};}else scrSummon(t);}
   else if(id==='heal'){if(H.state==='down')return;const v=Math.round(H.maxHp*Q.v[t]);H.hp=Math.min(H.maxHp,H.hp+v);floatText(H.x,2.1,H.z,'+'+v,'#7dffa0',18);if(t===3)H.scr.regen={t:120*60,v:5,tier:3};}
   else{const cur=H.scr[id];if(!cur||cur.t<=0||Q.v[t]>=cur.v)H.scr[id]={t:Q.d[t]*3600,v:Q.v[t],tier:t};}
   say(H,from?`${from} read a ${SCR_TIER[t]} Scroll of ${Q.n}!`:`${scrName(id,t)}!`,2600);
@@ -2834,8 +2841,9 @@ function scrSummon(t){const L=S.minions||(S.minions=[]),n=[1,2,3,4][t],life=[30,
     for(let k=0;k<14;k++)addPart({x:m.x+rnd(-.5,.5),y:rnd(0,.4),z:m.z+rnd(-.5,.5),vy:rnd(.03,.07),g:0.001,life:34,size:rnd(.06,.12),color:k%2?SCR_COL[t]:'#efe7d2'});}}
 function scrTick(){if(!H||!H.scr)return;for(const id in H.scr){const b=H.scr[id];if(!b||b.t<=0)continue;b.t--;
     if(id==='regen'){if(b.t%60===0&&H.state!=='down')H.hp=Math.min(H.maxHp,H.hp+H.maxHp*0.05);}
+    else if(id==='mana'){H.mp=H.maxMp;if(S.frame%4===0)addPart({x:H.x+rnd(-.4,.4),y:rnd(.3,1.8),z:H.z+rnd(-.4,.4),vy:0.02,g:0,life:16,size:0.08,color:'#7aa8ff'});}
     else if(id==='haste'&&S.frame%5===0&&H.moving)addPart({x:H.x+rnd(-.3,.3),y:0.15,z:H.z+rnd(-.3,.3),vy:0.01,g:0,life:14,size:0.08,color:SCR_COL[b.tier]});
-    if(b.t===0)floatText(H.x,2.4,H.z,(id==='regen'?'Healing':SCROLLS[id].n)+' wore off','#c8c0d6',14);}}
+    if(b.t===0)floatText(H.x,2.4,H.z,(id==='regen'?'Healing':id==='mana'?'Endless mana':SCROLLS[id].n)+' wore off','#c8c0d6',14);}}
 // extra drops from active scrolls, and the rare scroll itself
 function scrLoot(e,d){const big=d.boss?1:d.elite?0.5:0.08,L=scrV('luck'),W=scrV('wpn'),A=scrV('arm'),G=scrV('gem');
   if(W&&Math.random()<W*big)dropPickup('gear',e.x,e.z,0,gearFor(L,'weapon'));
@@ -2846,7 +2854,7 @@ function scrLoot(e,d){const big=d.boss?1:d.elite?0.5:0.08,L=scrV('luck'),W=scrV(
 function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&&H.buffs[M.id]&&H.buffs[M.id].t>0).length;
   for(const id in H.scr){const b=H.scr[id];if(!b||b.t<=0)continue;const bx=x+k*44,ic=scrIcon(b.tier),sec=Math.ceil(b.t/60);k++;
     g.fillStyle='rgba(16,12,28,.8)';rrp(g,bx,y,40,40,8);g.fill();g.strokeStyle=SCR_COL[b.tier];g.lineWidth=1.5;g.stroke();if(ic)g.drawImage(ic,25,40,110,80,bx+3,y+8,34,25);
-    g.textAlign='center';g.font=`800 9px ${BF}`;g.fillStyle=SCR_COL[b.tier];g.fillText(id==='regen'?'Heal':SCROLLS[id].s,bx+20,y+9);g.font=`800 11px ${BF}`;g.fillStyle='#f2e7cf';g.fillText(sec>=60?Math.ceil(sec/60)+'m':sec+'s',bx+20,y+38);g.textAlign='left';}}
+    g.textAlign='center';g.font=`800 9px ${BF}`;g.fillStyle=SCR_COL[b.tier];g.fillText(id==='regen'?'Heal':id==='mana'?'Mana':SCROLLS[id].s,bx+20,y+9);g.font=`800 11px ${BF}`;g.fillStyle='#f2e7cf';g.fillText(sec>=60?Math.ceil(sec/60)+'m':sec+'s',bx+20,y+38);g.textAlign='left';}}
 function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
   return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
