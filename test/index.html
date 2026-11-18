@@ -4470,8 +4470,10 @@ const CARDF={};let cardAng=0.5,cardTick=0;
 function cardHero(cls){return {cls,look:null,weapon:{tier:1,grade:0},armor:{tier:cls==='barbarian'?2:1,grade:0},jewels:{},off:null,helm:null,hands:null,feet:null,cape:null,
   x:0,y:0,z:0,fx:0,fz:1,anim:0,moving:false,swing:0,swingMax:1,castT:0,state:'ok',dash:0,rage:0,inv:0,melee:false};}
 const CARDR={};
-function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;const eq=h?{helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet}:null,ck=cls+(h&&h.sex==='f'?'_f':'')+(eq?'|'+Object.values(eq).map(Number).join('')+(h.armor?h.armor.tier:0):'');if(CARDR[ck])return CARDR[ck];if(loadReal(cls)!=='ready'||animState!=='ready')return null;
-  const mi=modelInfo(cls,h||{cls,sex:'m'});if(loadReal(null,mi.f)!=='ready'||(mi.arm&&loadReal(null,mi.arm)!=='ready'))return null;const REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);
+function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null;const eq=h?{helm:!!h.helm,armor:!!h.armor&&h.armor.tier>=1,hands:!!h.hands,feet:!!h.feet}:null,ck=cls+(h&&h.sex==='f'?'_f':'')+(eq?'|'+Object.values(eq).map(Number).join('')+(h.armor?h.armor.tier:0):'');const mi=modelInfo(cls,h||{cls,sex:'m'});if(mi.arm)loadReal(null,mi.arm);const armOk=!mi.arm||(REALS[mi.arm]&&REALS[mi.arm].state==='ready');
+  // show the hero right away; swap in the armored picture once the armor file has arrived
+  if(CARDR[ck]){if(!CARDR[ck].noArm||!armOk)return CARDR[ck];PS.remove(CARDR[ck].root);delete CARDR[ck];}if(loadReal(cls)!=='ready'||animState!=='ready')return null;
+  if(loadReal(null,mi.f)!=='ready')return null;const REAL=REALS[mi.f],m=THREE.SkeletonUtils.clone(REAL.gltf.scene),root=new THREE.Group();for(const o of m.children.filter(o=>o.userData.armc))m.remove(o);
   // the hero's own armor set goes on every picture too (bag, start screen, item icons)
   const AR=mi.arm&&REALS[mi.arm],armL=ARM_LOOK[Math.max(0,Math.min(4,(h&&h.armor?h.armor.tier:1)|0))];if(AR&&AR.state==='ready'){const bones={};m.traverse(o=>{if(o.isBone)bones[o.name.replace(/_\d+$/,'')]=o;});const ac=THREE.SkeletonUtils.clone(AR.gltf.scene),list=[];ac.traverse(o=>{if(o.isSkinnedMesh)list.push(o);});
     for(const o of list){const bs=o.skeleton.bones.map(b=>bones[b.name.replace(/_\d+$/,'')]);if(bs.some(b=>!b))continue;o.bind(new THREE.Skeleton(bs,o.skeleton.boneInverses),o.bindMatrix);o.userData.armc=1;o.userData.cardArm=1;o.parent.remove(o);m.add(o);}}
@@ -4481,7 +4483,7 @@ function cardReal(cls,h){if(SET.style!=='real'||!THREE.SkeletonUtils)return null
     if(o.userData.cardArm&&mi.tierLook&&o.material.map){o.material.color.setHex(mi.cloth?0xffffff:armL.c);o.material.emissive.setHex(armL.e);o.material.emissiveIntensity=armL.i*0.7;}}});
   // like the hero in the world: each armor piece shows once it is worn (the start screen shows the whole set)
   if(mi.slots){const on=eq||{helm:1,armor:1,hands:1,feet:1};m.traverse(o=>{if(!o.isMesh)return;const r=/^(arm|body)_(?:[a-z]+_)?(helm|armor|hands|feet)/.exec(o.name);if(r)o.visible=r[1]==='arm'?!!on[r[2]]:(!on[r[2]]||(mi.keepHead&&r[2]==='helm'));});}
-  const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[ck]={root,mx,h:mi.tall||1.62};}
+  const mx=new THREE.AnimationMixer(m);const cl=(ANIMS||[]).find(c=>c.name==='idle');if(cl)mx.clipAction(cl).play();root.visible=false;PS.add(root);return CARDR[ck]={root,mx,h:mi.tall||1.62,noArm:!armOk};}
 function drawCard3d(cv,cls,ang){if(!portraitInit())return false;
   const RC=cardReal(cls);if(RC){for(const k in CARDF)CARDF[k].root.visible=false;for(const k in CARDR)CARDR[k].root.visible=k===cls;if(PFIG)PFIG.root.visible=false;
     RC.root.rotation.y=ang;RC.mx.setTime((performance.now()/1000)%10);const hh=RC.h;PR.setPixelRatio(1);PR.setSize(cv.width,cv.height,false);PC.aspect=1;PC.fov=27;PC.position.set(0,hh*0.56,hh*2.75);PC.lookAt(0,hh*0.5,0);PC.updateProjectionMatrix();PR.render(PS,PC);
