@@ -807,7 +807,7 @@ const DOCK_SPOT={x:-47.95,z:-2.4,fx:1,fz:0,ship:true}; // the warship's raised s
 const ROYALS=[{f:'king',x:-34,z:-0.6,tall:1.97},{f:'queen',x:-34,z:1.2,tall:1.86}];
 function royalThanks(){if(S.state!=='play'||S.level!=='town')return;
   openDlg(`<h1 class="logo sm"><small>Castle Grimfall</small>The King and Queen are free!</h1><p class="tag">"We were chained beneath the Lich Queen's throne for longer than we can remember. We had stopped hoping anyone would come. You did."</p><p class="tag">"Sumera is free because of you. Tonight the whole town celebrates its heroes."</p><div class="row"><button class="btn" type="button" data-act="ok">Long live the King and Queen!</button></div>`,'royal',()=>closeDlg(),false);}
-function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();
+function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();pearlFurl(want);
   if(!want){if(PARTY.figs.length){for(const f of PARTY.figs){scene.remove(f.R.root);}PARTY.figs=[];}return;}
   if(!PARTY.figs.length){let ready=animState==='ready';for(const g of PGROUPS)for(const m of g.men.concat(g.girls))if(loadReal(null,m)!=='ready')ready=false;for(const r of ROYALS)if(loadReal(null,r.f)!=='ready')ready=false;if(!ready)return;
     for(const r of ROYALS){const e={x:r.x,z:r.z,fx:-1,fz:0};const R=buildRealMon(e,{f:r.f,tall:r.tall});scene.add(R.root);PARTY.figs.push({R,e,kind:'idle'});}
@@ -1675,7 +1675,7 @@ const PEARL_HW=[[-1250,300],[-1100,320],[-900,370],[-700,470],[-300,500],[300,48
 function pearlHW(lx){const z=pearlMZ(lx),T=PEARL_HW;let w=T[0][1];for(let i=1;i<T.length;i++){if(z<=T[i][0]){const a=T[i-1],b=T[i],k=(z-a[0])/(b[0]-a[0]);w=a[1]+(b[1]-a[1])*Math.max(0,Math.min(1,k));break;}w=T[i][1];}return w*0.82*PEARL.s;}
 function pearlLoad(){if(!THREE.GLTFLoader||!ship)return;loadModelData('pearl').then(gl=>{const o=gl.scene;o.rotation.y=-Math.PI/2;o.scale.setScalar(PEARL.s);o.position.set(PEARL.ox,PEARL.y0,0);
   for(const c of ship.children)if(!c.userData.crewR)c.visible=false;
-  o.traverse(m=>{if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;const mt=m.material;if(/hull/.test(mt.name))PEARL.hull=mt;if(/sail/.test(mt.name)){PEARL.sail=mt;mt.alphaTest=0.5;}});
+  o.traverse(m=>{if(!m.isMesh)return;m.castShadow=true;m.receiveShadow=true;const mt=m.material;if(/hull/.test(mt.name))PEARL.hull=mt;if(/sail/.test(mt.name)){PEARL.sail=mt;PEARL.sailM=m;mt.alphaTest=0.5;}});
   ship.add(o);ship.userData.pearl=o;ship.userData.lateen=null;DKFX.tier=-1;}).catch(e=>console.warn('pearl',e));}
 function pearlTex(won){const k=won?'w':'b';if(PEARL.tex[k])return PEARL.tex[k];const t=canvasTex(512,256,(c,w,h)=>{c.clearRect(0,0,w,h);
     if(won){c.fillStyle='#7a1220';c.fillRect(0,0,256,256);c.fillStyle='#1e4a26';c.fillRect(86,0,84,256);c.fillStyle='#c9a03a';c.fillRect(80,0,6,256);c.fillRect(170,0,6,256);c.fillRect(0,0,256,10);c.fillRect(0,246,256,10);
@@ -1685,6 +1685,14 @@ function pearlTex(won){const k=won?'w':'b';if(PEARL.tex[k])return PEARL.tex[k];c
       for(let x=0;x<256;x+=6)c.fillRect(x,256-(2+rnd2()*24),5,30);c.globalCompositeOperation='source-over';}
     const fl=won?['#7a1220','#c9a03a','#1e4a26','#c9a03a','#7a1220']:['#141016','#3a1a4a','#141016','#3a1a4a','#141016'];fl.forEach((col,i)=>{c.fillStyle=col;c.fillRect(256,i*51,256,52);});});
   t.flipY=false;return PEARL.tex[k]=t;}
+// for the victory party the sails are rolled up to their yards so the castle and fireworks show
+function pearlFurl(on){const m=PEARL.sailM;if(!m||!!PEARL.furled===on)return;PEARL.furled=on;const g=m.geometry,P=g.attributes.position;
+  if(!PEARL.sailUp){PEARL.sailUp=P.array.slice();const n=P.count,par=new Int32Array(n).map((_,i)=>i),f=i=>{while(par[i]!==i)i=par[i]=par[par[i]];return i;},un=(a,b)=>{a=f(a);b=f(b);if(a!==b)par[a]=b;};
+    const key={};for(let i=0;i<n;i++){const k=Math.round(P.getX(i))+','+Math.round(P.getY(i))+','+Math.round(P.getZ(i));if(key[k]!==undefined)un(i,key[k]);else key[k]=i;}
+    const idx=g.index?g.index.array:null,tri=idx?idx.length:n;for(let t=0;t<tri;t+=3){const a=idx?idx[t]:t,b=idx?idx[t+1]:t+1,c=idx?idx[t+2]:t+2;un(a,b);un(b,c);}
+    const top={};for(let i=0;i<n;i++){const r0=f(i);top[r0]=Math.max(top[r0]===undefined?-1e9:top[r0],P.getY(i));}
+    const dn=PEARL.sailUp.slice();for(let i=0;i<n;i++){const t=top[f(i)];dn[i*3+1]=t-(t-P.getY(i))*0.07;dn[i*3]*=0.85;}PEARL.sailDn=dn;}
+  P.array.set(on?PEARL.sailDn:PEARL.sailUp);P.needsUpdate=true;g.computeBoundingSphere();}
 function pearlLook(won){if(!PEARL.hull||PEARL.look===won)return;PEARL.look=won;PEARL.hull.color.setHex(won?0xffffff:0x262428);PEARL.sail.map=pearlTex(won);PEARL.sail.needsUpdate=true;}
 // walking on the warship's decks (ship-local coordinates: x along the hull, bow +x; the ship is turned round and scaled 1.4)
 function shipTopY(x){if(ship&&ship.userData.pearl)return pearlDeck(x);return x<-4.2?2.67:x<-3.7?2.67+(2.02-2.67)*(x+4.2)/0.5:2.02;} // the plank decks: stern deck 2.67, main deck 2.02
