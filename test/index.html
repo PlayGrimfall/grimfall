@@ -2296,7 +2296,7 @@ for(const F of FLOORS){F.fog.near=19;F.fog.far=48;}
 // ================= input =================
 const keys=Object.create(null);
 const touch={mx:0,my:0,attack:false,jump:false,sp1:false,sp2:false};
-const GK=new Set(['Tab','Digit1','Digit2','Digit3','Digit4','KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyJ','KeyK','KeyL','KeyI','KeyQ','KeyE','Space','Comma','Period','Slash','Semicolon']);
+const GK=new Set(['Tab','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyJ','KeyK','KeyL','KeyI','KeyQ','KeyE','Space','Comma','Period','Slash','Semicolon']);
 addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(S.state==='play'&&GK.has(e.code))e.preventDefault();
@@ -2316,6 +2316,8 @@ addEventListener('keydown',e=>{
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit3'){if(!INV.mealSel)nextMeal(true);eatMeal(INV.mealSel);}
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit4')nextMeal();
+  if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit5'){if(!INV.scrSel)nextScroll(true);if(!readScroll(INV.scrSel)&&!INV.scrSel)toast('No scrolls. Find them in the dungeon or buy them at the magic shop.');}
+  if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit6')nextScroll();
   if(e.code==='KeyO'&&!e.repeat&&H&&!e.shiftKey){snapShot();} // O = save a screenshot (with the camera spot written in the corner)
   if(e.code==='KeyG'&&S.state==='play'&&H){if(S.level!=='town')toast('Save the dancing for town.');else{H.dance=((H.dance||0)+1)%3;if(H.dance)toast(H.dance===1?'Samba! (G for another dance, move to stop)':'Gangnam style! (G to stop)');}}
   if(e.code==='KeyM'){if(S.level==='dungeon'&&S.state==='play')S.mapOn=!S.mapOn;else toggleMute();}if(e.code==='KeyT'&&!e.shiftKey)townPortal();
@@ -2487,7 +2489,7 @@ function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
 }
 function pushOut(o,cols,r){for(const c of cols){const x0=c[0]-r,x1=c[1]+r,z0=c[2]-r,z1=c[3]+r;if(o.x>x0&&o.x<x1&&o.z>z0&&o.z<z1){const a=o.x-x0,b=x1-o.x,cc=o.z-z0,d=z1-o.z,m=Math.min(a,b,cc,d);if(m===a)o.x=x0;else if(m===b)o.x=x1;else if(m===cc)o.z=z0;else o.z=z1;}}}
 function camVecs(){const y=CAM.yawC;return {rx:Math.cos(y),rz:-Math.sin(y),fx:-Math.sin(y),fz:-Math.cos(y)};}
-function updHero(inp){buffTick();if(H.onShip){if(S.level!=='town'||!ship){H.onShip=false;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;if(inp.mx||inp.my||inp.mv)H.shipMoved=true;inp.jump=inp.jumpP=false;if(!H.shipMoved){shipDeck();H.moving=false;H.fx=1;H.fz=0;return;}}}
+function updHero(inp){buffTick();scrTick();if(H.onShip){if(S.level!=='town'||!ship){H.onShip=false;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;if(inp.mx||inp.my||inp.mv)H.shipMoved=true;inp.jump=inp.jumpP=false;if(!H.shipMoved){shipDeck();H.moving=false;H.fx=1;H.fz=0;return;}}}
 if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
   const h=H,d=HEROES[h.cls];h.anim++;
   if(h.inv>0)h.inv--;if(h.noMpT>0)h.noMpT--;
@@ -2510,7 +2512,7 @@ if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
     h.strafe=0;if(camMode()==='behind'&&!inp.mv){const tn=inp.tn||0,sx=inp.sx||0;if(tn&&h.swing<=0){const a=-tn*0.042,c=Math.cos(a),si=Math.sin(a),fx=h.fx*c+h.fz*si,fz=-h.fx*si+h.fz*c;h.fx=fx;h.fz=fz;}
       vx=-h.fx*my-h.fz*sx;vz=-h.fz*my+h.fx*sx;bk=my>0||!!sx;if(sx&&!my)h.strafe=sx;} // arrows turn, A/D side-step, W/S forward/back
     if(inp.mv){vx=inp.mv[0];vz=inp.mv[1];}else if(inp.face&&h.swing<=0){const fl=Math.hypot(inp.face[0],inp.face[1]);if(fl>0.01){h.fx=inp.face[0]/fl;h.fz=inp.face[1]/fl;}} const l=Math.hypot(vx,vz);
-    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
+    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(1+scrV('haste'))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
     if(l>0.01){vx/=l;vz/=l;const sp2=bk?spd*0.6:spd;h.x+=vx*sp2;h.z+=vz*sp2;h.moving=true;if(h.swing<=0&&!bk){h.fx=vx;h.fz=vz;}
       if(h===H&&h.y<=0){h.stepD=(h.stepD||0)+spd;if(h.stepD>1.05){h.stepD=0;stepSnd();}}}
     if(inp.jump&&h.y<=0&&h.castT<=0){h.vy=0.24;sfx('jump');}
@@ -2587,8 +2589,8 @@ function special(n){
 let MIN_UID=0;const MIN_MAX=3,MIN_EYE={up:0.03,fw:0.12,sd:0.045,sz:0.11};
 function minionNew(x,z,remote){return {type:'skeleton',def:EN.skeleton,x,z,y:0,vy:0,vx:0,vz:0,face:1,fx:0,fz:1,state:'walk',t:0,cd:30,anim:ri(0,99),flash:0,rootT:0,spawnInv:0,scale:0.95,moving:false,mine:!remote,remote:!!remote,pid:'m'+(++MIN_UID),hp:1,maxHp:1,life:0,spr:makeSprite(512,512,256,472,2)};}
 function raiseSkeletons(){const L=S.minions||(S.minions=[]),rk=spRank(2),life=1800+300*(rk-1),hp=Math.round((45+14*H.lvl)*(1+0.15*(rk-1)));
-  for(const m of L)if(m.state!=='dead'){m.life=life;m.maxHp=hp;m.hp=hp;}
-  let made=0;for(let i=0;L.filter(m=>m.state!=='dead').length<MIN_MAX&&i<MIN_MAX;i++){const a=Math.atan2(H.fz,H.fx)+(made-1)*0.9,x=H.x+Math.cos(a)*1.6,z=H.z+Math.sin(a)*1.6;
+  for(const m of L)if(m.state!=='dead'&&!m.scr){m.life=life;m.maxHp=hp;m.hp=hp;}
+  let made=0;for(let i=0;L.filter(m=>m.state!=='dead'&&!m.scr).length<MIN_MAX&&i<MIN_MAX;i++){const a=Math.atan2(H.fz,H.fx)+(made-1)*0.9,x=H.x+Math.cos(a)*1.6,z=H.z+Math.sin(a)*1.6;
     const m=minionNew(x,z,false);m.life=life;m.hp=m.maxHp=hp;m.fx=H.fx;m.fz=H.fz;clampPos(m);L.push(m);made++;poof(m.x,0,m.z,0.9);
     for(let k=0;k<14;k++)addPart({x:m.x+rnd(-.5,.5),y:rnd(0,.4),z:m.z+rnd(-.5,.5),vy:rnd(.03,.07),g:0.001,life:34,size:rnd(.06,.12),color:k%2?'#ff3a2a':'#5a0a0a'});}
   floatText(H.x,2.5,H.z,made?'Rise!':'Bones renewed','#ff6a5a',20);ring(H.x,H.z,'#ff2a2a',0.4,0.1,26);sfx('magic');}
@@ -2603,7 +2605,7 @@ function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
     m.anim++;m.moving=false;if(m.flash>0)m.flash--;if(m.cd>0)m.cd--;if(--m.life<=0||!H){minionCrumble(m);return;}
     for(const p of S.eproj){if(p.dead||p.g)continue;if(Math.hypot(p.x-m.x,p.z-m.z)<0.55){p.dead=true;minionHurt(m,p.dmg,p.vx,p.vz);sparks(p.x,p.y,p.z,5,'#ff9a4a');if(m.state==='dead')return;}}
     let tg=null,bd=8;for(const e of S.enemies){if(e.state==='dead'||e.remove)continue;const d=Math.hypot(e.x-m.x,e.z-m.z);if(d<bd&&Math.hypot(e.x-H.x,e.z-H.z)<13){bd=d;tg=e;}}
-    if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,spDmg(10,2)*(setN(H)>=4?1.3:1),m.fx,m.fz,false);}return;}
+    if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,m.dmg||spDmg(10,2)*(setN(H)>=4?1.3:1),m.fx,m.fz,false);}return;}
     if(m.state==='strike'){if(--m.t<=0)m.state='walk';return;}
     if(tg){const dx=tg.x-m.x,dz=tg.z-m.z,d=Math.hypot(dx,dz)||1;m.fx=dx/d;m.fz=dz/d;
       if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;}else if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}
@@ -2638,7 +2640,7 @@ function hurtHero(dmg,dx,dz,kd){
   const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;
   if(h.hp<=0&&!h.fairyUsed&&gemSum(h,'amber')>0){h.fairyUsed=true;h.hp=Math.round(h.maxHp*Math.min(0.8,0.2+0.2*gemSum(h,'amber')));h.inv=150;
     floatText(h.x,2.4,h.z,'The amber fairy wakes!','#ffc87a',19);for(let i=0;i<18;i++)addPart({x:h.x+rnd(-.4,.4),y:rnd(.2,1.8),z:h.z+rnd(-.4,.4),vy:rnd(.02,.05),g:0,life:40,size:.07,color:i%2?'#ffd8a0':'#fff',kind:'star'});sfx('potion');return;}
-  if(h.hp<=0){h.hp=0;h.state='down';h.vx=dx*0.08;h.vz=dz*0.08;h.vy=0.1;h.rage=0;floatText(h.x,2.3,h.z,'Down!','#ffb0b0',20);schedule(110,()=>{S.state='dead';document.getElementById('dead').hidden=false;updateTouch();});return;}
+  if(h.hp<=0){h.hp=0;h.state='down';if(h===H)H.scr={};h.vx=dx*0.08;h.vz=dz*0.08;h.vy=0.1;h.rage=0;floatText(h.x,2.3,h.z,'Down!','#ffb0b0',20);schedule(110,()=>{S.state='dead';document.getElementById('dead').hidden=false;updateTouch();});return;}
   const sm=gemSum(h,'smoky'),pk=Math.max(0.35,1-0.15*sm);
   if(kd){h.state='kd';h.kdT=Math.max(14,50-12*sm);h.vx=dx*0.11*pk;h.vz=dz*0.11*pk;h.vy=0.12;h.inv=110;}else{h.state='hurt';h.hurtT=Math.max(6,14-3*sm);h.vx=dx*0.07*pk;h.vz=dz*0.07*pk;h.inv=40;}
 }
@@ -2673,7 +2675,8 @@ function killEnemy(e,dx,dz){
   if(d.boss&&Math.random()<0.2)dropPickup('goods',e.x,e.z,0,goodsNamed('Clockwork Fish'));
   if(d.boss){dropPickup('gear',e.x,e.z,0,gearFor(0.4));dropPickup('gear',e.x,e.z,0,gearFor(0.25));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('goods',e.x,e.z,0,randGoods(0.5));dropPickup('hp',e.x,e.z);bossDown();}
   else if(d.elite){if(S.boss===e)S.boss=null;dropPickup('gear',e.x,e.z,0,gearFor(0.35));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('hp',e.x,e.z);}
-  else{const r=Math.random();if(r<0.16)dropPickup('hp',e.x,e.z);else if(r<0.34)dropPickup('mp',e.x,e.z);else if(r<0.42)dropPickup('goods',e.x,e.z,0,randGoods(0));else if(r<0.47)dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:1});else if(r<0.5)dropPickup('gear',e.x,e.z,0,gearFor(0));}
+  else{const r=Math.random();if(r<0.16)dropPickup('hp',e.x,e.z);else if(r<0.34)dropPickup('mp',e.x,e.z);else if(r<0.42)dropPickup('goods',e.x,e.z,0,randGoods(0));else if(r<0.47)dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:1});else if(r<0.5)dropPickup('gear',e.x,e.z,0,gearFor(scrV('luck')));}
+  scrLoot(e,d);
 }
 function attackersBusy(){let c=0;for(const e of S.enemies)if(e.state==='wind'||e.state==='strike')c++;return c;}
 function updEnemy(e){
@@ -2778,11 +2781,73 @@ function lootMesh(kind){if(kind==='gold')return coinMesh();if((kind==='hp'||kind
 const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
 function scrollIcon(){if(SCRL.icon)return SCRL.icon;if(SCRL.st!=='ready'){loadScroll();return null;}const c=studio('scroll',p=>{p.add(SCRL.g.clone());},{rx:0.35,ry:0.3,rz:-0.35});if(c)SCRL.icon=c;return c||null;}
+// ---- magic scrolls: 8 kinds in 4 tiers; the tie and wax seal show the tier ----
+const SCR_TIER=['Bronze','Silver','Gold','Platinum'],SCR_COL=['#d08a4a','#d4dae2','#f5c842','#e4f0ff'],SCR_TIE=[0x9a5826,0xa9b0b8,0xd9a21e,0xcfe0f6],SCR_PRICE=[40,100,250,600];
+const SCROLLS={
+ summon:{n:'Summoning',s:'Summon',e:t=>['1 skeleton fights for you for 30 seconds','2 skeletons fight for you for 45 seconds','3 skeleton warriors fight for you for 1 minute','4 skeletons and a big captain fight for you for 90 seconds'][t]},
+ heal:{n:'Healing',s:'Heal',party:1,v:[0.3,0.5,0.75,1],e:t=>(t<3?`Heals ${[30,50,75][t]}% of your health`:'Full heal, then 5% a second for 2 minutes')+', whole party'},
+ luck:{n:'Luck',s:'Luck',party:1,v:[10,15,20,30],d:[5,10,20,20],e:'better item drops'},
+ gold:{n:'Gold Find',s:'Gold',party:1,v:[10,15,20,30],d:[5,10,20,20],e:'more gold'},
+ gem:{n:'Gem Find',s:'Gems',party:1,v:[5,10,15,20],d:[5,10,20,20],e:'more crystals'},
+ wpn:{n:'Weapon Find',s:'Weapons',party:1,v:[10,15,20,30],d:[5,10,20,20],e:'more weapons'},
+ arm:{n:'Armor Find',s:'Armor',party:1,v:[10,15,20,30],d:[5,10,20,20],e:'more armor'},
+ haste:{n:'Haste',s:'Haste',v:[10,15,20,25],d:[2,3,5,5],e:'faster moving'}};
+const SCR_IDS=Object.keys(SCROLLS);
+const scrParty=(id,t)=>!!(SCROLLS[id].party||(id==='haste'&&t===3));
+const scrName=(id,t)=>`${SCR_TIER[t]} Scroll of ${SCROLLS[id].n}`;
+function scrDesc(id,t){const Q=SCROLLS[id];return typeof Q.e==='function'?Q.e(t):`+${Q.v[t]}% ${Q.e} for ${Q.d[t]} minutes`+(scrParty(id,t)?', whole party':'');}
+const scrV=id=>{const b=H&&H.scr&&H.scr[id];return b&&b.t>0?b.v/100:0;};
+const SCR_MAT=[];let SCR_SEAL=null;
+function scrollModel(t){const o=SCRL.g.clone(true),tie=o.getObjectByName('scroll_tie');
+  if(!SCR_MAT[t]){const c=new THREE.Color(SCR_TIE[t]).convertSRGBToLinear();SCR_MAT[t]=new THREE.MeshStandardMaterial({color:c,metalness:0.45,roughness:0.3,emissive:c.clone().multiplyScalar(0.12)});}
+  if(tie){tie.material=SCR_MAT[t];if(!SCR_SEAL){tie.geometry.computeBoundingBox();const bb=tie.geometry.boundingBox;SCR_SEAL={g:new THREE.CylinderGeometry(0.075,0.075,0.025,24),c:bb.getCenter(new THREE.Vector3()),z:bb.max.z+0.01};}
+    const seal=new THREE.Mesh(SCR_SEAL.g,SCR_MAT[t]);seal.rotation.x=Math.PI/2;seal.position.set(SCR_SEAL.c.x,SCR_SEAL.c.y,SCR_SEAL.z);o.add(seal);}return o;}
+const SCR_ICON=[],SCR_URL=[];
+function scrIcon(t){if(SCR_ICON[t])return SCR_ICON[t];if(SCRL.st!=='ready'){loadScroll();return null;}const c=studio('scroll'+t,p=>{p.add(scrollModel(t));},{rx:0.35,ry:0.3,rz:-0.35});if(c)SCR_ICON[t]=c;return c||null;}
+function scrURL(t){if(SCR_URL[t])return SCR_URL[t];const c=scrIcon(t);return c?(SCR_URL[t]=c.toDataURL()):'';}
+function scrRoll(lvl){const w=[[70,22,7,1],[35,40,20,5],[0,15,50,35]][lvl];let r=Math.random()*100,t=0;for(;t<3;t++){if((r-=w[t])<0)break;}return {id:SCR_IDS[ri(0,SCR_IDS.length-1)],tier:t};}
+function scrGive(id,t){INV.scrolls=INV.scrolls||{};const k=id+t;INV.scrolls[k]=(INV.scrolls[k]||0)+1;if(!INV.scrSel)INV.scrSel=k;}
+function readScroll(key){INV.scrolls=INV.scrolls||{};if(!key||!(INV.scrolls[key]>0)||!H||H.state==='down')return false;const id=key.slice(0,-1),t=+key.slice(-1);if(!SCROLLS[id]||!SCR_TIER[t])return false;
+  INV.scrolls[key]--;if(!INV.scrolls[key]){delete INV.scrolls[key];if(INV.scrSel===key)nextScroll(true);}
+  scrApply(id,t,null);if(scrParty(id,t)&&NET.on)scrNet({t:'scr',id,tr:t,n:String(H.name||HEROES[H.cls].name).slice(0,16)});save();return true;}
+function nextScroll(quiet){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length){INV.scrSel=null;return;}const i=ks.indexOf(INV.scrSel);INV.scrSel=ks[(i+1)%ks.length];
+  if(!quiet){const id=INV.scrSel.slice(0,-1),t=+INV.scrSel.slice(-1);toast('Scroll ready (press 5): '+scrName(id,t)+' ×'+INV.scrolls[INV.scrSel]);}}
+function scrApply(id,t,from){if(!H)return;const Q=SCROLLS[id],col=SCR_COL[t];H.scr=H.scr||{};
+  if(id==='summon'){if(from)return;scrSummon(t);}
+  else if(id==='heal'){if(H.state==='down')return;const v=Math.round(H.maxHp*Q.v[t]);H.hp=Math.min(H.maxHp,H.hp+v);floatText(H.x,2.1,H.z,'+'+v,'#7dffa0',18);if(t===3)H.scr.regen={t:120*60,v:5,tier:3};}
+  else{const cur=H.scr[id];if(!cur||cur.t<=0||Q.v[t]>=cur.v)H.scr[id]={t:Q.d[t]*3600,v:Q.v[t],tier:t};}
+  say(H,from?`${from} read a ${SCR_TIER[t]} Scroll of ${Q.n}!`:`${scrName(id,t)}!`,2600);
+  ring(H.x,H.z,col,0.4,0.1,26);for(let i=0;i<16;i++)addPart({x:H.x+rnd(-.5,.5),y:rnd(.2,1.9),z:H.z+rnd(-.5,.5),vy:rnd(.01,.04),g:0,life:30,size:.08,color:col,kind:'star'});sfx('magic');}
+function scrIn(m){if(!m||!SCROLLS[m.id]||!SCR_TIER[+m.tr]||!scrParty(m.id,+m.tr)||!H)return;scrApply(m.id,+m.tr,String(m.n||'A friend').slice(0,16));}
+function scrNet(m){if(NET.host){for(const c of NET.conns)if(c.open)c.send(m);}else if(NET.hostConn&&NET.hostConn.open)NET.hostConn.send(m);}
+function scrSummon(t){const L=S.minions||(S.minions=[]),n=[1,2,3,4][t],life=[30,45,60,90][t]*60,hp=Math.round((45+14*H.lvl)*(t>=2?1.3:1)),dm=Math.max(3,Math.round(heroDmg(HEROES[H.cls].dmg)*(t>=2?0.7:0.5)));
+  for(let i=0;i<n+(t===3?1:0);i++){const big=t===3&&i===n,a=Math.atan2(H.fz,H.fx)+(big?0:(i-(n-1)/2)*0.8),rr=big?2.4:1.6,m=minionNew(H.x+Math.cos(a)*rr,H.z+Math.sin(a)*rr,false);
+    m.scr=1;m.life=life;m.hp=m.maxHp=big?hp*3:hp;m.dmg=big?dm*2:dm;if(big)m.scale=1.35;m.fx=H.fx;m.fz=H.fz;clampPos(m);L.push(m);poof(m.x,0,m.z,0.9);
+    for(let k=0;k<14;k++)addPart({x:m.x+rnd(-.5,.5),y:rnd(0,.4),z:m.z+rnd(-.5,.5),vy:rnd(.03,.07),g:0.001,life:34,size:rnd(.06,.12),color:k%2?SCR_COL[t]:'#efe7d2'});}}
+function scrTick(){if(!H||!H.scr)return;for(const id in H.scr){const b=H.scr[id];if(!b||b.t<=0)continue;b.t--;
+    if(id==='regen'){if(b.t%60===0&&H.state!=='down')H.hp=Math.min(H.maxHp,H.hp+H.maxHp*0.05);}
+    else if(id==='haste'&&S.frame%5===0&&H.moving)addPart({x:H.x+rnd(-.3,.3),y:0.15,z:H.z+rnd(-.3,.3),vy:0.01,g:0,life:14,size:0.08,color:SCR_COL[b.tier]});
+    if(b.t===0)floatText(H.x,2.4,H.z,(id==='regen'?'Healing':SCROLLS[id].n)+' wore off','#c8c0d6',14);}}
+// extra drops from active scrolls, and the rare scroll itself
+function scrLoot(e,d){const big=d.boss?1:d.elite?0.5:0.08,L=scrV('luck'),W=scrV('wpn'),A=scrV('arm'),G=scrV('gem');
+  if(W&&Math.random()<W*big)dropPickup('gear',e.x,e.z,0,gearFor(L,'weapon'));
+  if(A&&Math.random()<A*big){const ks=DROP_KINDS.map(x=>x[0]).filter(k=>k!=='weapon');dropPickup('gear',e.x,e.z,0,gearFor(L,ks[ri(0,ks.length-1)]));}
+  if(G&&Math.random()<G*big*1.5)dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:d.boss?2:1});
+  if(L&&Math.random()<L*big)dropPickup('gear',e.x,e.z,0,gearFor(0.15+L));
+  if(Math.random()<(d.boss?0.6:d.elite?0.15:0.012*(1+L)))dropPickup('scroll',e.x,e.z,0,scrRoll(d.boss?2:d.elite?1:0));}
+function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&&H.buffs[M.id]&&H.buffs[M.id].t>0).length;
+  for(const id in H.scr){const b=H.scr[id];if(!b||b.t<=0)continue;const bx=x+k*44,ic=scrIcon(b.tier),sec=Math.ceil(b.t/60);k++;
+    g.fillStyle='rgba(16,12,28,.8)';rrp(g,bx,y,40,40,8);g.fill();g.strokeStyle=SCR_COL[b.tier];g.lineWidth=1.5;g.stroke();if(ic)g.drawImage(ic,25,40,110,80,bx+3,y+8,34,25);
+    g.textAlign='center';g.font=`800 9px ${BF}`;g.fillStyle=SCR_COL[b.tier];g.fillText(id==='regen'?'Heal':SCROLLS[id].s,bx+20,y+9);g.font=`800 11px ${BF}`;g.fillStyle='#f2e7cf';g.fillText(sec>=60?Math.ceil(sec/60)+'m':sec+'s',bx+20,y+38);g.textAlign='left';}}
+function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
+  return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
 function dropPickup(kind,x,z,val=0,item=null){loadPotions();
-  const map=kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
+  const map=kind==='scroll'?TX.glow:kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
+  if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
+    if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
   {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
@@ -2790,11 +2855,13 @@ let bagFullT=0;
 function collect(p){
   if(p.kind==='rkey'||p.kind==='gkey'){const g=p.kind==='gkey';S.keys[g?'great':'rusty']++;sfx('chest');floatText(H.x,2.4,H.z,g?GKEY[S.floor]+'!':'Rusty Key','#ffd35c',20);sparks(H.x,1.2,H.z,10,'#ffd35c');
     toast(g?'You got the '+GKEY[S.floor]+'! It opens the gold-locked boss door. Press M to see the map.':'You got a Rusty Key. It opens a brown-locked door or cell.');p.dead=true;scene.remove(p.spr);p.spr.material.dispose();return;}
-  if(p.kind==='gold'){const v=Math.round(p.val*(1+0.1*gemSum(H,'citrine')));INV.gold+=v;sfx('coin');floatText(p.x,1,p.z,'+'+v,'#ffd35c',14);}
+  if(p.kind==='gold'){const v=Math.round(p.val*(1+0.1*gemSum(H,'citrine'))*(1+scrV('gold')));INV.gold+=v;sfx('coin');floatText(p.x,1,p.z,'+'+v,'#ffd35c',14);}
   else if(p.kind==='hp'||p.kind==='mp'){const b=INV.belt;
     if(b[p.kind]<BELT_MAX){b[p.kind]++;sfx('potion');floatText(H.x,2.1,H.z,p.kind==='hp'?'Health potion':'Mana potion','#d6c8ff',15);}
     else if(p.kind==='hp'&&H.hp<H.maxHp)drinkPotion('hp',true);else if(p.kind==='mp'&&H.mp<H.maxMp)drinkPotion('mp',true);else return;}
   else if(p.kind==='crystal'){addGem(INV,p.item.t,p.item.lv);sfx('chest');floatText(H.x,2.3,H.z,`${GEM_LV[p.item.lv]} ${GEMS[p.item.t].n}!`,GEMS[p.item.t].c,18);sparks(H.x,1.2,H.z,8,GEMS[p.item.t].c);}
+  else if(p.kind==='scroll'){scrGive(p.item.id,p.item.tier);sfx('chest');floatText(H.x,2.4,H.z,scrName(p.item.id,p.item.tier)+'!',SCR_COL[p.item.tier],18);sparks(H.x,1.2,H.z,8,SCR_COL[p.item.tier]);
+    if(!INV.scrTip){INV.scrTip=1;say(H,isTouch?'A magic scroll! I can read it from my bag.':'A magic scroll! Press 5 to read it.',4000);}}
   else{if(!addToBag(p.item)){if(bagFullT<=0){floatText(H.x,2.4,H.z,'Bag full!','#ff9a8a',18);bagFullT=90;}return;}
     sfx('chest');const up=isUpgrade(p.item);floatText(H.x,2.4,H.z,itemLabel(p.item)+(up?'  ▲ upgrade':''),p.item.type==='gear'?GRADES[p.item.grade].c:'#f2e7cf',p.item.type==='gear'?18:15);
     if(up){const bi=INV.bag.indexOf(p.item);if(bi>=0){equipFromBag(bi);floatText(H.x,2.9,H.z,'Equipped!','#7dffa0',16);if(!S.upTip){S.upTip=1;toast('Better gear is equipped automatically. Your old piece goes into your bag.');}}}}
@@ -2949,8 +3016,11 @@ function iconURL(it){
   return ICON[key]=c.toDataURL();
 }
 function drawBelt(g){spLow();
-  const x=12,y=HH-40;drawBuffs(g,x,y-46);const ml=INV.meals||{};if(INV.mealSel&&!(ml[INV.mealSel]>0))INV.mealSel=null;if(!INV.mealSel&&MEALS.some(m=>ml[m.id]>0))nextMeal(true);
+  const x=12,y=HH-40;drawBuffs(g,x,y-46);drawScrBuffs(g,x,y-46);const ml=INV.meals||{};if(INV.mealSel&&!(ml[INV.mealSel]>0))INV.mealSel=null;if(!INV.mealSel&&MEALS.some(m=>ml[m.id]>0))nextMeal(true);
   if(INV.mealSel){const mx=x+160,pic=mealPic(INV.mealSel);g.fillStyle='rgba(16,12,28,.8)';rrp(g,mx,y,96,30,8);g.fill();g.strokeStyle='rgba(255,255,255,.15)';g.lineWidth=1;g.stroke();g.font=`800 12px ${BF}`;g.textAlign='left';g.fillStyle='rgba(255,255,255,.6)';g.fillText('3',mx+8,y+19);if(pic)g.drawImage(pic,mx+18,y+1,28,28);g.fillStyle='#f2e7cf';g.font=`800 14px ${BF}`;g.fillText('×'+ml[INV.mealSel],mx+48,y+20);g.font=`800 10px ${BF}`;g.fillStyle='rgba(255,255,255,.45)';g.fillText('4 ⇄',mx+74,y+19);}
+  {const sl=INV.scrolls||{};if(INV.scrSel&&!(sl[INV.scrSel]>0))INV.scrSel=null;if(!INV.scrSel)nextScroll(true);
+    if(INV.scrSel&&!isTouch){const sx=x+160+(INV.mealSel?104:0),t=+INV.scrSel.slice(-1),ic=scrIcon(t);g.fillStyle='rgba(16,12,28,.8)';rrp(g,sx,y,96,30,8);g.fill();g.strokeStyle=SCR_COL[t];g.lineWidth=1;g.stroke();
+      g.font=`800 12px ${BF}`;g.textAlign='left';g.fillStyle='rgba(255,255,255,.6)';g.fillText('5',sx+8,y+19);if(ic)g.drawImage(ic,25,40,110,80,sx+16,y+4,32,23);g.fillStyle='#f2e7cf';g.font=`800 14px ${BF}`;g.fillText('×'+sl[INV.scrSel],sx+50,y+20);g.font=`800 10px ${BF}`;g.fillStyle='rgba(255,255,255,.45)';g.fillText('6 ⇄',sx+74,y+19);}}
   g.fillStyle='rgba(16,12,28,.8)';rrp(g,x,y,152,30,8);g.fill();g.strokeStyle='rgba(255,255,255,.15)';g.lineWidth=1;g.stroke();
   g.font=`800 12px ${BF}`;g.textAlign='left';
   for(const [k,i,c] of [['hp',0,'#ff4a5a'],['mp',1,'#4c9dff']]){const bx=x+8+i*72;g.fillStyle='rgba(255,255,255,.6)';g.fillText(String(i+1),bx,y+19);
@@ -3798,7 +3868,8 @@ function renderShop3(id){
     card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
       +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
       +`<p class="sub l">Rune: ${H.rune?esc(RUNES[H.rune].n):'none'}</p>`+Object.keys(RUNES).map(k=>buyBtn('rune-'+k,RUNES[k].n,RUNES[k].e,H.rune===k?null:COST.rune,H.rune!==k&&G0>=COST.rune)).join('')
-      +`<p class="sub l">Elixirs</p>`+buyBtn('vit','Elixir of Vitality','+20 max health for good',upP(60+25*H.vit),G0>=upP(60+25*H.vit))+buyBtn('foc','Elixir of Focus','+15 max mana for good',upP(60+25*H.foc),G0>=upP(60+25*H.foc));}
+      +`<p class="sub l">Elixirs</p>`+buyBtn('vit','Elixir of Vitality','+20 max health for good',upP(60+25*H.vit),G0>=upP(60+25*H.vit))+buyBtn('foc','Elixir of Focus','+15 max mana for good',upP(60+25*H.foc),G0>=upP(60+25*H.foc))
+      +`<p class="sub l">Mystery scrolls</p>`+[0,1,2,3].map(t=>buyBtn('scr-'+t,`${SCR_TIER[t]} mystery scroll`,'A random scroll: summoning, healing, luck, gold, gems, weapons, armor or haste',SCR_PRICE[t],G0>=SCR_PRICE[t],scrURL(t)||null)).join('');}
   else{
     const line=(kind,label,col)=>`<div class="itemline"><span style="color:${col}">${esc(label)}</span> ${socketsHtml(itemOf(H,kind),kind,true)}</div>`;
     card=line('weapon',gearName({kind:'weapon',tier:w.tier,set:w.set}),GRADES[w.grade].c)+line('armor',gearName({kind:'armor',tier:a.tier,set:a.set}),GRADES[a.grade].c)+EXTRA.filter(k=>H[k]).map(k=>line(k,gearName({kind:k,tier:H[k].tier,set:H[k].set}),GRADES[H[k].grade].c)).join('')+`<p class="sub l">Jewelry · rings go two on each hand</p>`;
@@ -3833,6 +3904,7 @@ function renderShop3(id){
     if(k==='xtier'&&H[x]&&H[x].tier<4&&pay(COST.xtier(H[x].tier)))H[x].tier++;
     if(k==='xgrade'&&H[x]&&H[x].grade<4&&pay(COST.xgrade(H[x].grade)))setGrade(H[x],H[x].grade+1);
     if(k==='pot'&&INV.belt[x]<BELT_MAX&&pay(COST.potion))INV.belt[x]++;
+    if(k==='scr'&&SCR_TIER[+x]&&pay(SCR_PRICE[+x])){const id=SCR_IDS[ri(0,SCR_IDS.length-1)];scrGive(id,+x);toast(`You got a ${scrName(id,+x)}: ${scrDesc(id,+x)}.`);}
     if(k==='rune'&&H.rune!==x&&pay(COST.rune))H.rune=x;
     if(k==='vit'&&pay(upP(60+25*H.vit))){H.vit++;recalc(H);H.hp=H.maxHp;}
     if(k==='foc'&&pay(upP(60+25*H.foc))){H.foc++;recalc(H);H.mp=H.maxMp;}
@@ -3878,10 +3950,12 @@ function openInv(){
       <p class="sub l">Wearing</p><div class="eq">${eq.map(([k,ic,label,col,item])=>`<div class="slotb"><img src="${iconURL(ic)}" alt=""><span style="min-width:0"><span style="color:${col}">${esc(label)}</span><small>${item?item.sockets.map(s=>s?gemSpan(s.t):'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>').join(' '):(SLOT_N[k]?'Find one or buy at the Armory':'Buy at Crystals & Jewels')}</small></span></div>`).join('')}</div>
       <p class="sub l">Potion belt</p><div class="stats3"><span>1 · Health <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana <b>${INV.belt.mp}/${BELT_MAX}</b></span></div></div>
     <div class="scard"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><div class="bag">${cells.join('')}</div>${det}
-      <p class="sub l">Crystal pouch</p>${owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<span class="chip" title="${esc(GEMS[t].e)}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</span>`;}).join('')}</div><p class="note l">Set crystals at the Crystals &amp; Jewels shop in town.</p>`:'<p class="note l">No crystals yet.</p>'}</div></div>
+      <p class="sub l">Crystal pouch</p>${owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<span class="chip" title="${esc(GEMS[t].e)}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</span>`;}).join('')}</div><p class="note l">Set crystals at the Crystals &amp; Jewels shop in town.</p>`:'<p class="note l">No crystals yet.</p>'}
+      <p class="sub l">Scrolls</p>${scrChips()}</div></div>
     <div class="row"><button class="btn" type="button" data-act="close">Close</button></div>`,'inv',(act)=>{
       const [k,x]=act.split('-');
       if(k==='hero'){openHero('gear');return;}
+      if(k==='read'){if(readScroll(x)){closeDlg();return;}}
       if(k==='sel'){invSel=invSel===+x?null:+x;dropArm=false;}
       if(k==='equip'&&invSel!==null){equipFromBag(invSel);}
       if(k==='drop'&&invSel!==null){if(dropArm){const t=INV.bag[invSel];if(t&&t.sockets)for(const s of t.sockets)if(s)addGem(INV,s.t,s.lv);INV.bag.splice(invSel,1);invSel=null;dropArm=false;}else dropArm=true;}
@@ -4868,7 +4942,7 @@ async function netHost(tries=0){netLeave();netNote('Opening a room…');try{awai
   const code=netCode(),p=new Peer('grimfall-room-'+code,netOpts());NET.peer=p;p.on('call',vcIncoming);
   p.on('open',id=>{Object.assign(NET,{on:true,host:true,code,myId:id});netNote(`Room code: ${code}. Send your friends the invite link or the code, then press Begin or Continue.`);netInvite(code);});
   p.on('connection',c=>{c.on('open',()=>{if(NET.conns.length>=3){c.send({t:'full'});setTimeout(()=>c.close(),300);return;}NET.conns.push(c);});
-    c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='hit'){netHostHit(m);return;}if(m.t==='chat'){const st=NET.states[c.peer],nm=st?String(st.s.name||'Friend').slice(0,16):'Friend',t=chatClean(m.x);if(t&&netChatIn(c.peer,nm,t,m.k)!==false)netChatOut(c.peer,nm,t,m.k);return;}if(m.t==='st'&&m.s){const isNew=!NET.states[c.peer];NET.states[c.peer]={s:m.s,t:performance.now()};if(isNew&&typeof toast==='function')toast(`${String(m.s.name||'A friend').slice(0,16)} joined the room.`);}});
+    c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='hit'){netHostHit(m);return;}if(m.t==='scr'){scrIn(m);for(const o of NET.conns)if(o!==c&&o.open)o.send(m);return;}if(m.t==='chat'){const st=NET.states[c.peer],nm=st?String(st.s.name||'Friend').slice(0,16):'Friend',t=chatClean(m.x);if(t&&netChatIn(c.peer,nm,t,m.k)!==false)netChatOut(c.peer,nm,t,m.k);return;}if(m.t==='st'&&m.s){const isNew=!NET.states[c.peer];NET.states[c.peer]={s:m.s,t:performance.now()};if(isNew&&typeof toast==='function')toast(`${String(m.s.name||'A friend').slice(0,16)} joined the room.`);}});
     c.on('close',()=>{NET.conns=NET.conns.filter(x=>x!==c);const st=NET.states[c.peer];delete NET.states[c.peer];netDrop(c.peer);if(st&&typeof toast==='function')toast(`${String(st.s.name||'A friend').slice(0,16)} left the room.`);netBadge();});});
   p.on('error',e=>{if(e.type==='unavailable-id'&&tries<4){netHost(tries+1);return;}netNote('Online error: '+(e.type||e.message||e));});}
 async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);if(code.length!==4){netNote('Type the 4-letter room code first.');return;}
@@ -4878,6 +4952,7 @@ async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'')
     c.on('open',()=>{Object.assign(NET,{on:true,host:false,code});netNote(`Joined room ${code}. Press Begin or Continue to enter town.`);});
     c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='full'){netNote('That room is full (4 players).');return;}
       if(m.t==='chat'){netChatIn(m.f,m.n,m.x,m.k);return;}
+      if(m.t==='scr'){scrIn(m);return;}
       if(m.t==='hurt'){if(H&&S.level==='dungeon'&&S.state==='play')hurtHero(+m.d||1,+m.dx||0,+m.dz||0,!!m.kd);return;}
       if(m.t==='all'&&m.d!==undefined){NET.dun=m.d;if(m.d)NET.dunT=performance.now();netDunApply();}
       if(m.t==='all'&&m.l){const seen={};for(const id in m.l){if(id===NET.myId)continue;seen[id]=1;const isNew=!NET.peers[id];(NET.peers[id]=NET.peers[id]||{}).s=m.l[id];if(isNew){netBadge();if(H&&typeof toast==='function')toast(`${String(m.l[id].name||'A friend').slice(0,16)} is here.`);}}
