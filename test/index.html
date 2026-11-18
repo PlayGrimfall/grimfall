@@ -19,6 +19,9 @@
   color-scheme:dark;
 }
 html,body{height:100%}
+/* no blue flash or text selection when tapping on phones */
+*{-webkit-tap-highlight-color:transparent}
+body.phone #stage,body.phone #stage *,body.phone .tbtn,body.phone button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 [hidden]{display:none!important}
 body{background:var(--ink);color:var(--parch);font-family:var(--body);font-size:16px;line-height:1.4;box-sizing:border-box;padding-block:10px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden}
