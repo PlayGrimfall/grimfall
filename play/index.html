@@ -179,6 +179,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 .detail h4{margin:0;font:800 16px var(--body)}
 .stats3{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--dim)}
 .stats3 b{color:var(--parch)}
+.rkrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:2px 0 12px}.rkb{font:700 13px var(--body);padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--stone);color:var(--parch);cursor:pointer}.rkb.on{background:#5a3d14;border-color:#ffd35c;color:#ffe9a8}.rkb:disabled{opacity:.45;cursor:default}
 .floors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
 .floor{display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:linear-gradient(180deg,var(--stone2),var(--stone));color:var(--parch);cursor:pointer;font:500 14px var(--body)}
 .floor:hover:not(:disabled){border-color:var(--torch)}
@@ -2694,9 +2695,16 @@ function hurtHero(dmg,dx,dz,kd){
 }
 
 // ================= enemies =================
+// ---- difficulty as army ranks: monsters get tougher and pay better as you rise. In a room everyone plays at the leader's rank ----
+const RANKS=[{n:'Recruit',hp:0.65,dmg:0.6,gold:0.8,d:'Easier monsters. Good for new heroes'},{n:'Soldier',hp:1,dmg:1,gold:1,d:'The normal game'},
+  {n:'Sergeant',hp:1.5,dmg:1.3,gold:1.35,d:'Tougher monsters, more gold and XP'},{n:'Captain',hp:2.2,dmg:1.6,gold:1.75,d:'Hard. Much more gold and XP'},
+  {n:'Commander',hp:3.2,dmg:2,gold:2.3,d:'The hardest. Only for the bravest'}];
+const rankMax=()=>Math.max(2,INV&&INV.rankMax||0),myRank=()=>Math.min(INV&&INV.rank!=null?INV.rank:1,rankMax());
+function curRank(){if(NET.on&&!NET.host){const hid=NET.hostConn&&NET.hostConn.peer,t=hid&&NET.peers[hid]&&NET.peers[hid].s;if(t&&t.rk!=null)return clamp(t.rk|0,0,4);}return myRank();}
+const rkM=k=>RANKS[curRank()][k];
 function spawnEnemy(type,x,z){
   const d=EN[type],big=!!d.boss;
-  const e={type,def:d,x,z,y:0,vy:0,vx:0,vz:0,hp:Math.round(d.hp*1.35*(1+0.18*S.floor)),maxHp:Math.round(d.hp*1.35*(1+0.18*S.floor)),face:-1,fx:-1,fz:0,state:'walk',t:0,cd:ri(30,80),anim:ri(0,99),flash:0,rootT:0,spawnInv:20,scale:d.scale||1,moving:false,sp:0,remove:false,
+  const e={type,def:d,x,z,y:0,vy:0,vx:0,vz:0,hp:Math.round(d.hp*1.35*(1+0.18*S.floor)*rkM('hp')),maxHp:Math.round(d.hp*1.35*(1+0.18*S.floor)*rkM('hp')),face:-1,fx:-1,fz:0,state:'walk',t:0,cd:ri(30,80),anim:ri(0,99),flash:0,rootT:0,spawnInv:20,scale:d.scale||1,moving:false,sp:0,remove:false,
     spr:big?makeSprite(768,768,384,735,1.5):makeSprite(512,512,256,472,2)};
   if(type==='skeleton'){e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)e.hp=e.maxHp=Math.round(e.hp*1.6);} // armored warrior: tougher
   e.nid=++NET.nid;S.enemies.push(e);poof(x,0,z,e.scale*0.8);
@@ -2719,7 +2727,7 @@ function hurtEnemy(e,dmg,dx,dz,kd){
 }
 function killEnemy(e,dx,dz){
   e.kr=1;e.state='dead';e.t=36;e.vx=dx*0.08;e.vz=dz*0.08;e.vy=0.1;S.kills++;jobKill(e.type);powCharge();
-  const d=e.def;gainXP(Math.round(d.hp*0.45*(1+0.3*S.floor)*(d.boss?3:1)));for(let i=0;i<ri(d.gold[0],d.gold[1]);i++)dropPickup('gold',e.x,e.z,d.boss?10:5);
+  const d=e.def;gainXP(Math.round(d.hp*0.45*(1+0.3*S.floor)*(d.boss?3:1)*rkM('gold')));for(let i=0;i<ri(d.gold[0],d.gold[1]);i++)dropPickup('gold',e.x,e.z,Math.round((d.boss?10:5)*rkM('gold')));
   if(d.boss&&Math.random()<0.2)dropPickup('goods',e.x,e.z,0,goodsNamed('Clockwork Fish'));
   if(d.boss){dropPickup('gear',e.x,e.z,0,gearFor(0.4));dropPickup('gear',e.x,e.z,0,gearFor(0.25));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('goods',e.x,e.z,0,randGoods(0.5));dropPickup('hp',e.x,e.z);bossDown();}
   else if(d.elite){if(S.boss===e)S.boss=null;dropPickup('gear',e.x,e.z,0,gearFor(0.35));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('hp',e.x,e.z);}
@@ -2747,7 +2755,7 @@ function updEnemy(e){
     case 'chargeWind':e.x+=Math.sin(e.anim*1.5)*0.03;e.fx=e.cdx;e.fz=e.cdz;if(--e.t<=0){e.state='charge';e.t=55;e.hitDone=false;}return;
     case 'charge':{e.x+=e.cdx*0.22;e.z+=e.cdz*0.22;e.fx=e.cdx;e.fz=e.cdz;S.shake=Math.max(S.shake,0.06);
       if(e.anim%3===0)addPart({x:e.x-e.cdx,y:0.1,z:e.z-e.cdz,vy:rnd(.02,.05),life:20,size:rnd(.1,.18),color:'#8d7a5a'});
-      if(!e.hitDone&&Math.hypot(H.x-e.x,H.z-e.z)<1.5&&H.y<1){e.hitDone=true;hurtHero((d.dmg+4)*(1+0.12*S.floor),e.cdx,e.cdz,true);}
+      if(!e.hitDone&&Math.hypot(H.x-e.x,H.z-e.z)<1.5&&H.y<1){e.hitDone=true;hurtHero((d.dmg+4)*(1+0.12*S.floor)*rkM('dmg'),e.cdx,e.cdz,true);}
       const ox=e.x,oz=e.z;clampPos(e);if(--e.t<=0||Math.abs(ox-e.x)>0.01||Math.abs(oz-e.z)>0.01){e.state='walk';e.cd=60;}return;}
   }
   if(d.boss||d.elite)bossThink(e,dist);if(e.state!=='walk')return;
@@ -2764,7 +2772,7 @@ function updEnemy(e){
 }
 function enemyStrike(e){
   const d=e.def;e.cd=d.cd*rnd(0.8,1.3);sfx(foeSwing(e));
-  const dx=H.x-e.x,dz=H.z-e.z,dist=Math.hypot(dx,dz)||1,dm=d.dmg*(1+0.12*S.floor);
+  const dx=H.x-e.x,dz=H.z-e.z,dist=Math.hypot(dx,dz)||1,dm=d.dmg*(1+0.12*S.floor)*rkM('dmg');
   if(d.ranged){const a0=Math.atan2(dz,dx),lich=e.type==='lich';for(const a of (lich?[-0.25,0,0.25]:[0])){const sp=lich?0.13:0.11;
     S.eproj.push({kind:lich?'lbolt':e.def.archer?'cbolt':'efire',x:e.x+Math.cos(a0)*0.5,z:e.z+Math.sin(a0)*0.5,y:e.y+0.9*e.scale,vx:Math.cos(a0+a)*sp,vz:Math.sin(a0+a)*sp,dmg:dm,life:150,dead:false});}return;}
   if(dist<d.reach*U+0.55&&H.y<1)hurtHero(dm,dx,dz,!!d.heavy);
@@ -3134,7 +3142,7 @@ function bossDown(){
   S.exitOpen=true;S.queue=[];S.eproj=[];if(MZ)mzRoomDone();
   for(const e of S.enemies)if(e.state!=='dead'&&!e.def.boss){e.state='dead';e.t=20;e.vx=e.vz=0;}
   S.banner={top:'Floor cleared',text:(S.boss?S.boss.def.name.replace(/^The /,'')+' falls!':'Floor cleared!'),t:220};S.wave=S.waves.length;S.wallX=DUN.maxX;
-  INV.deepest=Math.max(INV.deepest||0,S.floor+1);if(S.floor>=3)INV.cleared=true;save();
+  INV.deepest=Math.max(INV.deepest||0,S.floor+1);if(S.floor>=3){INV.cleared=true;const rk=curRank();if(rk>=2&&rk<4&&rankMax()<rk+1){INV.rankMax=rk+1;setTimeout(()=>toast(`Promoted! You can now play at ${RANKS[rk+1].n} rank.`),2500);}}save();
   portal.visible=true;portal.userData.pl.intensity=1.8;
   schedule(150,()=>toast('A glowing portal opened in the boss room. Walk up to it and press J.'));
   if(S.floor>=3)schedule(240,()=>{if(LT.g&&!LT.broken){if(freed().magic)lichBreak();else toast('Free Master Wren to break the last of the Lich Queen\'s spells.');}});
@@ -4298,9 +4306,12 @@ function showCraft(){
 }
 function showGate(){
   const max=Math.min(INV.deepest||0,3);
+  const rk=myRank(),lead=NET.on&&!NET.host;
   openDlg(`<h1 class="logo sm"><small>Castle Grimfall</small>Down into the dungeon</h1><p class="tag">Pick a floor. You can start at any floor you have reached.</p>
+    <p class="tag">${lead?`You fight at your room leader's rank: <b>${RANKS[curRank()].n}</b>`:`Your rank: <b>${RANKS[rk].n}</b>. ${esc(RANKS[rk].d)}`}</p>
+    ${lead?'':`<div class="rkrow">${RANKS.map((R,i)=>`<button class="rkb${i===rk?' on':''}" type="button" data-act="rk-${i}" ${i<=rankMax()?'':'disabled'} title="${i<=rankMax()?esc(R.d):'Beat the Lich Queen at '+RANKS[i-1].n+' rank to unlock'}">${i<=rankMax()?'':'🔒 '}${R.n}</button>`).join('')}</div>`}
     <div class="floors">${FLOORS.map((f,i)=>`<button class="floor" type="button" data-act="f-${i}" ${i<=max?'':'disabled'}><b>${esc(f.name)}</b><span>${f.sub}${i<(INV.deepest||0)?' · cleared':i===max?' · next':''}</span><span>${i<=max?esc(f.blurb):'Locked. Beat the floor above first.'}</span></button>`).join('')}</div>
-    <div class="row"><button class="btn alt" type="button" data-act="close">Stay in town</button></div>`,'gate',a=>{const [k,x]=a.split('-');if(k==='f'){dlgEl.hidden=true;dlgKind=null;goDungeon(+x);}});
+    <div class="row"><button class="btn alt" type="button" data-act="close">Stay in town</button></div>`,'gate',a=>{const [k,x]=a.split('-');if(k==='rk'&&+x<=rankMax()){INV.rank=+x;save();showGate();return;}if(k==='f'){dlgEl.hidden=true;dlgKind=null;goDungeon(+x);setTimeout(()=>toast(`Reporting for duty, ${RANKS[curRank()].n}!`),900);}});
 }
 function portalChoice(){
   const last=S.floor>=3;
@@ -5203,7 +5214,7 @@ async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'')
 // what a hero is wearing, sent to friends so they see the same armor: armor tier, weapon tier, then helm/gloves/boots/shield on or off
 function gearKey(h){return `${(h.armor&&h.armor.tier)|0}.${(h.weapon&&h.weapon.tier)|0}.${h.helm?1:0}${h.hands?1:0}${h.feet?1:0}${h.off?1:0}`;}
 function gearApply(h,k){const [a,w,f='0000']=String(k||'0.0.0000').split('.');h.armor.tier=a|0;h.weapon.tier=w|0;for(const [i,sl] of ['helm','hands','feet','off'].entries())h[sl]=f[i]==='1'?{tier:a|0,grade:0,sockets:[],aff:[]}:null;}
-function netState(){const h=H;return {gr:gearKey(h),hpf:+(h.hp/Math.max(1,h.maxHp)).toFixed(2),cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
+function netState(){const h=H;return {rk:myRank(),gr:gearKey(h),hpf:+(h.hp/Math.max(1,h.maxHp)).toFixed(2),cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
 function netDrop(id){const p=NET.peers[id];if(!p)return;if(p.mins)for(const m of p.mins){minionDrop(m);S.rminions.splice(S.rminions.indexOf(m),1);}bubbleKill(p);vcHang(id);if(p.R)disposeReal(p.R);if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}delete NET.peers[id];netBadge();}
 function netTag(name){const c=document.createElement('canvas');c.width=256;c.height=48;const g=c.getContext('2d');g.font='bold 26px sans-serif';g.textAlign='center';const w=Math.min(250,g.measureText(name).width+22);g.fillStyle='rgba(8,6,14,.62)';g.fillRect(128-w/2,6,w,36);g.fillStyle='#9fe3ff';g.fillText(name,128,33);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(2.2,0.42,1);s.renderOrder=999;s.userData.name=name;return s;}
