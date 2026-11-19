@@ -18,6 +18,9 @@
   color-scheme:dark;
 }
 html,body{height:100%}
+/* no blue flash or text selection when tapping on phones */
+*{-webkit-tap-highlight-color:transparent}
+body.phone #stage,body.phone #stage *,body.phone .tbtn,body.phone button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 [hidden]{display:none!important}
 body{background:var(--ink);color:var(--parch);font-family:var(--body);font-size:16px;line-height:1.4;box-sizing:border-box;padding-block:10px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden}
@@ -156,6 +159,9 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 .wslot i{position:absolute;bottom:2px;left:0;right:0;font:700 9px var(--body);color:var(--dim);font-style:normal;text-align:center;white-space:nowrap;overflow:hidden}
 .wslot.hot{border-color:#7dff9a!important;box-shadow:0 0 12px #7dff9a}
 .hotz{outline:2px dashed #7dff9a;outline-offset:4px}
+.pwrap{position:relative;display:block}.pwrap input{width:100%;padding-right:64px;box-sizing:border-box}
+.pweye{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--parch);font:700 13px var(--body);cursor:pointer}
+.pweye:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media (max-height:520px){.wslot{width:48px;height:48px}.wslot i{font-size:8px}.doll{grid-template-columns:52px minmax(0,1fr) 52px;max-width:360px}.dcol{gap:5px}.jrow{gap:5px}}
 .cell{touch-action:none}
 .bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px}
@@ -274,7 +280,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
     <div id="toast" hidden></div>
     <div id="intro" hidden><div class="itxt"></div><div class="iwho"><p>You awaken. Who are you?</p><div class="row"><button class="btn alt" type="button" data-sex="m">Male</button><button class="btn alt" type="button" data-sex="f">Female</button></div><input id="introName" maxlength="16" placeholder="Your name" autocomplete="off" aria-label="Your name"><button class="btn" id="introWake" type="button" disabled>Wake up</button></div><div class="ibox"><b>Old Maren, the harbor keeper</b><p></p><small>Click, tap or press Enter</small></div><button id="introSkip" type="button">Skip</button></div>
     <div id="err" hidden></div>
-    <div id="netUI" hidden><button id="chatBtn" type="button">💬 Chat</button><button id="vcBtn" type="button">🎙 Join voice</button><button id="micBtn" type="button" hidden>🎙 Mic on</button></div>
+    <div id="netUI" hidden><button id="chatBtn" type="button">💬 Chat</button><button id="vcBtn" type="button">🎙 Join voice</button><button id="tpBtn" type="button" hidden>✨ Go to leader</button><button id="micBtn" type="button" hidden>🎙 Mic on</button></div>
     <div id="chatLog" aria-live="polite"></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="120" placeholder="Say something… Enter sends, Esc closes" autocomplete="off" aria-label="Chat message"></div><div id="quickChat" hidden></div>
   </div>
@@ -414,8 +420,8 @@ const HEROES={
  barbarian:{name:'Druid Barbarian',role:'Armored knight with twin axes',hp:150,mp:65,spd:2.5,dmg:14,range:74,atkRate:24,swing:16,weapon:'Twin Axes',
   s1:{name:'Earthquake',cost:30},s2:{name:'Bear Rage',cost:45},
   col:{skin:'#eaa47b',body:'#6d4b30',trim:'#4f8f3a',leg:'#4b3423',boot:'#2e2016',hair:'#c4472d',hat:'#8d949c',sleeve:'#6d7580'}},
- healer:{name:'Healer Wizard',role:'Heals the party, fires a holy beam',hp:100,mp:115,spd:2.8,dmg:8,range:62,atkRate:20,swing:14,weapon:'Scepter',
-  s1:{name:'Arcane Bolt',cost:15},s2:{name:'Healing Light',cost:55},
+ healer:{name:'Healer Wizard',role:'Always healing the party, fights with ice',hp:100,mp:115,spd:2.8,dmg:8,range:62,atkRate:20,swing:14,weapon:'Scepter',
+  s1:{name:'Twin Ice Lances',cost:18},s2:{name:'Life Drain',cost:45},
   col:{skin:'#f1c8a5',body:'#e8edf6',trim:'#e1b23d',leg:'#9cb5d7',boot:'#5f7398',hair:'#ffffff',hat:'#3f6fc4',sleeve:'#e8edf6'}},
 };
 const CLASS_ORDER=['necromancer','elf','archer','barbarian','healer'];
@@ -1118,9 +1124,32 @@ function house(o){
   for(const s of [-1,1]){g.add(mesh(new THREE.PlaneGeometry(1.3,1.1),M.window,s*w/3,3.6,d/2+0.03,false,false));if(o.noDoor||true)g.add(mesh(new THREE.PlaneGeometry(1.2,1),M.window,s*w/3,1.6,d/2+0.03,false,false));}
   g.userData.box=[...g.children];if(o.bld)TOWN_BLD.push({g,o});
   if(o.name){const sm=new THREE.MeshLambertMaterial({map:signTex(o.name,o.icon),transparent:true,alphaTest:0.4,side:THREE.DoubleSide});
-    const sg=mesh(new THREE.PlaneGeometry(2.6,0.98),sm,0,3.05,d/2+0.25,false,false);g.add(sg);}
+    const sg=mesh(new THREE.PlaneGeometry(2.6,0.98),sm,0,3.05,d/2+0.25,false,false);g.add(sg);SIGN_SPOTS.push({par:g,plane:sg,p:sg.position.clone(),name:o.name,icon:o.icon,yard:{x:w/2-0.45,z:d/2+1.5}});loadSigns();signsUpgrade();}
   return g;
 }
+// ---- carved hanging signs from the 3DT Fantasy Signs pack; the shop or house name is painted on the board ----
+const SIGN_OF={anchor:20,magic:6,gems:9,smith:5,armory:16,home:18,spice:2};
+const SIGN_BOARD={20:[-0.2,-0.56,0.8,0.55,0.13],6:[0,-0.45,1.05,0.55,0.11],9:[0.03,-0.3,1.05,0.5,0.12],5:[0,-0.45,0.72,0.62,0.11],16:[0,0.12,0.72,0.42,0.11],18:[-0.02,-0.85,1.0,0.6,0.08],2:[0,-0.15,1.0,0.5,0.1]}; // board centre x,y, width, height, front
+const SIGN_SPOTS=[];let SIGNS3=null;
+function signText(name){return canvasTex(512,256,(g,w,h)=>{g.clearRect(0,0,w,h);const words=String(name).split(' ');let lines=[name],fs=96;g.font=`bold ${fs}px Georgia,serif`;
+  while(fs>40&&g.measureText(lines.join(' ')).width>w-40){fs-=6;g.font=`bold ${fs}px Georgia,serif`;}
+  if(words.length>1&&String(name).length>9){const half=Math.ceil(words.length/2);lines=[words.slice(0,half).join(' '),words.slice(half).join(' ')];fs=96;g.font=`bold ${fs}px Georgia,serif`;while(fs>36&&Math.max(...lines.map(l=>g.measureText(l).width))>w-40){fs-=6;g.font=`bold ${fs}px Georgia,serif`;}}
+  g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';const lh=fs*1.05,y0=h/2-(lines.length-1)*lh/2;
+  lines.forEach((l,i)=>{g.lineWidth=fs*0.16;g.strokeStyle='rgba(20,10,4,.9)';g.strokeText(l,w/2,y0+i*lh);g.fillStyle='#f0d898';g.fillText(l,w/2,y0+i*lh);});});}
+function signsUpgrade(){if(!SIGNS3)return;for(const s of SIGN_SPOTS){if(s.done)continue;const num=SIGN_OF[s.icon],src=num&&SIGNS3[num];if(!src)continue;const k=s.k||1.25,b=SIGN_BOARD[num],g=new THREE.Group(),m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;g.add(m);
+    const t=new THREE.Mesh(new THREE.PlaneGeometry(b[2],b[3]),new THREE.MeshLambertMaterial({map:signText(s.name),transparent:true,alphaTest:0.05}));t.position.set(b[0],b[1],b[4]);g.add(t);
+    if(s.yard){signYard(s,g,src.geometry,k,num);continue;}
+    const ry=s.ry||0;g.rotation.y=ry;g.scale.setScalar(k);g.position.set(s.p.x-b[0]*k*Math.cos(ry),s.p.y+(s.icon==='anchor'?0.45:0)-b[1]*k,s.p.z+b[0]*k*Math.sin(ry)+(s.dz||0));s.par.add(g);s.plane.visible=false;s.done=1;}}
+// signs stand in the front yard on their own post and arm, clear of the roof and walls
+function signYard(s,g,geo,k,num){if(!geo.boundingBox)geo.computeBoundingBox();const bb=geo.boundingBox,Y=s.yard;g.scale.setScalar(k);
+  if(num===20){g.position.set(Y.x-0.6-bb.max.x*k,-bb.min.y*k,Y.z);}
+  else{const wd=DN.postM||(DN.postM=new THREE.MeshStandardMaterial({color:0x5a3d24,roughness:0.95})),H=3.7,arm=1.45;
+    s.par.add(mesh(new THREE.BoxGeometry(0.2,H,0.2),wd,Y.x,H/2,Y.z));
+    s.par.add(mesh(new THREE.BoxGeometry(arm+0.1,0.14,0.14),wd,Y.x-arm/2,H-0.2,Y.z));
+    const br=mesh(new THREE.BoxGeometry(0.1,0.75,0.1),wd,Y.x-0.27,H-0.47,Y.z);br.rotation.z=-0.75;s.par.add(br);
+    g.position.set(Y.x-arm+0.45-(bb.max.x+bb.min.x)/2*k,H-0.27-bb.max.y*k,Y.z-(bb.max.z+bb.min.z)/2*k);}
+  s.par.add(g);s.plane.visible=false;s.done=1;}
+function loadSigns(){if(SIGNS3||!THREE.GLTFLoader||loadSigns.busy)return;loadSigns.busy=1;loadModelData('signs').then(gl=>{const L={};gl.scene.traverse(o=>{if(o.isMesh){const n=+String(o.name).replace(/\D+/g,'');if(n)L[n]=o;}});SIGNS3=L;signsUpgrade();}).catch(e=>console.warn('signs',e));}
 function lamp(x,z,grp,light=true){
   const wd=DN.postM||(DN.postM=new THREE.MeshStandardMaterial({color:0x5a3d24,roughness:0.95})),ir=DN.ironM||(DN.ironM=new THREE.MeshStandardMaterial({color:0x2a2622,roughness:0.6,metalness:0.6}));
   grp.add(mesh(new THREE.CylinderGeometry(0.11,0.15,3.1,7),wd,x,1.55,z));
@@ -1235,7 +1264,7 @@ function buildSpiceStall(T){const x=SPICE_AT.x,z=SPICE_AT.z,st=new THREE.Group()
   const aw=canvasTex(128,64,(g,w,h)=>{for(let k=0;k<8;k++){g.fillStyle=k%2?'#f2e7cf':'#c8641e';g.fillRect(k*16,0,16,h);}g.fillStyle='rgba(0,0,0,.15)';g.fillRect(0,h-6,w,6);});
   const awn=mesh(new THREE.PlaneGeometry(3.8,3.3),new THREE.MeshLambertMaterial({map:aw,side:THREE.DoubleSide}),0,2.75,0.05);awn.rotation.x=-Math.PI/2+0.22;st.add(awn);
   const sign=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#5a3a20';g.fillRect(0,0,w,h);g.fillStyle='#f2d38a';g.font='bold 30px Georgia';g.textAlign='center';g.fillText("Rafi's Spices",w/2,42);});
-  st.add(mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6));
+  {const sb=mesh(new THREE.BoxGeometry(2.2,0.5,0.06),new THREE.MeshLambertMaterial({map:sign}),0,2.35,-1.6);st.add(sb);SIGN_SPOTS.push({par:st,plane:sb,p:new THREE.Vector3(0,2.05,-1.62),name:"Rafi's Spices",icon:'spice',k:0.95,ry:Math.PI});loadSigns();signsUpgrade();}
   T.add(st);TOWN_COL.push([x-1.8,x+1.8,z-1.5,z+1.6]);occluder(st,x-1.9,x+1.9,z-1.6,z+1.7,true,'town');
   if(THREE.GLTFLoader)loadModelData('spice').then(gl=>{const m=gl.scene;m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()),k=Math.min(3.0/sz.x,2.3/sz.z);
     m.scale.setScalar(k);m.position.set(-c.x*k,0.32-b.min.y*k,-c.z*k);m.rotation.y=Math.PI;st.add(m);}).catch(()=>{});
@@ -2143,6 +2172,12 @@ function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast(
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
   const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:pcol().p[Math.random()<0.5?0:1]});
   if(--S.portT===0){sfx('go');goTown();}}
+// where everyone in the party is on this floor (the host sees friends through their last sent position)
+function partyXZ(){const L=[[H.x,H.z]];if(NET.on&&S.level==='dungeon')for(const id in NET.peers){const t=NET.peers[id].s;if(t&&t.lvl==='dungeon'&&t.floor===S.floor&&t.state!=='down')L.push([+t.x,+t.z]);}return L;}
+function mzInside(r,x,z){const tx=Math.floor(x/TS),tz=Math.floor(z/TS);return tx>r.x0-1&&tx<r.x1+1&&tz>r.z0-1&&tz<r.z1+1;}
+// a fight started in a room you are not in: you are pulled in beside the friend who started it, so no one is shut out
+function partyPullIn(r,x,z){if(!H||H.state==='down'||mzRoomOf(H.x,H.z)===r)return;poof(H.x,0,H.z,1);H.x=x+rnd(-0.6,0.6);H.z=z+rnd(-0.6,0.6);H.vx=H.vz=0;sparks(H.x,1.2,H.z,14);sfx('magic');
+  const rr=mzRoomOf(H.x,H.z);if(rr&&!rr.seen){rr.seen=true;mzRevealRoom(rr);}toast('Your party started a fight! You joined them.');}
 function inRoomFoe(e,r){if(e.state==='dead'||e.mine)return false;const tx=Math.floor(e.x/TS),tz=Math.floor(e.z/TS);return tx>=r.x0-1&&tx<=r.x1+1&&tz>=r.z0-1&&tz<=r.z1+1;} // only foes inside the locked room count
 function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>inRoomFoe(e,ar)).length>1)return;
   const nw=S.roomWaves[0].w,batch=S.roomWaves.filter(q=>q.w===nw);S.roomWaves=S.roomWaves.filter(q=>q.w!==nw);
@@ -2227,6 +2262,10 @@ function drawMaze(g){
     for(const p of S.pickups)if(p.kind==='rkey'||p.kind==='gkey'){const x=p.x/TS,z=p.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;g.fillStyle='#ffd35c';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(2,px*0.7),0,Math.PI*2);g.fill();}
     for(const e of S.enemies){if(e.state==='dead')continue;const x=e.x/TS,z=e.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;g.fillStyle=e.def.boss?'#ff3a3a':'#ff7a6a';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(1.6,px*(e.def.boss?0.8:0.45)),0,Math.PI*2);g.fill();}
     if(MZ.portal.visible){const x=MZ.portal.position.x/TS,z=MZ.portal.position.z/TS;g.fillStyle='#8fd3ff';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(3,px),0,Math.PI*2);g.fill();}
+    // friends on this floor: a blue dot each (the room leader in gold), with names on the full map
+    if(NET.on)for(const id in NET.peers){const t=NET.peers[id].s;if(!t||t.lvl!=='dungeon'||t.floor!==S.floor)continue;const x=t.x/TS,z=t.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;
+      const cx=ox+(x-x0)*px,cy=oy+(z-z0)*px,rr=Math.max(3.5,px*0.9),lead=NET.hostConn&&NET.hostConn.peer===id;g.fillStyle=t.state==='down'?'#8a8a8a':lead?'#ffb84a':'#7fd4ff';g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,rr,0,Math.PI*2);g.fill();g.stroke();
+      if(px>=5){g.font=`800 12px ${BF}`;g.textAlign='center';g.lineWidth=3;const nm=String(t.name||'Friend').slice(0,16);g.strokeText(nm,cx,cy-rr-5);g.fillStyle=lead?'#ffd98a':'#bfeaff';g.fillText(nm,cx,cy-rr-5);}}
     const hx=ox+(htx-x0)*px,hy=oy+(htz-z0)*px,a=Math.atan2(H.fz,H.fx);g.fillStyle='#ffe27a';g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();
     g.moveTo(hx+Math.cos(a)*px*1.6,hy+Math.sin(a)*px*1.6);g.lineTo(hx+Math.cos(a+2.4)*px*1.1,hy+Math.sin(a+2.4)*px*1.1);g.lineTo(hx+Math.cos(a-2.4)*px*1.1,hy+Math.sin(a-2.4)*px*1.1);g.closePath();g.fill();g.stroke();};
   // corner minimap
@@ -2425,7 +2464,7 @@ const SETS={
  graveyard:{cls:'necromancer',n:'Graveyard',names:{helm:'Graveyard Hood',armor:'Graveyard Robe',hands:'Graveyard Grips',feet:'Graveyard Treads'},b2:'+15% max mana',b4:'+20% damage, and your skeletons hit 30% harder'},
  bloodbear:{cls:'barbarian',n:'Bloodbear',names:{helm:'Bloodbear Helm',armor:'Bloodbear Plate',hands:'Bloodbear Gauntlets',feet:'Bloodbear Boots'},b2:'+15% max health',b4:'+20% damage, and take 10% less damage'},
  windrunner:{cls:'archer',n:'Windrunner',names:{helm:'Windrunner Hood',armor:'Windrunner Jerkin',hands:'Windrunner Bracers',feet:'Windrunner Boots'},b2:'+6% crit chance',b4:'+20% damage, and 8% faster on your feet'},
- dawnlight:{cls:'healer',n:'Dawnlight',names:{helm:'Dawnlight Circlet',armor:'Dawnlight Vestments',hands:'Dawnlight Gloves',feet:'Dawnlight Sandals'},b2:'+15% max mana',b4:'+20% damage, and Healing Light heals 25% more'}};
+ dawnlight:{cls:'healer',n:'Dawnlight',names:{helm:'Dawnlight Circlet',armor:'Dawnlight Vestments',hands:'Dawnlight Gloves',feet:'Dawnlight Sandals'},b2:'+15% max mana',b4:'+20% damage, and Life Drain heals 25% more'}};
 const CLASS_SET={necromancer:'graveyard',barbarian:'bloodbear',archer:'windrunner',healer:'dawnlight'},SET_SLOTS=['helm','armor','hands','feet'],COLOR_BONUS={2:5,3:8,4:12};
 function setN(h){const id=h&&CLASS_SET[h.cls];if(!id)return 0;let n=0;for(const k of SET_SLOTS)if(h[k]&&h[k].set===id)n++;return n;}
 function colorGrade(h){let g=null;for(const k of SET_SLOTS){const it=h[k];if(!it)return 0;if(g===null)g=it.grade;else if(it.grade!==g)return 0;}return g>=2?g:0;}
@@ -2455,8 +2494,8 @@ const PASSIVES={
  elf:[{id:'swift',n:'Swift Feet',e:'+5% move speed per rank'},{id:'keen',n:'Keen Edge',e:'+4% crit chance per rank'},{id:'evade',n:'Evasion',e:'5% chance per rank to dodge a hit completely'}],
  archer:[{id:'eagle',n:'Eagle Eye',e:'+4% crit chance per rank'},{id:'quick',n:'Quick Draw',e:'Attack 8% faster per rank'},{id:'pierce',n:'Piercing Shots',e:'Arrows fly through one more enemy per rank'}],
  barbarian:[{id:'tough',n:'Bear Hide',e:'+8% max health per rank'},{id:'iron',n:'Iron Skin',e:'+12 armor per rank'},{id:'cleave',n:'Mighty Swing',e:'+8% attack damage per rank'}],
- healer:[{id:'mend',n:'Mending Light',e:'Slowly regain health in the dungeon, faster each rank'},{id:'wis',n:'Deep Wisdom',e:'+10% max mana per rank'},{id:'bless',n:'Blessed',e:'Take 6% less damage per rank'}]};
-const SP_E={necromancer:['Fireball hits 20% harder','Skeletons are 15% tougher, hit 20% harder and stay 5 seconds longer'],elf:['Dash hits 20% harder','Vines hit 20% harder'],archer:['Arrows hit 20% harder','Arrow storm hits 20% harder'],barbarian:['Earthquake hits 20% harder','Rage lasts 1.5 seconds longer'],healer:['Bolt hits 20% harder','Heals 15% more']};
+ healer:[{id:'mend',n:'Healing Aura',e:'Your party heal is 1% stronger each rank'},{id:'wis',n:'Deep Wisdom',e:'+10% max mana per rank'},{id:'bless',n:'Blessed',e:'Take 6% less damage per rank'}]};
+const SP_E={necromancer:['Fireball hits 20% harder','Skeletons are 15% tougher, hit 20% harder and stay 5 seconds longer'],elf:['Dash hits 20% harder','Vines hit 20% harder'],archer:['Arrows hit 20% harder','Arrow storm hits 20% harder'],barbarian:['Earthquake hits 20% harder','Rage lasts 1.5 seconds longer'],healer:['Ice lances hit 20% harder','Drains 15% more life']};
 const SP_MAX=5,PAS_MAX=3,LV_MAX=30;
 const xpNeed=l=>50+40*l*l;
 function pr(id){return (H&&H.sk&&H.sk[id])||0;}
@@ -2503,14 +2542,14 @@ function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
 }
 function pushOut(o,cols,r){for(const c of cols){const x0=c[0]-r,x1=c[1]+r,z0=c[2]-r,z1=c[3]+r;if(o.x>x0&&o.x<x1&&o.z>z0&&o.z<z1){const a=o.x-x0,b=x1-o.x,cc=o.z-z0,d=z1-o.z,m=Math.min(a,b,cc,d);if(m===a)o.x=x0;else if(m===b)o.x=x1;else if(m===cc)o.z=z0;else o.z=z1;}}}
 function camVecs(){const y=CAM.yawC;return {rx:Math.cos(y),rz:-Math.sin(y),fx:-Math.sin(y),fz:-Math.cos(y)};}
-function updHero(inp){buffTick();scrTick();if(H.onShip){if(S.level!=='town'||!ship){H.onShip=false;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;if(inp.mx||inp.my||inp.mv)H.shipMoved=true;inp.jump=inp.jumpP=false;if(!H.shipMoved){shipDeck();H.moving=false;H.fx=1;H.fz=0;return;}}}
+function updHero(inp){buffTick();scrTick();healerTick();if(H.onShip){if(S.level!=='town'||!ship){H.onShip=false;Object.assign(H,{x:-42.5,z:2.2,y:0,vy:0});}else{ship.visible=true;if(ship.userData.lateen)ship.userData.lateen.visible=false;if(inp.mx||inp.my||inp.mv)H.shipMoved=true;inp.jump=inp.jumpP=false;if(!H.shipMoved){shipDeck();H.moving=false;H.fx=1;H.fz=0;return;}}}
 if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
   const h=H,d=HEROES[h.cls];h.anim++;
   if(h.inv>0)h.inv--;if(h.noMpT>0)h.noMpT--;
   if(h.rage>0){h.rage--;if(h.anim%4===0)addPart({x:h.x+rnd(-.3,.3),y:rnd(.3,1.5),z:h.z+rnd(-.3,.3),vy:.03,g:0,life:22,size:.05,color:'#ff6a4a'});}
   if(h.y>0||h.vy>0){h.vy-=0.018;h.y+=h.vy;if(h.y<=0){h.y=0;h.vy=0;}}
   if(h.state==='down')return;
-  h.mp=Math.min(h.maxMp,h.mp+0.035+0.012*gemSum(h,'amethyst'));if(h.rune==='vigor'&&S.level==='dungeon')h.hp=Math.min(h.maxHp,h.hp+0.025);if(pr('mend')&&S.level==='dungeon')h.hp=Math.min(h.maxHp,h.hp+0.02*pr('mend'));
+  h.mp=Math.min(h.maxMp,h.mp+0.035+0.012*gemSum(h,'amethyst'));if(h.rune==='vigor'&&S.level==='dungeon')h.hp=Math.min(h.maxHp,h.hp+0.025);
   if(h.atkCD>0)h.atkCD--;if(h.comboT>0)h.comboT--;else h.combo=0;if(h.castT>0)h.castT--;
   if(h.swing>0){h.swing--;if(h.hitPending&&h.swing<=h.swingMax*0.55){h.hitPending=false;if(S.level!=='town')heroStrike();}}
   h.moving=false;
@@ -2583,9 +2622,8 @@ function special(n){
     case 'barbarian1':H.vy=0.2;schedule(20,()=>{aoe(H.x,H.z,3.4,spDmg(30,n),'big');S.shake=0.35;sfx('boom');ring(H.x,H.z,'#c9a46b',0.6,0.16,26);ring(H.x,H.z,'#fff0c0',0.2,0.1,20);
       for(let k=0;k<16;k++)addPart({x:H.x+rnd(-2.5,2.5),y:0.05,z:H.z+rnd(-2,2),vy:rnd(.04,.1),life:30,size:rnd(.08,.15),color:'#8d7a5a'});});break;
     case 'barbarian2':H.rage=480+90*(spRank(2)-1);floatText(H.x,2.4,H.z,'BEAR RAGE!','#ff7a5a',22);ring(H.x,H.z,'#ff5a3a',0.4,0.12,24);break;
-    case 'healer1':addProj({tint:spellTint(),kind:'bolt',x:H.x+fx*.6,y:H.y+1.1,z:H.z+fz*.6,vx:fx*0.2,vz:fz*0.2,dmg:spDmg(20,n),life:70,pierce:99,r:0.35});break;
-    case 'healer2':{const a=Math.round(H.maxHp*0.45*(1+0.15*(spRank(2)-1))*(setN(H)>=4?1.25:1));H.hp=Math.min(H.maxHp,H.hp+a);floatText(H.x,2.2,H.z,'+'+a,'#9dffb0',18);ring(H.x,H.z,'#ffe68a',0.3,0.08,30);
-      for(let k=0;k<10;k++)addPart({x:H.x+rnd(-.4,.4),y:rnd(0,1),z:H.z+rnd(-.4,.4),vy:rnd(.02,.05),g:0,life:40,size:.06,color:'#bfffcf',kind:'star'});break;}
+    case 'healer1':for(const a of [-0.13,0.13]){const c=Math.cos(a),sn=Math.sin(a);addProj({tint:spellTint(),kind:'bolt',x:H.x+fx*.6,y:H.y+1.1,z:H.z+fz*.6,vx:(fx*c-fz*sn)*0.2,vz:(fx*sn+fz*c)*0.2,dmg:spDmg(16,n),life:70,pierce:99,r:0.35});}break;
+    case 'healer2':lifeDrain(n);break;
   }
 }
 // ================= necromancer: raised skeletons (skill 2) =================
@@ -2610,10 +2648,13 @@ function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
     let tg=null,bd=8;for(const e of S.enemies){if(e.state==='dead'||e.remove)continue;const d=Math.hypot(e.x-m.x,e.z-m.z);if(d<bd&&Math.hypot(e.x-H.x,e.z-H.z)<13){bd=d;tg=e;}}
     if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,m.dmg||spDmg(10,2)*(setN(H)>=4?1.3:1),m.fx,m.fz,false);}return;}
     if(m.state==='strike'){if(--m.t<=0)m.state='walk';return;}
+    // a skeleton that makes no headway for about a second (stuck behind a door or wall) pops back beside the Necromancer
+    const home=()=>{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0;poof(m.x,0,m.z,0.6);m.x=H.x+Math.cos(a)*1.9;m.z=H.z+Math.sin(a)*1.9;clampPos(m);poof(m.x,0,m.z,0.7);m.stuck=0;m.lastD=undefined;},prog=d=>{if(m.lastD!==undefined&&d>m.lastD-0.012)m.stuck=(m.stuck||0)+1;else m.stuck=0;m.lastD=d;};
+    if(m.stuck>70){home();return;}
     if(tg){const dx=tg.x-m.x,dz=tg.z-m.z,d=Math.hypot(dx,dz)||1;m.fx=dx/d;m.fz=dz/d;
-      if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;}else if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}
+      if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;prog(d);}else{m.stuck=0;if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}}
     else{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0,gx=H.x+Math.cos(a)*1.9,gz=H.z+Math.sin(a)*1.9,dx=gx-m.x,dz=gz-m.z,d=Math.hypot(dx,dz);
-      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);}else if(d>0.5){const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;}else{m.fx=H.fx;m.fz=H.fz;}}
+      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);m.stuck=0;}else if(d>0.5){const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;if(d>2.5)prog(d);else m.stuck=0;}else{m.fx=H.fx;m.fz=H.fz;m.stuck=0;}}
     for(const o of L){if(o===m||o.state==='dead')continue;const ox=m.x-o.x,oz=m.z-o.z,od=Math.hypot(ox,oz);if(od<0.75&&od>0.001){m.x+=ox/od*(0.75-od)*0.2;m.z+=oz/od*(0.75-od)*0.2;}}
     clampPos(m);});
   for(const m of L)if(m.remove)minionDrop(m);S.minions=L.filter(m=>!m.remove);}
@@ -3060,7 +3101,7 @@ function setLevel(lv){
 }
 function goTown(spot){
   if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
-  clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
+  clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};NET.tp=2;if(typeof vcUI==='function')vcUI();
   if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
@@ -3125,7 +3166,7 @@ function updNpc(n){
 
 // ================= houses =================
 const HOUSES=[
- {id:'home',x:-26,name:'Your House',sign:'Your House',roof:'#6a4a3a'},
+ {id:'home',x:-26,get name(){return homeName();},get sign(){return won()?'Your Home':'Guest Hut';},roof:'#6a4a3a'}, // a guest hut while you fight; after the Lich Queen falls it is yours for good
  {id:'baker',x:-12,name:"Tolly the Baker's House",roof:'#3e5a6a',npc:{name:'Tolly',x:2.4,z:-1.2,col:'#efe6d8',skin:'#f1c8a5',hat:1,lines:['Fresh bread every morning! Well, most mornings.','Break the old pots you find. Folks hide all sorts of goods in them.','My cousin found a Fairy Amber once. The fairy inside saved him down in the crypt.']}},
  {id:'sailor',x:8,name:"Captain Brin's House",roof:'#7a5a3a',npc:{name:'Captain Brin',x:-2.2,z:-1.4,col:'#3a5a8a',skin:'#d9a07a',hat:0,lines:['When the Lich Queen falls, my ship sails for Kemet. Mind the sea serpents.','I left something in that chest for a brave raider. Go on, take it.','Sell your goods at any shop in town. Golden idols fetch the best price.']}},
  {id:'weaver',x:22,name:"Weaver Nell's House",roof:'#5a3a5a',npc:{name:'Nell',x:-1.8,z:-0.6,col:'#a463f2',skin:'#f6d5b8',hat:2,lines:['Black tourmaline keeps harm away. Set it in your armor, dear.','Citrine draws gold to you, and smoky quartz keeps you on your feet.','If your bag fills up, keep things in the chest at your own house.']}},
@@ -3566,8 +3607,29 @@ function makeRoyals(){const sp=()=>makeSprite(512,512,256,472,2);
   const k={x:DAIS.x-0.95,z:DAIS.z-0.35,y:DAIS.h,tx:0,tz:0,vx:0,pause:1e9,anim:0,col:'#8a1a2a',hat:0,skin:'#e9b58d',face:1,fx:0,fz:1,rm:'king',tall:1.9,keeper:true,royal:true,spr:sp()};
   const q={x:DAIS.x+0.95,z:DAIS.z-0.35,y:DAIS.h,tx:0,tz:0,vx:0,pause:1e9,anim:0,col:'#6a3a9a',hat:2,skin:'#f6d5b8',face:1,fx:0,fz:1,rm:'queen',tall:1.78,keeper:true,royal:true,spr:sp()};
   S.npcs.push(k,q);DKFX.king=k;DKFX.queen=q;}
+const homeName=()=>won()?'Your Home':'The Guest Hut';
+// ---- the Healer Wizard: always healing. Himself 1% of max health every 2 seconds, and friends close by 2% (+1% per Healing Aura rank) ----
+const HEAL_R=8,HEAL_EVERY=120;
+function healerTick(){if(!H||H.cls!=='healer'||S.level!=='dungeon'||H.state==='down')return;H.healT=(H.healT||0)+1;if(H.healT<HEAL_EVERY)return;H.healT=0;
+  const self=0.01,aura=0.02+0.01*pr('mend');let shown=false;
+  if(H.hp<H.maxHp){const a=Math.max(1,Math.round(H.maxHp*self));H.hp=Math.min(H.maxHp,H.hp+a);floatText(H.x,2.2,H.z,'+'+a,'#9dffb0',14);shown=true;}
+  if(NET.on){scrNet({t:'heal',to:'*',p:aura,x:+H.x.toFixed(2),z:+H.z.toFixed(2),fl:S.floor,n:String(H.name||'The Healer').slice(0,16)});shown=true;}
+  if(shown){ring(H.x,H.z,'#9dffb0',HEAL_R*0.12,0.06,22);for(let k=0;k<8;k++){const an=Math.random()*6.28,rr=Math.random()*1.4;addPart({x:H.x+Math.cos(an)*rr,y:rnd(.1,.6),z:H.z+Math.sin(an)*rr,vy:rnd(.015,.03),g:0,life:34,size:.06,color:'#bfffcf',kind:'star'});}}}
+// a friend's heal arrives over the network: apply it if it is meant for us and we are close enough
+function healIn(m){if(!H||H.state==='down'||S.level!=='dungeon'||m.fl!==S.floor)return;if(m.to!=='*'&&m.to!==NET.myId)return;if(m.to==='*'&&Math.hypot(H.x-m.x,H.z-m.z)>HEAL_R+0.5)return;
+  const a=m.amt?Math.round(m.amt):Math.max(1,Math.round(H.maxHp*(+m.p||0)));if(!(a>0))return;H.hp=Math.min(H.maxHp,H.hp+a);floatText(H.x,2.2,H.z,'+'+a,'#9dffb0',m.amt?17:13);
+  for(let k=0;k<(m.amt?12:5);k++)addPart({x:H.x+rnd(-.4,.4),y:rnd(.2,1.6),z:H.z+rnd(-.4,.4),vy:rnd(.015,.04),g:0,life:30,size:.06,color:'#bfffcf',kind:'star'});}
+// Life Drain: pulls life out of nearby enemies and sends it to whoever in the party (the Healer too) has the least health left
+function lifeDrain(n){const R=5.5,amtMul=0.6*(1+0.15*(spRank(2)-1))*(setN(H)>=4?1.25:1);let total=0;
+  const pick=(()=>{let best={id:null,x:H.x,z:H.z,f:H.hp/H.maxHp};if(NET.on)for(const id in NET.states){if(id===NET.myId)continue;const q=NET.states[id].s;if(!q||q.lvl!=='dungeon'||q.floor!==S.floor||q.state==='down'||q.hpf===undefined)continue;if(Math.hypot(q.x-H.x,q.z-H.z)>12)continue;if(q.hpf<best.f)best={id,x:q.x,z:q.z,f:q.hpf};}return best;})();
+  for(const e of S.enemies){if(e.state==='dead'||e.remove||e.mine)continue;const d=Math.hypot(e.x-H.x,e.z-H.z);if(d>R)continue;const dm=spDmg(14,n);hurtEnemy(e,dm,(e.x-H.x)/(d||1),(e.z-H.z)/(d||1),false);total+=dm;
+    for(let k=0;k<6;k++){const t=k/6;addPart({x:e.x+(pick.x-e.x)*t,y:1+Math.sin(t*3.14)*0.8,z:e.z+(pick.z-e.z)*t,vy:0.01,g:0,life:22+k*3,size:.08,color:k%2?'#9dffb0':'#c06aff',kind:'star'});}}
+  ring(H.x,H.z,'#c06aff',R*0.18,0.1,26);sfx('magic');
+  const heal=Math.max(1,Math.round(total*amtMul));if(!total){floatText(H.x,2.4,H.z,'No enemies close','#c8c0d6',14);return;}
+  if(pick.id===null){H.hp=Math.min(H.maxHp,H.hp+heal);floatText(H.x,2.2,H.z,'+'+heal,'#9dffb0',18);ring(H.x,H.z,'#9dffb0',0.3,0.08,26);}
+  else{scrNet({t:'heal',to:pick.id,amt:heal,x:+H.x.toFixed(2),z:+H.z.toFixed(2),fl:S.floor});floatText(pick.x,2.4,pick.z,'+'+heal,'#9dffb0',18);}}
 function royalTalk(){const k=DKFX.king,q=DKFX.queen;if(!k||S.royalT>performance.now())return;S.royalT=performance.now()+9000;
-  say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you.',3800);
+  say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you. The guest hut is yours now. You will always have a home here.',4600);
   schedule(150,()=>say(q,INV.letter?'Kemet needs you now. Captain Brin will sail when you are ready.':'A letter came for you from across the sea. Our messenger is bringing it.',4200));}
 function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS.z);g.visible=false;T.add(g);
   const stone=lam({map:TX.stone,color:0xb8b0a8}),dark=lam({color:0x2a2630}),red=new G.MeshStandardMaterial({color:0x26030a,roughness:1}),green=new G.MeshStandardMaterial({color:0x123a1c,roughness:1}),carpet=new G.MeshStandardMaterial({roughness:0.95,map:canvasTex(64,256,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#c9a03a';c.fillRect(3,0,5,h);c.fillRect(w-8,0,5,h);c.fillStyle='#1e4a26';c.fillRect(11,0,4,h);c.fillRect(w-15,0,4,h);})}),banM=new G.MeshStandardMaterial({side:G.DoubleSide,roughness:0.95,map:canvasTex(128,384,(c,w,h)=>{c.fillStyle='#5a0a14';c.fillRect(0,0,w,h);c.fillStyle='#1e4a26';c.fillRect(0,h*0.62,w,h*0.16);c.fillStyle='#c9a03a';c.fillRect(0,0,w,10);c.fillRect(0,h*0.6,w,6);c.fillRect(0,h*0.78,w,6);c.fillRect(6,0,6,h);c.fillRect(w-12,0,6,h);c.beginPath();c.moveTo(w/2,70);c.lineTo(w/2+30,130);c.lineTo(w/2,190);c.lineTo(w/2-30,130);c.closePath();c.fill();c.fillStyle='#1e4a26';c.beginPath();c.arc(w/2,130,12,0,7);c.fill();c.fillStyle='#5a0a14';c.beginPath();c.moveTo(0,h);c.lineTo(w/2,h-40);c.lineTo(w,h);c.fill();})}),gold=new G.MeshStandardMaterial({color:0xd4a83a,metalness:0.85,roughness:0.3}),
@@ -4127,7 +4189,7 @@ function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
 // ================= storage chest =================
 function showStash(){
   const grid=(arr,max,pre)=>{const out=[];for(let i=0;i<max;i++){const it=arr[i];out.push(it?`<button class="cell ${it.type==='gear'&&isUpgrade(it)?'up':''}" type="button" data-act="${pre}-${i}" title="${esc(itemLabel(it))}"><img src="${iconURL(it)}" alt="">${(it.q||1)>1?`<span class="q">${it.q}</span>`:''}</button>`:'<div class="cell empty"></div>');}return out.join('');};
-  openDlg(`<h1 class="logo sm"><small>Your House</small>Storage Chest</h1><p class="tag">Tap something in your bag to put it in the chest. Tap something in the chest to take it back.</p>
+  openDlg(`<h1 class="logo sm"><small>${homeName()}</small>Storage Chest</h1><p class="tag">Tap something in your bag to put it in the chest. Tap something in the chest to take it back.</p>
     <div class="shopgrid"><div class="scard"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><div class="bag">${grid(INV.bag,BAG_MAX,'in')}</div></div>
       <div class="scard"><h3>Chest ${INV.stash.length}/${STASH_MAX}</h3><div class="bag">${grid(INV.stash,STASH_MAX,'out')}</div></div></div>
     <div class="row"><button class="btn" type="button" data-act="close">Close the chest</button><button class="btn alt" type="button" data-act="allgoods">Store all goods</button></div>`,'stash',(act)=>{
@@ -4181,7 +4243,7 @@ function showCraft(){
     return `<div class="scard recipe"><div class="itemline"><img src="${iconURL(r.icon)}" width="44" height="44" alt=""><div><h3 style="font-size:21px">${esc(r.n)}</h3><span class="note l">${esc(r.d)}</span></div></div>
       <div class="need">${have.map(([n,k,c])=>`<span class="${c>=k?'good':'bad'}">${k}× ${esc(n)} (you have ${c})</span>`).join('')}</div>
       <button class="buy" type="button" data-act="craft-${r.id}" ${ready&&ok===true?'':'disabled'}><span><b>${ready?(ok===true?'Craft':esc(ok)):'Missing materials'}</b></span><span class="cost">Free</span></button></div>`;}).join('');
-  openDlg(`<h1 class="logo sm"><small>${atHome()?'Your House':'The Blacksmith'}</small>Workbench</h1>
+  openDlg(`<h1 class="logo sm"><small>${atHome()?homeName():'The Blacksmith'}</small>Workbench</h1>
     <p class="tag">Turn the goods you find into potions, upgrades, crystals and more. ${atHome()?'You can use goods from your bag and your storage chest here.':'Only goods in your bag count here. The workbench at home can also use your storage chest.'}</p>
     <div class="shopgrid">${cards}</div><div class="row"><button class="btn" type="button" data-act="close">Done</button></div>`,'craft',a=>{
       const r=RECIPES.find(x=>'craft-'+x.id===a);if(!r||r.ok()!==true)return;if(!Object.entries(r.need).every(([n,k])=>countGood(n)>=k))return;
@@ -4612,7 +4674,7 @@ function poseNpc(F,n){const mv=!(n.pause>0),t=n.anim,ph=t*0.2,sw=mv?Math.sin(ph)
 // while a character's real 3D model is still downloading, its old blocky stand-in stays hidden (no pop from old to new);
 // if the model fails or takes over 20 seconds, the stand-in shows so nobody is invisible
 const REAL_T0={};
-function realWaiting(f){if(SET.style!=='real'||!THREE.GLTFLoader||animState==='fail')return false;if(f&&REALS[f]&&REALS[f].state==='fail')return false;const k=f||'hero',now=performance.now();if(!REAL_T0[k])REAL_T0[k]=now;return now-REAL_T0[k]<20000;}
+function realWaiting(f,ms=20000){if(SET.style!=='real'||!THREE.GLTFLoader||animState==='fail')return false;if(f&&REALS[f]&&REALS[f].state==='fail')return false;const k=f||'hero',now=performance.now();if(!REAL_T0[k])REAL_T0[k]=now;return now-REAL_T0[k]<ms;}
 function syncFig(sp,mk){const want=SET.style!=='2d';if(want&&!sp.fig)sp.fig=mk();else if(!want&&sp.fig){disposeMon(sp.fig);sp.fig=null;}sp.mesh.visible=!want;return want;}
 // ---- live 3D portrait of the hero (bag, hero sheet, corner badge) ----
 let PR=null,PS=null,PC=null,PFIG=null,PANG=0.5,HEADC=null,HEADKEY='',pDrag=null;
@@ -4968,9 +5030,13 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'troll',tall:3.0},boneKing:{f:'skelwl',tall:3.1,regalia:{unblood:true}},lich:{f:'lich',tall:2.5,float:0.7,regalia:{crown:0xe8e2cc,gem:0x7dff8a,gemE:0x1a8a2a,eyes:0x7dff8a,cape:['#0e2a26','#03100e'],trim:'#7dff8a',tint:0xd0e4dc,ghost:0x3a8a6a,unblood:true,capeLen:1.35,noCape:true,crownScale:0.72,crownY:0.14}},deathRider:{f:'horse',tall:2.5,quad:true,rider:'skeleton'}};
-function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
-  REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});return REAL.clips;}
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';REAL.gltf.scene.traverse(o=>{const m=o.isBone&&/^(.*)Hips(_\d+)?$/.exec(o.name);if(m&&o.name.length<30){pre=m[1];suf=m[2]||'';}});
+  // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
+  REAL.clips=pre==='mixamorig'&&!suf?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig([^.]*)\./,(x,b)=>pre+b+suf+'.');});return n;});
+  // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
+  const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
+  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
 // a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)
@@ -5020,14 +5086,17 @@ function addRider(R,rf){const G=THREE,RR=REALS[rf];if(!RR||!RR.gltf)return;let h
   const hold=new G.Group();hold.add(m);m.position.y=-0.98;R.model.updateMatrixWorld(true);const p=new G.Vector3();hb.getWorldPosition(p);
   const W=new G.Matrix4().compose(new G.Vector3(p.x,p.y+0.05,p.z-0.1),new G.Quaternion(),new G.Vector3(1,1,1)),L=new G.Matrix4().copy(hb.matrixWorld).invert().multiply(W);L.decompose(hold.position,hold.quaternion,hold.scale);hb.add(hold);
   const rd={m,hold,mixer:new G.AnimationMixer(m),act:{},bones:{}};for(const cl of clipsFor(RR))rd.act[cl.name]=rd.mixer.clipAction(cl);
+  m.traverse(o=>{if(o.isBone&&!rd.hips&&/Hips$/.test(o.name)){rd.hips=o;rd.lock=[];for(let q=o;q&&q!==hold;q=q.parent)rd.lock.push([q,q.position.clone(),q.quaternion.clone(),q.scale.clone()]);}});
+  if(rd.hips){hold.updateMatrixWorld(true);const hp=new G.Vector3();rd.hips.getWorldPosition(hp);hold.worldToLocal(hp);m.position.sub(hp);for(const L of rd.lock)if(L[0]===m)L[1].copy(m.position);} // seat the rider's hips on the saddle whatever his rig's offsets
   m.traverse(o=>{if(o.isBone)for(const k of ['LeftUpLeg','RightUpLeg','LeftLeg','RightLeg'])if(new RegExp(k+'$').test(o.name)&&!rd.bones[k])rd.bones[k]=o;});
   rd.play=(n,once,ts=1)=>{const a=rd.act[n];if(!a)return;if(rd.cur===n&&!once)return;const pv=rd.cur&&rd.act[rd.cur];a.reset();a.setLoop(once?G.LoopOnce:G.LoopRepeat,Infinity);a.clampWhenFinished=!!once;a.timeScale=ts;a.play();if(pv&&pv!==a)a.crossFadeFrom(pv,0.15,false);rd.cur=n;};
-  rd.play('idle');R.rider=rd;}
+  rd.play('idle');R.rider=rd;if(R.info&&R.info.riderWpn)bossWpn({model:m,mats:R.mats},...R.info.riderWpn);}
 const _rq=new THREE.Quaternion(),_rq2=new THREE.Quaternion(),_rq3=new THREE.Quaternion(),_rx=new THREE.Vector3(1,0,0),_rz=new THREE.Vector3(0,0,1);
 function worldTurn(b,dl){b.parent.getWorldQuaternion(_rq);_rq2.copy(_rq).invert();const root=new THREE.Quaternion();b.parent.parent?0:0;b.quaternion.premultiply(_rq).premultiply(dl).premultiply(_rq2);b.updateMatrixWorld(true);}
 function poseRider(R,e,dt){const rd=R.rider;if(!rd)return;const st=e.state;
   if((st==='wind'||st==='strike'||st==='charge')&&rd.cur!=='slash')rd.play('slash',true,1.2);else if(rd.cur==='slash'&&rd.act.slash&&!rd.act.slash.isRunning())rd.play('idle');
-  rd.mixer.update(dt);rd.hold.getWorldQuaternion(_rq3);
+  rd.mixer.update(dt);if(rd.lock)for(const [q,p,r,k] of rd.lock){q.position.copy(p);q.quaternion.copy(r);q.scale.copy(k);} // stay in the saddle whatever the swing does
+  rd.hold.getWorldQuaternion(_rq3);
   for(const [k,s] of [['LeftUpLeg',1],['RightUpLeg',-1]]){const b=rd.bones[k];if(!b)continue;const d=new THREE.Quaternion().setFromAxisAngle(_rx,-1.35).multiply(new THREE.Quaternion().setFromAxisAngle(_rz,s*0.5));d.premultiply(_rq3).multiply(_rq3.clone().invert());worldTurn(b,d);}
   for(const k of ['LeftLeg','RightLeg']){const b=rd.bones[k];if(!b)continue;const d=new THREE.Quaternion().setFromAxisAngle(_rx,1.25);d.premultiply(_rq3).multiply(_rq3.clone().invert());worldTurn(b,d);}}
 
@@ -5041,8 +5110,8 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   else if(st==='charge'){R.play('run',false,1.4);R.lock=now+200;}
   else if((st==='wind'||st==='strike')&&e.def.ranged){const rc=e.def.archer?'aim':'magic';if(R.cur!==rc)R.play(rc,false,0.6);R.lock=now+300;}
   else if(st==='wind'||st==='chargeWind'){const n=e.def.boss||Math.random()<0.5?'chop':'slash';if(R.cur!=='chop'&&R.cur!=='slash')once(n,(e.def.wind+16)/60);}
-  // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira)
-  else if(e.def.boss&&R.act.capo&&partyAllDown()){R.play('capo');}
+  // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira, the Bone King hip hop, Mossback a ground-shaking roar)
+  else if(e.def.boss&&partyAllDown()&&R.act[(R.info&&R.info.dance)||'capo']){R.play((R.info&&R.info.dance)||'capo');}
   else if(now>R.lock){if(e.moving)R.play('run',false,0.75);else R.play('idle');}
   for(const m of R.mats)if(m.emissive)m.emissiveIntensity=e.flash>0?1.2:0.3;
   R.mixer.update(dt);if(R.rider)poseRider(R,e,dt);}
@@ -5065,7 +5134,7 @@ async function netHost(tries=0){netLeave();netNote('Opening a room…');try{awai
   const code=netCode(),p=new Peer('grimfall-room-'+code,netOpts());NET.peer=p;p.on('call',vcIncoming);
   p.on('open',id=>{Object.assign(NET,{on:true,host:true,code,myId:id});netNote(`Room code: ${code}. Send your friends the invite link or the code, then press Begin or Continue.`);netInvite(code);});
   p.on('connection',c=>{c.on('open',()=>{if(NET.conns.length>=3){c.send({t:'full'});setTimeout(()=>c.close(),300);return;}NET.conns.push(c);});
-    c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='hit'){netHostHit(m);return;}if(m.t==='scr'){scrIn(m);for(const o of NET.conns)if(o!==c&&o.open)o.send(m);return;}if(m.t==='chat'){const st=NET.states[c.peer],nm=st?String(st.s.name||'Friend').slice(0,16):'Friend',t=chatClean(m.x);if(t&&netChatIn(c.peer,nm,t,m.k)!==false)netChatOut(c.peer,nm,t,m.k);return;}if(m.t==='st'&&m.s){const isNew=!NET.states[c.peer];NET.states[c.peer]={s:m.s,t:performance.now()};if(isNew&&typeof toast==='function')toast(`${String(m.s.name||'A friend').slice(0,16)} joined the room.`);}});
+    c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='hit'){netHostHit(m);return;}if(m.t==='scr'){scrIn(m);for(const o of NET.conns)if(o!==c&&o.open)o.send(m);return;}if(m.t==='heal'){healIn(m);for(const o of NET.conns)if(o!==c&&o.open)o.send(m);return;}if(m.t==='chat'){const st=NET.states[c.peer],nm=st?String(st.s.name||'Friend').slice(0,16):'Friend',t=chatClean(m.x);if(t&&netChatIn(c.peer,nm,t,m.k)!==false)netChatOut(c.peer,nm,t,m.k);return;}if(m.t==='st'&&m.s){const isNew=!NET.states[c.peer];NET.states[c.peer]={s:m.s,t:performance.now()};if(isNew&&typeof toast==='function')toast(`${String(m.s.name||'A friend').slice(0,16)} joined the room.`);}});
     c.on('close',()=>{NET.conns=NET.conns.filter(x=>x!==c);const st=NET.states[c.peer];delete NET.states[c.peer];netDrop(c.peer);if(st&&typeof toast==='function')toast(`${String(st.s.name||'A friend').slice(0,16)} left the room.`);netBadge();});});
   p.on('error',e=>{if(e.type==='unavailable-id'&&tries<4){netHost(tries+1);return;}netNote('Online error: '+(e.type||e.message||e));});}
 async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,4);if(code.length!==4){netNote('Type the 4-letter room code first.');return;}
@@ -5076,13 +5145,17 @@ async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'')
     c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.t==='full'){netNote('That room is full (4 players).');return;}
       if(m.t==='chat'){netChatIn(m.f,m.n,m.x,m.k);return;}
       if(m.t==='scr'){scrIn(m);return;}
+      if(m.t==='heal'){healIn(m);return;}
       if(m.t==='hurt'){if(H&&S.level==='dungeon'&&S.state==='play')hurtHero(+m.d||1,+m.dx||0,+m.dz||0,!!m.kd);return;}
       if(m.t==='all'&&m.d!==undefined){NET.dun=m.d;if(m.d)NET.dunT=performance.now();netDunApply();}
       if(m.t==='all'&&m.l){const seen={};for(const id in m.l){if(id===NET.myId)continue;seen[id]=1;const isNew=!NET.peers[id];(NET.peers[id]=NET.peers[id]||{}).s=m.l[id];if(isNew){netBadge();if(H&&typeof toast==='function')toast(`${String(m.l[id].name||'A friend').slice(0,16)} is here.`);}}
         for(const id in NET.peers)if(!seen[id])netDrop(id);}});
     c.on('close',()=>{if(NET.on&&typeof toast==='function')toast('The host closed the room.');netLeave();netNote('Disconnected.');});});
   p.on('error',e=>{netNote(e.type==='peer-unavailable'?'No game found with that code.':'Online error: '+(e.type||e.message||e));});}
-function netState(){const h=H;return {cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
+// what a hero is wearing, sent to friends so they see the same armor: armor tier, weapon tier, then helm/gloves/boots/shield on or off
+function gearKey(h){return `${(h.armor&&h.armor.tier)|0}.${(h.weapon&&h.weapon.tier)|0}.${h.helm?1:0}${h.hands?1:0}${h.feet?1:0}${h.off?1:0}`;}
+function gearApply(h,k){const [a,w,f='0000']=String(k||'0.0.0000').split('.');h.armor.tier=a|0;h.weapon.tier=w|0;for(const [i,sl] of ['helm','hands','feet','off'].entries())h[sl]=f[i]==='1'?{tier:a|0,grade:0,sockets:[],aff:[]}:null;}
+function netState(){const h=H;return {gr:gearKey(h),hpf:+(h.hp/Math.max(1,h.maxHp)).toFixed(2),cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
 function netDrop(id){const p=NET.peers[id];if(!p)return;if(p.mins)for(const m of p.mins){minionDrop(m);S.rminions.splice(S.rminions.indexOf(m),1);}bubbleKill(p);vcHang(id);if(p.R)disposeReal(p.R);if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}delete NET.peers[id];netBadge();}
 function netTag(name){const c=document.createElement('canvas');c.width=256;c.height=48;const g=c.getContext('2d');g.font='bold 26px sans-serif';g.textAlign='center';const w=Math.min(250,g.measureText(name).width+22);g.fillStyle='rgba(8,6,14,.62)';g.fillRect(128-w/2,6,w,36);g.fillStyle='#9fe3ff';g.fillText(name,128,33);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(2.2,0.42,1);s.renderOrder=999;s.userData.name=name;return s;}
@@ -5101,7 +5174,7 @@ function netTarget(e){let best=null,bd=H&&H.state!=='down'?Math.hypot(H.x-e.x,H.
   e.tgt=best?best.proxy:null;return best;}
 function netUpdEnemy(e){if(e.ghost){netGhostUpd(e);return;}const t=netTarget(e);if(!t){updEnemy(e);return;}const real=H;H=t;try{updEnemy(e);}finally{H=real;}}
 function netRooms(){updRooms();if(S.aRoom!=null||S.exitOpen)return;const real=H;
-  for(const [id,s] of netCoopPeers()){H=netProxy(id,s);try{updRooms();}finally{H=real;}if(S.aRoom!=null)break;}}
+  for(const [id,s] of netCoopPeers()){H=netProxy(id,s);try{updRooms();}finally{H=real;}if(S.aRoom!=null){partyPullIn(MZ.rooms[S.aRoom],+s.x,+s.z);break;}}} // a friend started a fight: the host joins them before the bars shut
 function netProjHit(p){if(p.dead)return;for(const [id,s] of netCoopPeers()){if(s.state==='down')continue;if(Math.hypot(s.x-p.x,s.z-p.z)<0.55&&s.y<1.3){netHurt(id,p.dmg,p.vx,p.vz,false);p.dead=true;sparks(p.x,p.y,p.z,6,p.kind==='lbolt'?'#9dff8a':'#ff9a4a');return;}}}
 function netUnion(dr,ce){if(!MZ)return;let ch=false;
   if(dr&&dr.length===MZ.doors.length)for(let i=0;i<dr.length;i++){const d=MZ.doors[i];if(dr[i]==='1'&&!d.open){d.open=true;d.lock=null;ch=true;}}
@@ -5140,6 +5213,7 @@ function netClientRooms(){const d=NET.dun;if(!d)return;
     if(ar.kind!=='boss'){sfx('go');if(ar.key){const [cx,cz]=mzCenter(ar);dropPickup(ar.key==='great'?'gkey':'rkey',cx,cz);floatText(cx,2.2,cz,ar.key==='great'?GKEY[S.floor]+'!':'A rusty key!','#ffd35c',20);}
       else floatText(H.x,2.4,H.z,'Room cleared!','#bfffcf',18);}}
   if(ha!=null&&S.aRoom==null&&MZ.rooms[ha]&&MZ.rooms[ha].state!=='clear'){const r=MZ.rooms[ha];r.state='fight';S.aRoom=ha;
+    if(mzRoomOf(H.x,H.z)!==r){for(const q of partyXZ().slice(1))if(mzRoomOf(q[0],q[1])===r){partyPullIn(r,q[0],q[1]);break;}}
     NET.bars=mzRoomOf(H.x,H.z)===r;if(NET.bars)mzBars(r,true);
     if(r.kind==='piece'&&r.i>=0)toast('Your party found '+PIECE_N[S.floor]+'. Defeat its guards to win the '+GKEY[S.floor]+'.');}}
 
@@ -5157,11 +5231,12 @@ function chatSend(){const i=document.getElementById('chatIn'),t=chatClean(i.valu
 function chatSeen(k){if(!k)return false;const L=NET.seenK||(NET.seenK=[]);if(L.includes(k))return true;L.push(k);if(L.length>40)L.shift();return false;}
 function netChatOut(from,name,t,k){for(const c of NET.conns)if(c.open&&c.peer!==from)c.send({t:'chat',f:from,n:name,x:t,k});}
 function netChatIn(from,name,t,k){if(chatSeen(k))return false;t=chatClean(t);if(!t)return;chatAdd(String(name||'Friend').slice(0,16),t);netBubble(from,t);}
-function bubbleSpr(t){const c=document.createElement('canvas');c.width=512;c.height=112;const g=c.getContext('2d');g.font='600 30px system-ui,sans-serif';
-  const lines=[''];for(const w of t.split(' ')){const tl=(lines[lines.length-1]+' '+w).trim();if(g.measureText(tl).width>460&&lines[lines.length-1]){if(lines.length===2){lines[1]+='…';break;}lines.push(w);}else lines[lines.length-1]=tl;}
-  const w=Math.min(500,Math.max(...lines.map(l=>g.measureText(l).width))+30),h=lines.length*36+18;g.fillStyle='rgba(250,246,234,.95)';g.beginPath();if(g.roundRect)g.roundRect(256-w/2,4,w,h,14);else g.rect(256-w/2,4,w,h);g.fill();
-  g.fillStyle='#1a1410';g.textAlign='center';lines.forEach((l,i)=>g.fillText(l,256,40+i*36));
-  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(4.8,1.05,1);s.renderOrder=1000;return s;}
+function bubbleSpr(t){const c=document.createElement('canvas');c.width=512;c.height=186;const g=c.getContext('2d');g.font='600 30px system-ui,sans-serif';
+  const lines=[''];for(const w of t.split(' ')){const tl=(lines[lines.length-1]+' '+w).trim();if(g.measureText(tl).width>460&&lines[lines.length-1]){if(lines.length===4){lines[3]+='…';break;}lines.push(w);}else lines[lines.length-1]=tl;}
+  const w=Math.min(500,Math.max(...lines.map(l=>g.measureText(l).width))+30),h=lines.length*36+18;g.fillStyle='rgba(22,16,12,.9)';g.beginPath();if(g.roundRect)g.roundRect(256-w/2,4,w,h,14);else g.rect(256-w/2,4,w,h);g.fill();g.strokeStyle='rgba(201,150,46,.85)';g.lineWidth=3;g.stroke();
+  // dark bubble, warm light text: easy to read on bright town days and dark dungeons alike
+  g.fillStyle='#f2e7cf';g.textAlign='center';lines.forEach((l,i)=>g.fillText(l,256,40+i*36));
+  const tx=new THREE.CanvasTexture(c);tx.encoding=THREE.sRGBEncoding;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false,transparent:true,toneMapped:false,fog:false}));s.scale.set(4.8,1.74,1);s.renderOrder=1000;return s;}
 function bubbleKill(o){if(!o.bub)return;scene.remove(o.bub);o.bub.material.map.dispose();o.bub.material.dispose();o.bub=null;}
 function netBubble(id,t){const o=id===NET.myId?NET:NET.peers[id];if(!o)return;bubbleKill(o);o.bub=bubbleSpr(t);o.bubT=performance.now()+5500;scene.add(o.bub);}
 function netBubbles(){const now=performance.now(),upd=(o,h,vis)=>{if(!o.bub)return;if(now>o.bubT||!h){bubbleKill(o);return;}o.bub.visible=vis;o.bub.position.set(h.x,h.y+(modelInfo(h.cls).tall||1.62)+1.15,h.z);};
@@ -5169,15 +5244,27 @@ function netBubbles(){const now=performance.now(),upd=(o,h,vis)=>{if(!o.bub)retu
 async function vcJoin(){if(NET.vc){vcLeave();return;}if(acctNoVoice()){toast('Voice chat is off. A parent can turn it on in Account, Parent settings.');return;}if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Voice chat needs the game opened from the website.');return;}
   try{NET.mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}catch(e){toast('Your microphone is blocked. Allow the mic for this site to use voice chat.');return;}
   if(!NET.on){NET.mic.getTracks().forEach(t=>t.stop());NET.mic=null;return;}
-  NET.vc=true;NET.micMuted=false;vcUI();chatAdd('','You joined voice chat. Press V to mute or unmute your mic.',true);}
+  NET.vc=true;NET.micMuted=false;vcUI();chatAdd('','You joined voice chat. Press V to mute or unmute your mic.',true);if(!Object.values(NET.peers).some(p=>p.s&&p.s.vc))chatAdd('','Your friends need to press 🎙 Join voice too.',true);}
 function vcLeave(){for(const id in NET.calls)vcHang(id);if(NET.mic)NET.mic.getTracks().forEach(t=>t.stop());NET.mic=null;NET.vc=false;NET.micMuted=false;vcUI();}
 function vcHang(id){const c=NET.calls[id];if(!c)return;delete NET.calls[id];try{c.call.close();}catch(e){}if(c.au){c.au.srcObject=null;c.au.remove();}}
 function vcMute(){if(!NET.vc||!NET.mic)return;NET.micMuted=!NET.micMuted;NET.mic.getAudioTracks().forEach(t=>t.enabled=!NET.micMuted);vcUI();toast(NET.micMuted?'Mic muted':'Mic on');}
 function vcUI(){const u=document.getElementById('netUI');if(!u)return;u.hidden=!NET.on;const v=document.getElementById('vcBtn'),m=document.getElementById('micBtn');
   v.textContent=NET.vc?'🎙 Leave voice':'🎙 Join voice';v.classList.toggle('on',!!NET.vc);m.hidden=!NET.vc;m.textContent=NET.micMuted?'🔇 Mic muted':'🎙 Mic on';m.classList.toggle('mut',!!NET.micMuted);
+  const tb=document.getElementById('tpBtn');if(tb){tb.hidden=!NET.on||!!NET.host;tb.textContent='✨ Go to leader ('+(NET.tp==null?2:NET.tp)+')';}
   if(!NET.on&&!document.getElementById('chatBox').hidden)chatClose();}
+// friends who joined a room can jump to the room leader twice; the jumps come back each time they visit town
+function tpLeader(){if(!NET.on||NET.host)return;const hid=NET.hostConn&&NET.hostConn.peer,p=hid&&NET.peers[hid],s=p&&p.s;if(NET.tp==null)NET.tp=2;
+  if(!s){toast('The room leader is not here right now.');return;}if(NET.tp<=0){toast('No teleports left. You get 2 more when you visit town.');return;}
+  if(S.state!=='play'||!H||H.state==='down'){toast('You can teleport when you are up and playing.');return;}
+  if(s.lvl==='house'){toast('The leader is inside a house. Try again when they come out.');return;}
+  if(s.lvl===S.level&&(s.lvl!=='dungeon'||s.floor===S.floor)&&Math.hypot(s.x-H.x,s.z-H.z)<4){toast('You are already next to the leader.');return;}
+  sparks(H.x,1.2,H.z,16);const x=+s.x+rnd(-0.8,0.8),z=+s.z+rnd(-0.8,0.8);
+  if(s.lvl==='dungeon'){if(S.level!=='dungeon'||S.floor!==s.floor)goDungeon(s.floor);Object.assign(H,{x,z,vx:0,vz:0,inv:60});camUpdate(true);const rr=MZ&&mzRoomOf(H.x,H.z);if(rr&&!rr.seen){rr.seen=true;mzRevealRoom(rr);}}
+  else if(S.level!=='town')goTown({x,z,fx:1,fz:0});else{Object.assign(H,{x,z,vx:0,vz:0});camUpdate(true);}
+  NET.tp--;sfx('magic');sparks(H.x,1.2,H.z,16);toast(`You teleported to ${String(s.name||'the leader').slice(0,16)}. ${NET.tp} teleport${NET.tp===1?'':'s'} left.`);vcUI();}
 function vcAttach(id,call){NET.calls[id]={call};
-  call.on('stream',st=>{const c=NET.calls[id];if(!c||c.call!==call)return;if(!c.au){c.au=document.createElement('audio');c.au.autoplay=true;c.au.playsInline=true;document.body.appendChild(c.au);}c.au.srcObject=st;c.au.play().catch(()=>{});});
+  call.on('stream',st=>{const c=NET.calls[id];if(!c||c.call!==call)return;if(!c.au){c.au=document.createElement('audio');c.au.autoplay=true;c.au.playsInline=true;document.body.appendChild(c.au);}c.au.srcObject=st;const who=String((NET.peers[id]&&NET.peers[id].s&&NET.peers[id].s.name)||'your friend').slice(0,16);
+    c.au.play().then(()=>chatAdd('',`🔊 You can hear ${who} now.`,true)).catch(()=>{toast('Tap the screen to hear your friends.');const go=()=>{if(c.au)c.au.play().then(()=>chatAdd('',`🔊 You can hear ${who} now.`,true)).catch(()=>{});};document.addEventListener('pointerdown',go,{once:true});});});
   const end=()=>{if(NET.calls[id]&&NET.calls[id].call===call)vcHang(id);};call.on('close',end);call.on('error',end);}
 function vcIncoming(call){if(!NET.vc||!NET.mic){try{call.close();}catch(e){}return;}vcHang(call.peer);call.answer(NET.mic);vcAttach(call.peer,call);}
 function vcFrame(){if(!NET.peer)return;const now=performance.now();
@@ -5186,7 +5273,7 @@ function vcFrame(){if(!NET.peer)return;const now=performance.now();
   for(const id in NET.peers){const p=NET.peers[id];if(!p.s||!p.s.vc||NET.calls[id]||!(NET.myId<id))continue;if(now-(NET.vcTry[id]||0)<4000)continue;NET.vcTry[id]=now;
     try{const call=NET.peer.call(id,NET.mic);if(call)vcAttach(id,call);}catch(e){}}}
 {const cb=document.getElementById('chatBtn'),vb=document.getElementById('vcBtn'),mb=document.getElementById('micBtn'),ci=document.getElementById('chatIn'),ui=document.getElementById('netUI');
-  if(cb){cb.onclick=()=>chatOpen();vb.onclick=()=>vcJoin();mb.onclick=()=>vcMute();for(const ev of ['pointerdown','mousedown','touchstart'])ui.addEventListener(ev,e=>e.stopPropagation());
+  if(cb){cb.onclick=()=>chatOpen();vb.onclick=()=>vcJoin();{const tb=document.getElementById('tpBtn');if(tb)tb.onclick=()=>tpLeader();}mb.onclick=()=>vcMute();for(const ev of ['pointerdown','mousedown','touchstart'])ui.addEventListener(ev,e=>e.stopPropagation());
     ci.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();chatSend();}else if(e.key==='Escape'){e.preventDefault();chatClose();}});}}
 
 function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now();
@@ -5200,7 +5287,8 @@ function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now()
     const vis=!!H&&SET.style==='real'&&s.lvl===S.level&&(S.level!=='house'||s.house===S.house)&&(S.level!=='dungeon'||s.floor===S.floor);netMinions(p,s,vis);
     if(p.R&&!p.R.root.parent){disposeReal(p.R);p.R=null;}
     if(!vis){if(p.R)p.R.root.visible=false;if(p.tag)p.tag.visible=false;continue;}
-    if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;}
+    if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;p.gk=null;}
+    if((s.gr||'')!==p.gk){p.gk=s.gr||'';gearApply(p.h,p.gk);if(p.R){disposeReal(p.R);p.R=null;}} // a friend changed gear: rebuild their figure in it
     const h=p.h;if(Math.hypot(s.x-h.x,s.z-h.z)>8){h.x=s.x;h.z=s.z;}h.x+=(s.x-h.x)*0.22;h.z+=(s.z-h.z)*0.22;h.y=s.y;h.fx=s.fx;h.fz=s.fz;h.moving=s.moving;h.dance=s.dance||0;h.strafe=s.sf||0;h.state=s.state;h.setT=s.st||0;h.cg=s.cg||0;h.melee=s.melee;h.combo=s.combo;h.swingMax=8;h.swing=0;h.castT=0;
     if(s.atk!==p.atk){p.atk=s.atk;h.swing=h.swingMax-1;}if(s.cast!==p.cast){p.cast=s.cast;h.castT=1;}
     if(loadReal(s.cls)!=='ready'||animState!=='ready'||loadReal(null,modelInfo(s.cls,h).f)!=='ready'||loadReal(null,modelInfo(s.cls,h).arm)==='loading')continue;
@@ -5232,7 +5320,7 @@ function render3D(){
     if(e.state==='dead'){alpha=Math.min(1,e.t/20);rot=-e.face*Math.min(1.4,(36-e.t)*0.08);}else if(e.state==='kd')rot=-e.face*(e.y>0?0.6:1.3);
     const rmi=SET.style==='real'&&rmInfo(e);
     if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig)e.spr.rfig=buildRealMon(e,rmi);poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
-    else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f));}
+    else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f,3500));} // foes are never invisible for long: on a slow connection the simple figure shows until the real model arrives
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
   }
@@ -5384,7 +5472,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['"Ugh... where am I?"','Cold water. The creak of old wood. Gulls crying somewhere above.','"How did I get here? I can\'t remember anything."'],INTRO_BLACK_VO=['h_wake1','','h_wake2'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','Your house is the one marked Your House, if you need rest.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','We have a guest hut for you. Keep your things there while you help us fight the Lich Queen.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'who',t0:performance.now()};S.state='intro';S.banner=null;
@@ -5409,7 +5497,7 @@ function introWakeUp(){if(!INTRO)return;const el=introEl();INTRO.phase='wake';IN
 function endIntro(){if(!INTRO)return;voStop();const el=introEl();el.hidden=true;el.querySelector('.iwho').classList.remove('on');el.classList.remove('black');el.querySelector('.itxt').classList.remove('on');el.querySelector('.ibox').classList.remove('on');
   const n=INTRO.npc;if(n){killSprite(n.spr);if(n.spr.rfig)n.spr.rfig=null;S.npcs=S.npcs.filter(x=>x!==n);}INTRO=null;introWaves(false);
   Object.assign(H,{state:'ok',inv:30});S.state='play';S.banner={top:'Sumera',text:'Town of Grimfall',t:170};camUpdate(true);updateTouch();save();
-  schedule(120,()=>toast(INV.gift?'Press H to change your name or look. Your house is the first one across the street.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
+  schedule(120,()=>toast(INV.gift?'Press H to change your name or look. The guest hut is the first one across the street. Keep your things there.':'Old Maren sent you to the guards at the east gate. Follow the path east.'));}
 function introWaves(on){try{if(!on){if(INTRO_W){const w=INTRO_W;INTRO_W=null;w.g.gain.setTargetAtTime(0,AC.currentTime,0.6);setTimeout(()=>{try{w.src.stop();}catch(e){}},2500);}return;}
   if(muted)return;musStart();const src=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();
   const b=AC.createBuffer(1,AC.sampleRate*4,AC.sampleRate),d=b.getChannelData(0);let v=0;for(let i=0;i<d.length;i++){v=v*0.97+(Math.random()*2-1)*0.03;d[i]=v*6;}src.buffer=b;src.loop=true;
@@ -5510,7 +5598,11 @@ function acctView(v){const P=document.getElementById('acctPanel'),close='<button
   else if(v==='parent')h=`<h2>Parent settings</h2><form data-f="pin"><label>Parent PIN<input type="password" name="pin" inputmode="numeric" maxlength="4" required></label><button class="btn" type="submit">Open</button></form><div class="err"></div><p class="note"><button class="lnk" type="button" data-a="me">Back</button></p>${close}`;
   else if(v==='parent2')h=`<h2>Parent settings</h2><div class="toggles"><label class="chk"><input type="checkbox" id="pcChat" ${ACCT.md.chat_ok?'checked':''}> Allow typed chat (bad words are filtered)</label><label class="chk"><input type="checkbox" id="pcVoice" ${ACCT.md.voice_ok?'checked':''}> Allow voice chat</label></div>
     <button class="btn" type="button" data-a="psave">Save</button><div class="err"></div><p class="note"><button class="lnk" type="button" data-a="me">Back</button></p>${close}`;
-  P.innerHTML=h;}
+  P.innerHTML=h;
+  // a Show/Hide button next to every password and PIN box, so you can check what you typed
+  P.querySelectorAll('input[type="password"]').forEach(inp=>{const w=document.createElement('span');w.className='pwrap';inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+    const b=document.createElement('button');b.type='button';b.className='pweye';b.textContent='Show';b.setAttribute('aria-label','Show what you typed');
+    b.onclick=()=>{const on=inp.type==='password';inp.type=on?'text':'password';b.textContent=on?'Hide':'Show';b.setAttribute('aria-label',on?'Hide what you typed':'Show what you typed');inp.focus();};w.appendChild(b);});}
 async function acctSubmit(f,fd){const sb=await acctLib();if(!sb)return;acctMsg('Working…');
   try{
     if(f==='signin'){const {error}=await sb.auth.signInWithPassword({email:fd.get('email'),password:fd.get('pw')});if(error)throw error;acctClose();toast('Signed in. Welcome back!');return;}
@@ -5569,6 +5661,7 @@ const ICO={
  bow:'<path d="M6 3c7 3 7 15 0 18"/><path d="M6 3v18" stroke-width="1"/><path d="M4 12h16"/><path d="M17 9l3 3-3 3"/>',
  knives:'<path d="M5 19L15 5l2 1-8 14z" fill="currentColor"/><path d="M19 19L9 5 7 6l8 14z" fill="currentColor" opacity=".7"/>',
  ice:'<path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10" stroke-width="2.2"/><path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5M3.6 10.4l3.4-1-1-3.4M20.4 13.6l-3.4 1 1 3.4M3.6 13.6l3.4 1-1 3.4M20.4 10.4l-3.4-1 1-3.4"/>',
+drain:'<path d="M12 20s-6.5-4.2-6.5-9.2A3.6 3.6 0 0 1 12 8.6a3.6 3.6 0 0 1 6.5 2.2c0 5-6.5 9.2-6.5 9.2z" fill="currentColor"/><path d="M3 4l4 3M21 4l-4 3M12 2v3" stroke-width="1.8"/>',
 lance:'<path d="M21 3L17 11.5L5.5 21L3 18.5L12.5 7z" fill="currentColor"/><path d="M21 3L9 15" stroke="#2a2238" stroke-width="1"/><path d="M5 5l1.5 1.5M7.5 3.5v2M3.5 7.5h2M18 17l1.5 1.5M20.5 15.5v2" stroke-width="1.4"/>',
 beam:'<path d="M3 12h18" stroke-width="3"/><path d="M6 8l2 2M6 16l2-2M18 8l-2 2M18 16l-2-2"/><circle cx="4" cy="12" r="2" fill="currentColor"/>',
  fire:'<path d="M12 21c-4 0-6-3-6-6 0-4 4-6 4-10 3 2 3 5 3 6 1-1 2-2 2-4 3 2 3 5 3 8 0 3-2 6-6 6z" fill="currentColor"/>',
@@ -5583,7 +5676,7 @@ beam:'<path d="M3 12h18" stroke-width="3"/><path d="M6 8l2 2M6 16l2-2M18 8l-2 2M
  bolt:'<path d="M13 2L5 14h6l-2 8 9-13h-6z" fill="currentColor"/>',
  heal:'<path d="M12 4v16M4 12h16" stroke-width="4"/>',
  jump:'<path d="M6 14l6-6 6 6M6 20l6-6 6 6"/>'};
-const ICO_FOR={necromancer:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['ice','lance','heal']};
+const ICO_FOR={necromancer:['staff','fire','skull'],elf:['knives','dash','vine'],archer:['bow','triple','storm'],barbarian:['axe','quake','rage'],healer:['ice','lance','drain']};
 const svgI=k=>`<svg viewBox="0 0 24 24" width="62%" height="62%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[k]}</svg>`;
 let touchCls=null;function touchIcons(){if(!H||touchCls===H.cls)return;touchCls=H.cls;const f=ICO_FOR[H.cls]||ICO_FOR.barbarian,d=HEROES[H.cls];
   const set=(b,k,label)=>{const el=document.querySelector('#touch .tb [data-b="'+b+'"]');if(el){el.innerHTML=svgI(k);el.setAttribute('aria-label',label);}};
