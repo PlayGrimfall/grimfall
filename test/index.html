@@ -1460,6 +1460,11 @@ function giveBow(R){const E=REALS.erika&&REALS.erika.gltf.scene;if(!E)return;let
   const geo=bow.geometry.clone();geo.deleteAttribute('skinIndex');geo.deleteAttribute('skinWeight');geo.applyMatrix4(new THREE.Matrix4().copy(bow.skeleton.boneInverses[li]).multiply(bow.bindMatrix));
   const mat=(Array.isArray(bow.material)?bow.material[0]:bow.material).clone();mat.skinning=false;const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.frustumCulled=false;
   let lh=null;R.model.traverse(o=>{if(!lh&&o.isBone&&/LeftHand(_\d+)?$/.test(o.name))lh=o;});if(lh){lh.add(m);R.mats.push(mat);}}
+// Captain Jordan wears the hero's paladin plate: bind the armor file's pieces to her own bones
+function giveArmor(R,arm){const AR=REALS[arm];if(!AR||AR.state!=='ready')return;const bones={};R.model.traverse(o=>{if(o.isBone)bones[o.name.replace(/_\d+$/,'')]=o;});
+  const ac=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(AR.gltf.scene):AR.gltf.scene,list=[];ac.traverse(o=>{if(o.isSkinnedMesh)list.push(o);});
+  for(const o of list){const bs=o.skeleton.bones.map(b=>bones[b.name.replace(/_\d+$/,'')]);if(bs.some(b=>!b))continue;o.bind(new THREE.Skeleton(bs,o.skeleton.boneInverses),o.bindMatrix);o.parent.remove(o);o.frustumCulled=false;R.model.add(o);
+    const m=(Array.isArray(o.material)?o.material[0]:o.material).clone();m.skinning=true;o.material=m;R.mats.push(m);}}
 function makeGateGuards(){const G=THREE;
   for(const T of GATE.towers||[]){const g=T.g;g.updateMatrixWorld(true);
     const rc=new G.Raycaster(new G.Vector3(T.x,40,T.z),new G.Vector3(0,-1,0));let y=4;for(const h of rc.intersectObject(g,true)){const n=h.face&&h.face.normal.clone().transformDirection(h.object.matrixWorld);if(n&&n.y>0.7){y=h.point.y;break;}}
@@ -1467,7 +1472,7 @@ function makeGateGuards(){const G=THREE;
       const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*3000,aim:false,tg:null});}}
   GATE.guards.sort((a,b)=>Math.abs(a.e.z-1.5)-Math.abs(b.e.z-1.5));
   // the gate captain stands on the road below the towers: you must talk to him (and put on his armor) before you reach the gate
-  {const e={x:80,y:0,z:INV.gift?3.3:1.5,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'guard',tall:1.9});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.cap={R,e};}}  // guards[0] is the one by the road: he hands out the armor
+  {const e={x:80,y:0,z:INV.gift?3.3:1.5,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'hero_f',tall:1.8});giveArmor(R,'arm_pal_f');bossWpn(R,'sword-07',1.0,0.12);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.cap={R,e};}}  // guards[0] is the one by the road: he hands out the armor
 // the courtyard between town and castle: skeletons stagger out of the castle toward town and the crossbowmen shoot them down.
 // They ignore you, so you just run through them. Fewer come out as you clear deeper floors.
 const CY={sk:[],bolts:[],next:0};
@@ -1490,7 +1495,7 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
   for(const b of CY.bolts){if(!b.live)continue;b.t+=0.06;b.m.position.lerpVectors(b.a,b.b,Math.min(1,b.t));
     if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
-  if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
+  if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||loadReal(null,'hero_f')!=='ready'||loadReal(null,'arm_pal_f')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
@@ -2306,7 +2311,7 @@ function drawMaze(g){
   // keys
   let ky=HH-78;g.textAlign='left';g.font=`800 14px ${BF}`;
   for(const [k,label,c] of [['great',GKEY[S.floor],'#ffd35c'],['rusty','Rusty Key','#d08a4a']]){const n=S.keys[k];if(!n)continue;
-    g.save();g.translate(24,ky-5);g.rotate(-0.6);circ(g,-6,0,4.5);g.lineWidth=2.5;g.strokeStyle=c;g.stroke();g.fillStyle=c;g.fillRect(-2,-1.5,13,3);g.fillRect(8,1,2,4);g.restore();
+    {const ki=keyIcon(k==='rusty'?'rusty':label);if(ki)g.drawImage(ki,10,ky-24,32,32);else{g.save();g.translate(24,ky-5);g.rotate(-0.6);circ(g,-6,0,4.5);g.lineWidth=2.5;g.strokeStyle=c;g.stroke();g.fillStyle=c;g.fillRect(-2,-1.5,13,3);g.fillRect(8,1,2,4);g.restore();}}
     g.lineWidth=3;g.strokeStyle=OUT;const txt=label+(n>1?' ×'+n:'');g.strokeText(txt,38,ky);g.fillStyle=c;g.fillText(txt,38,ky);ky-=22;}
   // full map
   if(S.mapOn){g.fillStyle='rgba(6,4,12,.82)';g.fillRect(0,0,HW,HH);const p2=Math.floor(Math.min((HW-60)/W,(HH-120)/MZ.H)),ox=(HW-W*p2)/2,oy=70;
@@ -2908,7 +2913,15 @@ function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,
 const COINBAG={st:'none',m:null};
 function loadCoinBag(){if(COINBAG.st!=='none'||!THREE.GLTFLoader)return;COINBAG.st='loading';loadModelData('coinbag').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)COINBAG.m=o;});COINBAG.st=COINBAG.m?'ready':'fail';}).catch(()=>{COINBAG.st='fail';});}
 function coinBagMesh(){if(COINBAG.st!=='ready'){loadCoinBag();return null;}const m=new THREE.Mesh(COINBAG.m.geometry,COINBAG.m.material);m.castShadow=true;return m;}
-function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+// the keys are real models (Fantasy Keys Pack): every key has its own shape and metal
+const KEYM={st:'none',g:{}},KEY_ICON={};
+function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)KEYM.g[o.name]=o.geometry;});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
+const KEY_LOOK={rusty:['Key_A','#a0582e',0.35,0.6],'Jailer’s Key':['Key_C','#9aa0aa',0.5,0.35],'Crypt Key':['Key_D','#e2dac4',0.1,0.6],'Root Key':['Key_B','#86b04e',0.2,0.5,'#2a4a10'],
+  'Frost Key':['Key_E','#b8e4ff',0.4,0.25,'#2a6a9a'],'Ember Key':['Key_D','#ff9a4a',0.3,0.4,'#b8400a'],'Crown Key':['Key_E','#ffd35c',0.55,0.25,'#5a3a00'],'Rune Key':['Key_C','#c09aff',0.4,0.3,'#5a2aa8']};
+function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
+  const m=new THREE.Mesh(KEYM.g[L[0]],new THREE.MeshStandardMaterial({color:L[1],metalness:L[2],roughness:L[3],emissive:new THREE.Color(L[4]||'#000000')}));m.castShadow=true;return m;}
+function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
+function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='rkey'||kind==='gkey')return keyMesh(kind==='rkey'?'rusty':GKEY[S.floor]);if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
 // the Gate Captain's job list is a rolled parchment scroll with a leather tie
 const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
@@ -2977,13 +2990,13 @@ function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&
 function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
   return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
-function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();
+function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();loadKeys();
   const map=kind==='scroll'?TX.glow:kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
   if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
     if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
-  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
+  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -3193,7 +3206,7 @@ function goTown(spot){
 }
 function goDungeon(fi=0){
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
