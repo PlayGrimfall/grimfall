@@ -293,7 +293,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
       <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map <kbd>T</kbd> town</span>
       <span><kbd>Q</kbd> <kbd>E</kbd> or drag to turn camera · <kbd>C</kbd> switch camera</span>
       <span>Online: <kbd>Enter</kbd> chat · <kbd>V</kbd> mute mic</span>
-      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party · <kbd>Shift</kbd>+<kbd>Y</kbd> Lich Queen falls</span>
+      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>9</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party · <kbd>Shift</kbd>+<kbd>Y</kbd> Lich Queen falls</span>
     </div>
     <div class="tools">
       <button class="tbtn" id="bBag" type="button">Bag</button>
@@ -1601,7 +1601,7 @@ function buildTown(){
   {const gp=new THREE.Group(),L=Math.hypot(2.55,2.75),pl=mesh(new THREE.BoxGeometry(1.0,0.08,L),M.wood,0,0,0);gp.add(pl);for(const sx of [-0.52,0.52])gp.add(mesh(new THREE.BoxGeometry(0.05,0.5,L),M.wood,sx,0.25,0));
    gp.position.set(-52.2,1.42,1.75);gp.rotation.x=Math.atan2(2.75,2.55);gp.userData.gang=1;T.add(gp);DKFX.gang=gp;} // gangplank from the pier up to the deck
   dockDeco(T);
-  tree(-37.5,-8.6,T,0.9);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true);tree(-9,-17.5,T,1.3);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
+  tree(-37.5,-8.6,T,0.9);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true);tree(-16,-19.5,T,1.3);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
   for(const [x,z] of [[-37.5,-8.6],[46,-7.4],[-38,10.5],[44,12],[-9,-17.5],[18,-17.5],[-24,-17.6],[48.5,17]])TOWN_COL.push([x-0.45,x+0.45,z-0.45,z+0.45]);
   // lights
   DN.hemi=new THREE.HemisphereLight(0xb8a0ff,0x6a4630,0.6);DN.amb=new THREE.AmbientLight(0x3a2a48,0.32);T.add(DN.hemi);T.add(DN.amb);
@@ -2046,12 +2046,11 @@ function buildMaze(fi){
   const BR=D.rooms.find(r=>r.kind==='boss'),[bx]=mzCenter(BR);
   mzSkulls(fi);
   const portal=new THREE.Group();portal.position.set(fi===3?bx+Math.min(5,(BR.x1-BR.x0+1)*TS/2-2.2):bx,0,(BR.z0+1.6)*TS);if(fi===3)buildLichThrone(bx,BR.z0*TS+1.25);
-  // the portal home: a standing ring of fire in the hero's own colors over a swirling glass, on a stone base
+  // the portal home: a standing ring of fire in the hero's own colors over a swirling glass, with no base
   const pc=pcol();
   const arch=(w,h,sh)=>{const r=w/2;sh.moveTo(-r,0);sh.lineTo(r,0);sh.lineTo(r,h-r);sh.absarc(0,h-r,r,0,Math.PI,false);sh.lineTo(-r,0);return sh;};
   const gold=new THREE.MeshStandardMaterial({color:0xd9a93a,metalness:0.85,roughness:0.28,emissive:0x2a1a04});MZ.mats.push(gold);
   const base=new THREE.MeshStandardMaterial({color:0x4a4250,roughness:0.8});MZ.mats.push(base);
-  portal.add(mesh(new THREE.BoxGeometry(3.4,0.55,1.1),base,0,0.275,0));portal.add(mesh(new THREE.BoxGeometry(3.0,0.12,0.9),gold,0,0.6,0));
   const ring=new THREE.Object3D();
   const swirl=canvasTex(256,256,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,w*0.7);gr.addColorStop(0,'#e8f4ff');gr.addColorStop(0.25,'#7fb6ff');gr.addColorStop(0.6,'#3a3ab8');gr.addColorStop(1,'#140a3a');g.fillStyle=gr;g.fillRect(0,0,w,h);
     g.lineCap='round';for(let k=0;k<5;k++){g.strokeStyle=['rgba(255,255,255,.45)','rgba(160,210,255,.4)','rgba(200,160,255,.35)'][k%3];g.lineWidth=6-k*0.8;g.beginPath();for(let a=0;a<12;a+=0.08){const rr=4+a*10;g.lineTo(w/2+Math.cos(a+k*1.26)*rr,h/2+Math.sin(a+k*1.26)*rr);}g.stroke();}});
@@ -2392,6 +2391,16 @@ FLOORS.forEach((F,i)=>F.sub='Floor '+(i+1));
 // progress is kept by floor name, so new floors can slot in between old ones without losing anyone's place
 const lastF=()=>FLOORS.length-1,DEP=()=>(S.floor||0)*3/Math.max(1,FLOORS.length-1),flIdx=id=>Math.max(0,FLOORS.findIndex(f=>f.id===id));
 function floorReach(){if(!INV.fcl){INV.fcl={};const old=['castle','crypt','fungal','sanctum'];for(let i=0;i<Math.min(4,INV.deepest||0);i++)INV.fcl[old[i]]=1;}let i=0;while(i<FLOORS.length&&INV.fcl[FLOORS[i].id])i++;return i;}
+// ---- test page only: jump straight to any floor's boss (Shift+1 to Shift+9, Shift+0 for 10, or the Bosses panel) ----
+const TESTPG=/\/test\//.test(location.pathname);
+// shortcut: clear the way and stand at the boss door
+function skipBoss(){if(!(S.level==='dungeon'&&MZ&&!S.exitOpen))return;{S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
+    const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');}}
+function devBoss(i){if(!H||S.state!=='play'||i>=FLOORS.length)return toast('Start playing first, then pick a boss.');INV.gift=1;goDungeon(i);skipBoss();H.hp=H.maxHp;}
+if(TESTPG){addEventListener('load',()=>{const d=document.createElement('div');d.id='devboss';d.style.cssText='position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.92);color:#f2e7cf;font:13px sans-serif;padding:6px 8px;border:1px solid #4a3e68;border-radius:10px;max-width:230px';
+    d.innerHTML='<b style="cursor:pointer" id="devbossT">Bosses ▸</b><div id="devbossL" hidden></div>';document.body.appendChild(d);const L=d.querySelector('#devbossL');
+    L.innerHTML=FLOORS.map((f,i)=>`<button data-i="${i}" style="display:block;width:100%;margin-top:3px;text-align:left;font:12px sans-serif;padding:3px 6px">${i+1}. ${f.name}</button>`).join('');
+    d.querySelector('#devbossT').onclick=()=>{L.hidden=!L.hidden;d.querySelector('#devbossT').textContent=L.hidden?'Bosses ▸':'Bosses ▾';};L.onclick=e=>{const b=e.target.closest('button');if(b)devBoss(+b.dataset.i);};});}
 function floorDone(i){floorReach();INV.fcl[FLOORS[i].id]=1;INV.deepest=floorReach();}
 function story(){return INV.cleared?4:Math.min(3,Math.floor((INV.deepest||0)*4/FLOORS.length));} // the town's mood follows how far down the castle you have got
 
@@ -2401,7 +2410,9 @@ const touch={mx:0,my:0,attack:false,jump:false,sp1:false,sp2:false};
 const GK=new Set(['Tab','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyJ','KeyK','KeyL','KeyI','KeyQ','KeyE','Space','Comma','Period','Slash','Semicolon']);
 addEventListener('keydown',e=>{
   keys[e.code]=true;
-  if(S.state==='play'&&GK.has(e.code))e.preventDefault();
+  if(S.state==='play'&&GK.has(e.code)){e.preventDefault();if(scrollY>0&&!document.body.classList.contains('phone'))scrollTo(0,0);}
+  // never let Space / arrows scroll the page (that slid the hero bar off the top of the screen on computers)
+  if(/^(Space|Arrow(Up|Down)|PageUp|PageDown)$/.test(e.code)&&!(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))){e.preventDefault();if(scrollY>0&&!document.body.classList.contains('phone'))scrollTo(0,0);}
   if(e.repeat)return;
   if(NET.on&&!(e.target&&e.target.tagName==='INPUT')){if(e.code==='Enter'&&S.state==='play'){e.preventDefault();chatOpen();return;}if(e.code==='KeyV'&&NET.vc){vcMute();return;}}
   if(e.code==='Escape'||e.code==='KeyP'){if(S.state==='play')openSettings();else if(S.state==='settings')closeSettings();}
@@ -2412,9 +2423,8 @@ addEventListener('keydown',e=>{
   if(e.target&&e.target.tagName==='INPUT')return;
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow(!INV.cleared);return;}
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyY'){lqPreview();return;}
-  if(S.state==='play'&&e.shiftKey&&/^Digit[0-4]$/.test(e.code)){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
-    const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
+  if(S.state==='play'&&e.shiftKey&&/^Digit[0-9]$/.test(e.code)&&+e.code.slice(5)<=FLOORS.length){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
+  if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'){skipBoss();return;}
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit3'){if(!INV.mealSel)nextMeal(true);eatMeal(INV.mealSel);}
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit4')nextMeal();
@@ -2487,7 +2497,8 @@ glc.addEventListener('wheel',e=>{const m=camMode();if(m==='side'||S.state!=='pla
 // ================= fx helpers =================
 function addPart(o){const p=Object.assign({x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0.006,life:30,size:0.06,color:'#fff',kind:'dot',drag:0.96,grow:0},o);p.max=p.life;S.parts.push(p);}
 function sparks(x,y,z,n=6,col='#ffe27a'){for(let i=0;i<n;i++)addPart({x,y,z,vx:rnd(-.07,.07),vy:rnd(.02,.09),vz:rnd(-.07,.07),life:ri(14,24),size:rnd(.05,.08),color:col,kind:'star',g:0.006});}
-function poof(x,y,z,s=1){for(let i=0;i<10;i++)addPart({x:x+rnd(-.3,.3)*s,y:y+rnd(.2,.9)*s,z:z+rnd(-.3,.3)*s,vx:rnd(-.02,.02),vy:rnd(.005,.025),vz:rnd(-.02,.02),g:0,life:ri(26,40),size:rnd(.16,.28)*s,grow:.006,color:i%3?'#d9d2e8':'#a99cc4',kind:'smoke'});sparks(x,y+0.6*s,z,6,'#fff6b0');}
+// a clean shimmer instead of a dust cloud: a faint ground ring and a few rising motes of light
+function poof(x,y,z,s=1){ring(x,z,'rgba(220,210,255,0.4)',0.15*s,0.02*s,16);for(let i=0;i<5;i++)addPart({x:x+rnd(-.35,.35)*s,y:y+rnd(.1,1.1)*s,z:z+rnd(-.35,.35)*s,vy:rnd(.01,.03),g:0,life:ri(18,28),size:rnd(.04,.07),color:i%2?'#fff6c8':'#d8ccff',kind:'star'});}
 function ring(x,z,col,size=0.4,grow=0.1,life=24){addPart({x,y:0.05,z,g:0,life,size,grow,color:col,kind:'ring'});}
 // floating words use old gold and parchment tones, not bright neon, so they suit the dungeon
 const MUTEC={};function muteCol(c){if(MUTEC[c])return MUTEC[c];const m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return MUTEC[c]=c;const n=parseInt(m[1],16),r=n>>16,gg=(n>>8)&255,b=n&255,P=[216,200,168],k=0.42,d=0.86;
@@ -2765,6 +2776,8 @@ function hurtEnemy(e,dmg,dx,dz,kd){
   const l=Math.hypot(dx,dz);if(l<0.01){dx=e.x-H.x;dz=e.z-H.z;}const m=Math.hypot(dx,dz)||1;dx/=m;dz/=m;
   if(e.hp<=0){killEnemy(e,dx,dz);return true;}
   if(e.def.boss){e.x+=dx*0.06;e.z+=dz*0.06;if(kd==='big'){e.state='hurt';e.t=14;e.vx=dx*0.04;e.vz=dz*0.04;}return true;}
+  // a foe who was just staggered only gets a small nudge, so a fast stream of arrows doesn't make it twitch and flail nonstop
+  if(e.state==='kd'||S.frame-(e.stagF||-999)<50){if(e.state!=='kd'){e.x+=dx*0.025;e.z+=dz*0.025;clampPos(e);}return true;}e.stagF=S.frame;
   if(kd==='big'||(kd&&!e.def.heavy)){e.state='kd';e.vx=dx*0.11;e.vz=dz*0.11;e.vy=0.1;e.t=55;}
   else{e.state='hurt';e.t=e.def.heavy?8:16;const k=e.def.heavy?0.03:0.075;e.vx=dx*k;e.vz=dz*k;}
   return true;
@@ -3245,7 +3258,7 @@ const HOUSES=[
  {id:'empty',x:36,name:'The Empty House',roof:'#3e4a3a'},
  {id:'smith',shop:true,x:12,name:'The Blacksmith',npc:{name:'Hilda the Smith',x:0,z:-2.7,col:'#5a4a3a',skin:'#d9a07a',hat:2,lines:[]}},
  {id:'armory',shop:true,x:24,name:'The Armory',npc:{name:'Borin',x:0,z:-2.7,col:'#6a6f7a',skin:'#f1c8a5',hat:0,lines:[]}},
- {id:'gems',shop:true,x:-10,name:'Crystals & Jewels',npc:{name:'Opal',x:0,z:-2.7,col:'#a463f2',skin:'#f6d5b8',hat:1,lines:[]}},
+ {id:'gems',shop:true,x:-10,name:'Crystals & Jewels',npc:{name:'Olive',x:0,z:-2.7,col:'#a463f2',skin:'#f6d5b8',hat:1,lines:[]}},
  {id:'magic',shop:true,x:-22,name:'Runes & Magic',npc:{name:'Master Wren',x:0,z:-2.7,col:'#3a5a8a',skin:'#e9b58d',hat:1,lines:[]}},
 ];
 const NPC_RM={smith:'smith',armory:'guard',gems:'girl',magic:'mage',baker:'girl',sailor:'smith',weaver:'girl'};
@@ -3331,7 +3344,7 @@ const KEEPERS=[
  {id:'smith',fid:'crypt',fi:1,name:'Hilda the Smith',him:'her',shop:'The Blacksmith',rm:'smith',col:'#5a4a3a',skin:'#d9a07a',hat:2,
   thanks:'Ha! I knew somebody would come. Bring me your weapon when you get back and I will make it sing.',
   hint:'Gil the fishman? The skeletons laughed about him. They hid him on the floor below this one, and not in any cell you can see.'},
- {id:'gems',fid:'fungal',fi:2,name:'Opal',him:'her',shop:'Crystals & Jewels',rm:'girl',col:'#a463f2',skin:'#f6d5b8',hat:1,
+ {id:'gems',fid:'fungal',fi:2,name:'Olive',him:'her',shop:'Crystals & Jewels',rm:'girl',col:'#a463f2',skin:'#f6d5b8',hat:1,
   thanks:'Oh, thank you, thank you! I thought I would never see daylight again. My crystals are waiting for you in town.',
   hint:'Can you smell the sea? It is strongest on this floor. Somewhere a wall drips salt water. I would bet my best crystal that Gil is behind it.'},
  {id:'magic',fid:'sanctum',fi:3,name:'Master Wren',him:'him',shop:'Runes & Magic',rm:'mage',col:'#3a5a8a',skin:'#e9b58d',hat:1,
@@ -3996,7 +4009,7 @@ function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=job
   GATE.talk={i:-1,t:0,lines,cb,vo:lines.map(t=>/^Good work/.test(t)?'c_good':/^Here is your pay/.test(t)?'c_pay':/new job/.test(t)?'c_new':voText(t))};}
 function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length){drawDaily(g,x,y);return;}const show=list.slice(0,7);
   g.save();g.textAlign='left';const w=262,h=28+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
-  {const si=scrollIcon();if(si)g.drawImage(si,25,45,110,70,x+4,y+2,44,28);g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Captain's jobs",x+(si?50:10),y+20);}
+  {const si=scrollIcon();if(si)g.drawImage(si,25,45,110,70,x+4,y+2,44,28);g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Jordan's jobs",x+(si?50:10),y+20);}
   show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+38+i*18,w-18);});
   if(list.length>7){g.font=`600 11px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(`and ${list.length-7} more`,x+10,y+h-8);}g.restore();drawDaily(g,x,y+h+8);}
 // a relic waits on a stone stand in a far room of its floor
@@ -4013,7 +4026,7 @@ function relicSpawn(fi){if(!MZ)return;MZ.relic=null;jobState();const j=JOBS.find
   MZ.grp.add(g);MZ.relic={j,x,z,g,got:false};}
 function takeRelic(){const R=MZ&&MZ.relic;if(!R||R.got)return;R.got=true;jobState().relics[R.j.id]=1;R.g.visible=false;sfx('chest');sparks(R.x,1.4,R.z,18);floatText(R.x,2.4,R.z,'You found '+R.j.name+'!','#ffd35c',20);save();
   toast(`You have ${R.j.name}. It is not for sale: bring it to the gate captain.`);}
-function guardGift(){if(GATE.cap){if(INV.gift)jobTalk();else capTalk();return;}openDlg(`<h1 class="logo sm"><small>The gate captain</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
+function guardGift(){if(GATE.cap){if(INV.gift)jobTalk();else capTalk();return;}openDlg(`<h1 class="logo sm"><small>Captain Jordan</small>We need your help</h1><p class="tag">So Old Maren sent you. Good. We are being overrun, stranger. The castle is crawling with the Lich Queen's undead, and every night more of them pour out. There are too few of us left to hold this gate.</p><p class="tag">You look like you can fight. Take this armor. It is plain, but it is better than going down there in rags.</p><div class="row"><button class="btn" type="button" data-act="take">Take the armor</button></div>`,'gift',a=>{if(a!=='take')return;closeDlg();giveStarter();},false);}
 function giveStarter(){const g=k=>({type:'gear',kind:k,tier:0,grade:0,sockets:[null],aff:[]});for(const k of ['helm','hands','feet'])if(!H[k])H[k]=g(k);if(!H.armor||H.armor.tier<1)H.armor=Object.assign(g('armor'),{tier:1});
   INV.gift=1;recalc(H);save();sfx('go');sparks(H.x,1.4,H.z,14);toast('You put on the guard\'s armor: helmet, chest, gloves and boots. Press H to see your gear.');}
 function openPlace(id){
@@ -5599,7 +5612,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 // ================= opening story: washed up on the dock =================
 const INTRO_BLACK=['"Ugh... where am I?"','Cold water. The creak of old wood. Gulls crying somewhere above.','"How did I get here? I can\'t remember anything."'],INTRO_BLACK_VO=['h_wake1','','h_wake2'];
-const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Opal took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','We have a guest hut for you. Keep your things there while you help us fight the Lich Queen.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
+const INTRO_TALK=['Easy now, easy. The tide carried you in at dawn, holding on to a broken plank.','{n}, you say? The sea took your memory but left you your name. That is something.','Welcome to Sumera, stranger. This was a happy town once.','Then the Lich Queen woke under the old castle. Her dead fill the halls below, and every night they creep a little closer.','Our best folk tried to stop her. Borin the armorer went first, sure his steel could hold the halls. Then Hilda the smith, to forge a blade that could cut the dead.','Olive took her crystals down there, and old Master Wren went with his runes to break the curse. Even Gil the fishmonger rowed off to help. Not one of them came back.','Their shops are boarded up now. If they still live, they are somewhere in that castle. Find them, and they will help you in return.','You hold that weapon like you know how to use it. Maybe the sea brought you to us for a reason.','We have a guest hut for you. Keep your things there while you help us fight the Lich Queen.','The guards at the east gate are losing the fight, and they are handing out armor to anyone who will help. Hurry down there before they run out of it.'];
 let INTRO=null;
 function introEl(){return document.getElementById('intro');}
 function startIntro(){const el=introEl();INTRO={i:0,phase:'who',t0:performance.now()};S.state='intro';S.banner=null;
@@ -5871,7 +5884,7 @@ Promise.all(PHOTO_IMGS.map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve(
 if(document.fonts&&document.fonts.load){document.fonts.load(`800 20px ${DF}`).catch(()=>{});document.fonts.load(`700 14px ${BF}`).catch(()=>{});}
 </script>
 
-</html<div id="tpanel" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.9);color:#f2e7cf;font:14px sans-serif;padding:8px 10px;border:1px solid #4a3e68;border-radius:10px;max-width:260px">
+<div id="tpanel" style="position:fixed;left:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.9);color:#f2e7cf;font:14px sans-serif;padding:8px 10px;border:1px solid #4a3e68;border-radius:10px;max-width:260px">
 <b>Test version</b> (saving is off here)<br>Healer armor:
 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
 <button data-a="none">None</button><button data-a="helm">Helmet only</button><button data-a="half">Helmet + chest</button><button data-a="2">Full Steel</button><button data-a="3">Full Mithril</button><button data-a="4">Full Runic</button></div></div>
@@ -5886,4 +5899,4 @@ document.getElementById('tpanel').addEventListener('click',e=>{const a=e.target.
   else if(a==='half'){H.helm=g('helm',2);H.hands=H.feet=null;H.armor.tier=2;}
   else{const t=+a;H.helm=g('helm',t);H.hands=g('hands',t);H.feet=g('feet',t);H.armor.tier=t;}
   recalc(H);});
-</script>>
+</script></html>
