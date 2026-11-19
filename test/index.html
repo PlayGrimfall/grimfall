@@ -281,7 +281,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
     <div id="toast" hidden></div>
     <div id="intro" hidden><div class="itxt"></div><div class="iwho"><p>You awaken. Who are you?</p><div class="row"><button class="btn alt" type="button" data-sex="m">Male</button><button class="btn alt" type="button" data-sex="f">Female</button></div><input id="introName" maxlength="16" placeholder="Your name" autocomplete="off" aria-label="Your name"><button class="btn" id="introWake" type="button" disabled>Wake up</button></div><div class="ibox"><b>Old Maren, the harbor keeper</b><p></p><small>Click, tap or press Enter</small></div><button id="introSkip" type="button">Skip</button></div>
     <div id="err" hidden></div>
-    <div id="netUI" hidden><button id="chatBtn" type="button">💬 Chat</button><button id="vcBtn" type="button">🎙 Join voice</button><button id="micBtn" type="button" hidden>🎙 Mic on</button></div>
+    <div id="netUI" hidden><button id="chatBtn" type="button">💬 Chat</button><button id="vcBtn" type="button">🎙 Join voice</button><button id="tpBtn" type="button" hidden>✨ Go to leader</button><button id="micBtn" type="button" hidden>🎙 Mic on</button></div>
     <div id="chatLog" aria-live="polite"></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="120" placeholder="Say something… Enter sends, Esc closes" autocomplete="off" aria-label="Chat message"></div><div id="quickChat" hidden></div>
   </div>
@@ -2173,6 +2173,12 @@ function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast(
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
   const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:pcol().p[Math.random()<0.5?0:1]});
   if(--S.portT===0){sfx('go');goTown();}}
+// where everyone in the party is on this floor (the host sees friends through their last sent position)
+function partyXZ(){const L=[[H.x,H.z]];if(NET.on&&S.level==='dungeon')for(const id in NET.peers){const t=NET.peers[id].s;if(t&&t.lvl==='dungeon'&&t.floor===S.floor&&t.state!=='down')L.push([+t.x,+t.z]);}return L;}
+function mzInside(r,x,z){const tx=Math.floor(x/TS),tz=Math.floor(z/TS);return tx>r.x0-1&&tx<r.x1+1&&tz>r.z0-1&&tz<r.z1+1;}
+// a fight started in a room you are not in: you are pulled in beside the friend who started it, so no one is shut out
+function partyPullIn(r,x,z){if(!H||H.state==='down'||mzRoomOf(H.x,H.z)===r)return;poof(H.x,0,H.z,1);H.x=x+rnd(-0.6,0.6);H.z=z+rnd(-0.6,0.6);H.vx=H.vz=0;sparks(H.x,1.2,H.z,14);sfx('magic');
+  const rr=mzRoomOf(H.x,H.z);if(rr&&!rr.seen){rr.seen=true;mzRevealRoom(rr);}toast('Your party started a fight! You joined them.');}
 function inRoomFoe(e,r){if(e.state==='dead'||e.mine)return false;const tx=Math.floor(e.x/TS),tz=Math.floor(e.z/TS);return tx>=r.x0-1&&tx<=r.x1+1&&tz>=r.z0-1&&tz<=r.z1+1;} // only foes inside the locked room count
 function roomWaveTick(ar){if(!S.roomWaves||!S.roomWaves.length||S.queue.length)return;if(S.enemies.filter(e=>inRoomFoe(e,ar)).length>1)return;
   const nw=S.roomWaves[0].w,batch=S.roomWaves.filter(q=>q.w===nw);S.roomWaves=S.roomWaves.filter(q=>q.w!==nw);
@@ -2257,6 +2263,10 @@ function drawMaze(g){
     for(const p of S.pickups)if(p.kind==='rkey'||p.kind==='gkey'){const x=p.x/TS,z=p.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;g.fillStyle='#ffd35c';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(2,px*0.7),0,Math.PI*2);g.fill();}
     for(const e of S.enemies){if(e.state==='dead')continue;const x=e.x/TS,z=e.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;g.fillStyle=e.def.boss?'#ff3a3a':'#ff7a6a';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(1.6,px*(e.def.boss?0.8:0.45)),0,Math.PI*2);g.fill();}
     if(MZ.portal.visible){const x=MZ.portal.position.x/TS,z=MZ.portal.position.z/TS;g.fillStyle='#8fd3ff';g.beginPath();g.arc(ox+(x-x0)*px,oy+(z-z0)*px,Math.max(3,px),0,Math.PI*2);g.fill();}
+    // friends on this floor: a blue dot each (the room leader in gold), with names on the full map
+    if(NET.on)for(const id in NET.peers){const t=NET.peers[id].s;if(!t||t.lvl!=='dungeon'||t.floor!==S.floor)continue;const x=t.x/TS,z=t.z/TS;if(x<x0||x>=x1||z<z0||z>=z1)continue;
+      const cx=ox+(x-x0)*px,cy=oy+(z-z0)*px,rr=Math.max(3.5,px*0.9),lead=NET.hostConn&&NET.hostConn.peer===id;g.fillStyle=t.state==='down'?'#8a8a8a':lead?'#ffb84a':'#7fd4ff';g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,rr,0,Math.PI*2);g.fill();g.stroke();
+      if(px>=5){g.font=`800 12px ${BF}`;g.textAlign='center';g.lineWidth=3;const nm=String(t.name||'Friend').slice(0,16);g.strokeText(nm,cx,cy-rr-5);g.fillStyle=lead?'#ffd98a':'#bfeaff';g.fillText(nm,cx,cy-rr-5);}}
     const hx=ox+(htx-x0)*px,hy=oy+(htz-z0)*px,a=Math.atan2(H.fz,H.fx);g.fillStyle='#ffe27a';g.strokeStyle=OUT;g.lineWidth=1.5;g.beginPath();
     g.moveTo(hx+Math.cos(a)*px*1.6,hy+Math.sin(a)*px*1.6);g.lineTo(hx+Math.cos(a+2.4)*px*1.1,hy+Math.sin(a+2.4)*px*1.1);g.lineTo(hx+Math.cos(a-2.4)*px*1.1,hy+Math.sin(a-2.4)*px*1.1);g.closePath();g.fill();g.stroke();};
   // corner minimap
@@ -3092,7 +3102,7 @@ function setLevel(lv){
 }
 function goTown(spot){
   if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
-  clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};
+  clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};NET.tp=2;if(typeof vcUI==='function')vcUI();
   if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
@@ -4665,7 +4675,7 @@ function poseNpc(F,n){const mv=!(n.pause>0),t=n.anim,ph=t*0.2,sw=mv?Math.sin(ph)
 // while a character's real 3D model is still downloading, its old blocky stand-in stays hidden (no pop from old to new);
 // if the model fails or takes over 20 seconds, the stand-in shows so nobody is invisible
 const REAL_T0={};
-function realWaiting(f){if(SET.style!=='real'||!THREE.GLTFLoader||animState==='fail')return false;if(f&&REALS[f]&&REALS[f].state==='fail')return false;const k=f||'hero',now=performance.now();if(!REAL_T0[k])REAL_T0[k]=now;return now-REAL_T0[k]<20000;}
+function realWaiting(f,ms=20000){if(SET.style!=='real'||!THREE.GLTFLoader||animState==='fail')return false;if(f&&REALS[f]&&REALS[f].state==='fail')return false;const k=f||'hero',now=performance.now();if(!REAL_T0[k])REAL_T0[k]=now;return now-REAL_T0[k]<ms;}
 function syncFig(sp,mk){const want=SET.style!=='2d';if(want&&!sp.fig)sp.fig=mk();else if(!want&&sp.fig){disposeMon(sp.fig);sp.fig=null;}sp.mesh.visible=!want;return want;}
 // ---- live 3D portrait of the hero (bag, hero sheet, corner badge) ----
 let PR=null,PS=null,PC=null,PFIG=null,PANG=0.5,HEADC=null,HEADKEY='',pDrag=null;
@@ -5022,10 +5032,11 @@ function poseReal(R,h,blink){
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
 const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
-function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig';REAL.gltf.scene.traverse(o=>{if(/Hips$/.test(o.name)&&o.name.length<30)pre=o.name.slice(0,-4);});
-  REAL.clips=pre==='mixamorig'?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig/,pre);});return n;});
+function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';REAL.gltf.scene.traverse(o=>{const m=o.isBone&&/^(.*)Hips(_\d+)?$/.exec(o.name);if(m&&o.name.length<30){pre=m[1];suf=m[2]||'';}});
+  // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
+  REAL.clips=pre==='mixamorig'&&!suf?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig([^.]*)\./,(x,b)=>pre+b+suf+'.');});return n;});
   // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
-  const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)has.add(o.name);});
+  const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
   REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
@@ -5142,7 +5153,10 @@ async function netJoin(code){code=(code||'').toUpperCase().replace(/[^A-Z]/g,'')
         for(const id in NET.peers)if(!seen[id])netDrop(id);}});
     c.on('close',()=>{if(NET.on&&typeof toast==='function')toast('The host closed the room.');netLeave();netNote('Disconnected.');});});
   p.on('error',e=>{netNote(e.type==='peer-unavailable'?'No game found with that code.':'Online error: '+(e.type||e.message||e));});}
-function netState(){const h=H;return {hpf:+(h.hp/Math.max(1,h.maxHp)).toFixed(2),cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
+// what a hero is wearing, sent to friends so they see the same armor: armor tier, weapon tier, then helm/gloves/boots/shield on or off
+function gearKey(h){return `${(h.armor&&h.armor.tier)|0}.${(h.weapon&&h.weapon.tier)|0}.${h.helm?1:0}${h.hands?1:0}${h.feet?1:0}${h.off?1:0}`;}
+function gearApply(h,k){const [a,w,f='0000']=String(k||'0.0.0000').split('.');h.armor.tier=a|0;h.weapon.tier=w|0;for(const [i,sl] of ['helm','hands','feet','off'].entries())h[sl]=f[i]==='1'?{tier:a|0,grade:0,sockets:[],aff:[]}:null;}
+function netState(){const h=H;return {gr:gearKey(h),hpf:+(h.hp/Math.max(1,h.maxHp)).toFixed(2),cls:h.cls,sex:h.sex,name:String(h.name||HEROES[h.cls].name).slice(0,16),x:+h.x.toFixed(2),y:+h.y.toFixed(2),z:+h.z.toFixed(2),fx:+(+h.fx).toFixed(2),fz:+(+h.fz).toFixed(2),moving:!!h.moving,dance:h.dance||0,sf:h.strafe||0,state:h.state,melee:!!h.melee,combo:h.combo||0,atk:NET.atk,cast:NET.cast,lvl:S.level,house:S.house||null,vc:NET.vc?1:0,st:setN(H),cg:colorGrade(H),floor:S.floor,dr:!NET.host&&S.level==='dungeon'&&MZ?MZ.doors.map(d=>d.open?1:0).join(''):'',ce:!NET.host&&S.level==='dungeon'&&MZ?MZ.cells.map(c=>c.open?1:0).join(''):'',mn:(S.minions||[]).filter(m=>m.state!=='dead').map(m=>[+m.x.toFixed(1),+m.z.toFixed(1),+m.fx.toFixed(2),+m.fz.toFixed(2),m.state==='wind'||m.state==='strike'?1:0])};}
 function netDrop(id){const p=NET.peers[id];if(!p)return;if(p.mins)for(const m of p.mins){minionDrop(m);S.rminions.splice(S.rminions.indexOf(m),1);}bubbleKill(p);vcHang(id);if(p.R)disposeReal(p.R);if(p.tag){scene.remove(p.tag);p.tag.material.map.dispose();p.tag.material.dispose();}delete NET.peers[id];netBadge();}
 function netTag(name){const c=document.createElement('canvas');c.width=256;c.height=48;const g=c.getContext('2d');g.font='bold 26px sans-serif';g.textAlign='center';const w=Math.min(250,g.measureText(name).width+22);g.fillStyle='rgba(8,6,14,.62)';g.fillRect(128-w/2,6,w,36);g.fillStyle='#9fe3ff';g.fillText(name,128,33);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true}));s.scale.set(2.2,0.42,1);s.renderOrder=999;s.userData.name=name;return s;}
@@ -5161,7 +5175,7 @@ function netTarget(e){let best=null,bd=H&&H.state!=='down'?Math.hypot(H.x-e.x,H.
   e.tgt=best?best.proxy:null;return best;}
 function netUpdEnemy(e){if(e.ghost){netGhostUpd(e);return;}const t=netTarget(e);if(!t){updEnemy(e);return;}const real=H;H=t;try{updEnemy(e);}finally{H=real;}}
 function netRooms(){updRooms();if(S.aRoom!=null||S.exitOpen)return;const real=H;
-  for(const [id,s] of netCoopPeers()){H=netProxy(id,s);try{updRooms();}finally{H=real;}if(S.aRoom!=null)break;}}
+  for(const [id,s] of netCoopPeers()){H=netProxy(id,s);try{updRooms();}finally{H=real;}if(S.aRoom!=null){partyPullIn(MZ.rooms[S.aRoom],+s.x,+s.z);break;}}} // a friend started a fight: the host joins them before the bars shut
 function netProjHit(p){if(p.dead)return;for(const [id,s] of netCoopPeers()){if(s.state==='down')continue;if(Math.hypot(s.x-p.x,s.z-p.z)<0.55&&s.y<1.3){netHurt(id,p.dmg,p.vx,p.vz,false);p.dead=true;sparks(p.x,p.y,p.z,6,p.kind==='lbolt'?'#9dff8a':'#ff9a4a');return;}}}
 function netUnion(dr,ce){if(!MZ)return;let ch=false;
   if(dr&&dr.length===MZ.doors.length)for(let i=0;i<dr.length;i++){const d=MZ.doors[i];if(dr[i]==='1'&&!d.open){d.open=true;d.lock=null;ch=true;}}
@@ -5200,6 +5214,7 @@ function netClientRooms(){const d=NET.dun;if(!d)return;
     if(ar.kind!=='boss'){sfx('go');if(ar.key){const [cx,cz]=mzCenter(ar);dropPickup(ar.key==='great'?'gkey':'rkey',cx,cz);floatText(cx,2.2,cz,ar.key==='great'?GKEY[S.floor]+'!':'A rusty key!','#ffd35c',20);}
       else floatText(H.x,2.4,H.z,'Room cleared!','#bfffcf',18);}}
   if(ha!=null&&S.aRoom==null&&MZ.rooms[ha]&&MZ.rooms[ha].state!=='clear'){const r=MZ.rooms[ha];r.state='fight';S.aRoom=ha;
+    if(mzRoomOf(H.x,H.z)!==r){for(const q of partyXZ().slice(1))if(mzRoomOf(q[0],q[1])===r){partyPullIn(r,q[0],q[1]);break;}}
     NET.bars=mzRoomOf(H.x,H.z)===r;if(NET.bars)mzBars(r,true);
     if(r.kind==='piece'&&r.i>=0)toast('Your party found '+PIECE_N[S.floor]+'. Defeat its guards to win the '+GKEY[S.floor]+'.');}}
 
@@ -5230,15 +5245,27 @@ function netBubbles(){const now=performance.now(),upd=(o,h,vis)=>{if(!o.bub)retu
 async function vcJoin(){if(NET.vc){vcLeave();return;}if(acctNoVoice()){toast('Voice chat is off. A parent can turn it on in Account, Parent settings.');return;}if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Voice chat needs the game opened from the website.');return;}
   try{NET.mic=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}catch(e){toast('Your microphone is blocked. Allow the mic for this site to use voice chat.');return;}
   if(!NET.on){NET.mic.getTracks().forEach(t=>t.stop());NET.mic=null;return;}
-  NET.vc=true;NET.micMuted=false;vcUI();chatAdd('','You joined voice chat. Press V to mute or unmute your mic.',true);}
+  NET.vc=true;NET.micMuted=false;vcUI();chatAdd('','You joined voice chat. Press V to mute or unmute your mic.',true);if(!Object.values(NET.peers).some(p=>p.s&&p.s.vc))chatAdd('','Your friends need to press 🎙 Join voice too.',true);}
 function vcLeave(){for(const id in NET.calls)vcHang(id);if(NET.mic)NET.mic.getTracks().forEach(t=>t.stop());NET.mic=null;NET.vc=false;NET.micMuted=false;vcUI();}
 function vcHang(id){const c=NET.calls[id];if(!c)return;delete NET.calls[id];try{c.call.close();}catch(e){}if(c.au){c.au.srcObject=null;c.au.remove();}}
 function vcMute(){if(!NET.vc||!NET.mic)return;NET.micMuted=!NET.micMuted;NET.mic.getAudioTracks().forEach(t=>t.enabled=!NET.micMuted);vcUI();toast(NET.micMuted?'Mic muted':'Mic on');}
 function vcUI(){const u=document.getElementById('netUI');if(!u)return;u.hidden=!NET.on;const v=document.getElementById('vcBtn'),m=document.getElementById('micBtn');
   v.textContent=NET.vc?'🎙 Leave voice':'🎙 Join voice';v.classList.toggle('on',!!NET.vc);m.hidden=!NET.vc;m.textContent=NET.micMuted?'🔇 Mic muted':'🎙 Mic on';m.classList.toggle('mut',!!NET.micMuted);
+  const tb=document.getElementById('tpBtn');if(tb){tb.hidden=!NET.on||!!NET.host;tb.textContent='✨ Go to leader ('+(NET.tp==null?2:NET.tp)+')';}
   if(!NET.on&&!document.getElementById('chatBox').hidden)chatClose();}
+// friends who joined a room can jump to the room leader twice; the jumps come back each time they visit town
+function tpLeader(){if(!NET.on||NET.host)return;const hid=NET.hostConn&&NET.hostConn.peer,p=hid&&NET.peers[hid],s=p&&p.s;if(NET.tp==null)NET.tp=2;
+  if(!s){toast('The room leader is not here right now.');return;}if(NET.tp<=0){toast('No teleports left. You get 2 more when you visit town.');return;}
+  if(S.state!=='play'||!H||H.state==='down'){toast('You can teleport when you are up and playing.');return;}
+  if(s.lvl==='house'){toast('The leader is inside a house. Try again when they come out.');return;}
+  if(s.lvl===S.level&&(s.lvl!=='dungeon'||s.floor===S.floor)&&Math.hypot(s.x-H.x,s.z-H.z)<4){toast('You are already next to the leader.');return;}
+  sparks(H.x,1.2,H.z,16);const x=+s.x+rnd(-0.8,0.8),z=+s.z+rnd(-0.8,0.8);
+  if(s.lvl==='dungeon'){if(S.level!=='dungeon'||S.floor!==s.floor)goDungeon(s.floor);Object.assign(H,{x,z,vx:0,vz:0,inv:60});camUpdate(true);const rr=MZ&&mzRoomOf(H.x,H.z);if(rr&&!rr.seen){rr.seen=true;mzRevealRoom(rr);}}
+  else if(S.level!=='town')goTown({x,z,fx:1,fz:0});else{Object.assign(H,{x,z,vx:0,vz:0});camUpdate(true);}
+  NET.tp--;sfx('magic');sparks(H.x,1.2,H.z,16);toast(`You teleported to ${String(s.name||'the leader').slice(0,16)}. ${NET.tp} teleport${NET.tp===1?'':'s'} left.`);vcUI();}
 function vcAttach(id,call){NET.calls[id]={call};
-  call.on('stream',st=>{const c=NET.calls[id];if(!c||c.call!==call)return;if(!c.au){c.au=document.createElement('audio');c.au.autoplay=true;c.au.playsInline=true;document.body.appendChild(c.au);}c.au.srcObject=st;c.au.play().catch(()=>{});});
+  call.on('stream',st=>{const c=NET.calls[id];if(!c||c.call!==call)return;if(!c.au){c.au=document.createElement('audio');c.au.autoplay=true;c.au.playsInline=true;document.body.appendChild(c.au);}c.au.srcObject=st;const who=String((NET.peers[id]&&NET.peers[id].s&&NET.peers[id].s.name)||'your friend').slice(0,16);
+    c.au.play().then(()=>chatAdd('',`🔊 You can hear ${who} now.`,true)).catch(()=>{toast('Tap the screen to hear your friends.');const go=()=>{if(c.au)c.au.play().then(()=>chatAdd('',`🔊 You can hear ${who} now.`,true)).catch(()=>{});};document.addEventListener('pointerdown',go,{once:true});});});
   const end=()=>{if(NET.calls[id]&&NET.calls[id].call===call)vcHang(id);};call.on('close',end);call.on('error',end);}
 function vcIncoming(call){if(!NET.vc||!NET.mic){try{call.close();}catch(e){}return;}vcHang(call.peer);call.answer(NET.mic);vcAttach(call.peer,call);}
 function vcFrame(){if(!NET.peer)return;const now=performance.now();
@@ -5247,7 +5274,7 @@ function vcFrame(){if(!NET.peer)return;const now=performance.now();
   for(const id in NET.peers){const p=NET.peers[id];if(!p.s||!p.s.vc||NET.calls[id]||!(NET.myId<id))continue;if(now-(NET.vcTry[id]||0)<4000)continue;NET.vcTry[id]=now;
     try{const call=NET.peer.call(id,NET.mic);if(call)vcAttach(id,call);}catch(e){}}}
 {const cb=document.getElementById('chatBtn'),vb=document.getElementById('vcBtn'),mb=document.getElementById('micBtn'),ci=document.getElementById('chatIn'),ui=document.getElementById('netUI');
-  if(cb){cb.onclick=()=>chatOpen();vb.onclick=()=>vcJoin();mb.onclick=()=>vcMute();for(const ev of ['pointerdown','mousedown','touchstart'])ui.addEventListener(ev,e=>e.stopPropagation());
+  if(cb){cb.onclick=()=>chatOpen();vb.onclick=()=>vcJoin();{const tb=document.getElementById('tpBtn');if(tb)tb.onclick=()=>tpLeader();}mb.onclick=()=>vcMute();for(const ev of ['pointerdown','mousedown','touchstart'])ui.addEventListener(ev,e=>e.stopPropagation());
     ci.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();chatSend();}else if(e.key==='Escape'){e.preventDefault();chatClose();}});}}
 
 function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now();
@@ -5261,7 +5288,8 @@ function netFrame(){netLinkCheck();if(!NET.on)return;const now=performance.now()
     const vis=!!H&&SET.style==='real'&&s.lvl===S.level&&(S.level!=='house'||s.house===S.house)&&(S.level!=='dungeon'||s.floor===S.floor);netMinions(p,s,vis);
     if(p.R&&!p.R.root.parent){disposeReal(p.R);p.R=null;}
     if(!vis){if(p.R)p.R.root.visible=false;if(p.tag)p.tag.visible=false;continue;}
-    if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;}
+    if(!p.h||p.h.cls!==s.cls||p.h.sex!==(s.sex==='f'?'f':'m')){if(p.R){disposeReal(p.R);p.R=null;}p.h=Object.assign(makeHero(s.cls),{remote:true,sex:s.sex==='f'?'f':'m',x:s.x,y:s.y,z:s.z});p.atk=s.atk;p.cast=s.cast;p.gk=null;}
+    if((s.gr||'')!==p.gk){p.gk=s.gr||'';gearApply(p.h,p.gk);if(p.R){disposeReal(p.R);p.R=null;}} // a friend changed gear: rebuild their figure in it
     const h=p.h;if(Math.hypot(s.x-h.x,s.z-h.z)>8){h.x=s.x;h.z=s.z;}h.x+=(s.x-h.x)*0.22;h.z+=(s.z-h.z)*0.22;h.y=s.y;h.fx=s.fx;h.fz=s.fz;h.moving=s.moving;h.dance=s.dance||0;h.strafe=s.sf||0;h.state=s.state;h.setT=s.st||0;h.cg=s.cg||0;h.melee=s.melee;h.combo=s.combo;h.swingMax=8;h.swing=0;h.castT=0;
     if(s.atk!==p.atk){p.atk=s.atk;h.swing=h.swingMax-1;}if(s.cast!==p.cast){p.cast=s.cast;h.castT=1;}
     if(loadReal(s.cls)!=='ready'||animState!=='ready'||loadReal(null,modelInfo(s.cls,h).f)!=='ready'||loadReal(null,modelInfo(s.cls,h).arm)==='loading')continue;
@@ -5293,7 +5321,7 @@ function render3D(){
     if(e.state==='dead'){alpha=Math.min(1,e.t/20);rot=-e.face*Math.min(1.4,(36-e.t)*0.08);}else if(e.state==='kd')rot=-e.face*(e.y>0?0.6:1.3);
     const rmi=SET.style==='real'&&rmInfo(e);
     if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig)e.spr.rfig=buildRealMon(e,rmi);poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
-    else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f));}
+    else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f,3500));} // foes are never invisible for long: on a slow connection the simple figure shows until the real model arrives
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
   }
