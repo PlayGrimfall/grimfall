@@ -749,6 +749,10 @@ const JEWELS=[{id:'neck',n:'Necklace',s:2,bonus:'+10 max health, more with bette
   {id:'ring1',n:'Ring',s:1,bonus:'+3% damage, more with better metal'},{id:'ring2',n:'Second Ring',s:1,bonus:'+3% damage, more with better metal'}];
 const METALS=['Copper','Silver','Gold','Mithril'], METAL_COL=['#d08a5a','#d3dbe3','#ffd35c','#8fe3ff'];
 const GEM_RENAME={sapphire:'amethyst',topaz:'citrine'};
+// ---- the Runeblade: a legendary weapon the smith forges from Grimtusk's broken hilt and star iron, upgraded +1 to +5, with a runestone set in it ----
+const RSTONE={fire:{n:'Fire Runestone',g:'fireopal',c:'#ff7a2a',e:'sets enemies burning'},life:{n:'Life Runestone',g:'emerald',c:'#2fbf6a',e:'heals you on every hit'},
+  storm:{n:'Storm Runestone',g:'diamond',c:'#9fe3ff',e:'gives many more critical hits'},war:{n:'War Runestone',g:'ruby',c:'#e8344e',e:'adds 32% damage'}};
+const RB_MAX=5,rbName=cls=>'Rune '+HEROES[cls||H.cls].weapon,rbUpCost=n=>({star:n+1,gold:150*(n+1)});
 const RUNES={fury:{n:'Rune of Fury',e:'Specials hit 30% harder'},flow:{n:'Rune of Flow',e:'Specials cost 20% less mana'},
   swift:{n:'Rune of Swiftness',e:'Move 15% faster'},vigor:{n:'Rune of Vigor',e:'Slowly regain health'}};
 
@@ -2512,11 +2516,11 @@ function drPct(){const a=armorRating(H);return Math.min(0.8,a/(a+150)+0.06*gemSu
 function critPct(){return Math.min(0.6,0.03+0.003*stat(H,'dex')+0.01*affSum(H,'crit')+0.07*gemSum(H,'diamond')+0.04*(pr('keen')+pr('eagle'))+(H.cls==='archer'&&setN(H)>=2?0.06:0));}
 function primMult(){const p=PRIM[H.cls];return 1+0.02*(stat(H,p)-BASE_ST[H.cls][p]);}
 function ringPow(h){let n=0;for(const r of RINGS)n+=jp(h,r);return n;}
-function dmgMult(){const w=H.weapon;return (1+0.25*w.tier)*(1+0.08*w.grade)*(1+0.08*gemSum(H,'ruby'))*(1+0.03*ringPow(H))*primMult()*setDmgMult(H);}
+function dmgMult(){const w=H.weapon;return (1+0.25*w.tier)*(1+0.08*w.grade)*(1+0.08*(w.plus||0))*(1+0.08*gemSum(H,'ruby'))*(1+0.03*ringPow(H))*primMult()*setDmgMult(H);}
 function heroDmg(base){return base*dmgMult()*(H.rage>0?1.8:1)*rnd(0.9,1.1);}
 function spDmg(base,n=1){return heroDmg(base)*(H.rune==='fury'?1.3:1)*(1+0.2*(spRank(n)-1))*(PRIM[H.cls]==='mag'?1:1+0.01*(stat(H,'mag')-BASE_ST[H.cls].mag));}
 function spCost(n){return Math.round(HEROES[H.cls]['s'+n].cost*(H.rune==='flow'?0.8:1));}
-function gemSum(h,t){let s=0;for(const it of allItems(h))for(const g of (it.sockets||[]))if(g&&g.t===t)s+=g.lv;return s;}
+function gemSum(h,t){let s=0;for(const it of allItems(h)){for(const g of (it.sockets||[]))if(g&&g.t===t)s+=g.lv;if(it.rs&&RSTONE[it.rs]&&RSTONE[it.rs].g===t)s+=4;}return s;} // a runestone counts as a crystal stronger than any flawless one
 function itemOf(h,k){return (k==='weapon'||k==='armor'||EXTRA.includes(k))?h[k]:h.jewels[k];}
 function jp(h,id){const j=h.jewels[id];return j?j.tier+1:0;}
 function recalc(h){const d=HEROES[h.cls],b=BASE_ST[h.cls],sk=h.sk||{};
@@ -2971,7 +2975,7 @@ const DROP_KINDS=[['weapon',28],['armor',18],['helm',11],['hands',11],['feet',11
 function pickKind(){let r=Math.random()*100;for(const [k,w] of DROP_KINDS){if((r-=w)<0)return k;}return 'armor';}
 function gearFor(b=0,kind){kind=kind||pickKind();const tier=clamp((S.level==='dungeon'?S.floor+1:0)+(Math.random()<0.45?1:0)-(Math.random()<0.3?1:0),0,kind==='weapon'?5:4);const grade=rollGrade(b);
   const it=fillAff({type:'gear',kind,tier,grade,sockets:Array(GRADES[grade].s).fill(null),aff:[]});if(SET_SLOTS.includes(kind)&&grade>=2&&H&&CLASS_SET[H.cls]&&Math.random()<(b>=0.3?0.5:0.22))it.set=CLASS_SET[H.cls];return it;}
-function gearName(it,cls){cls=cls||H.cls;const k=it.kind,t=it.tier;if(it.set&&SETS[it.set]&&SETS[it.set].names[k])return SETS[it.set].names[k];if(k==='weapon')return `${WEAPON_TIERS[t]} ${HEROES[cls].weapon}`;if(k==='armor')return ARMOR_SETS[cls][t];
+function gearName(it,cls){cls=cls||H.cls;const k=it.kind,t=it.tier;if(it.set&&SETS[it.set]&&SETS[it.set].names[k])return SETS[it.set].names[k];if(k==='weapon'&&it.rb)return rbName(cls)+(it.plus?' +'+it.plus:'');if(k==='weapon')return `${WEAPON_TIERS[t]} ${HEROES[cls].weapon}`;if(k==='armor')return ARMOR_SETS[cls][t];
   if(k==='helm')return GEARN.helm[cls==='barbarian'?'heavy':(cls==='necromancer'||cls==='healer')?'robe':'light'][t];if(k==='off')return GEARN.off[cls][t];return GEARN[k][t];}
 function itemLabel(it){return it.type==='gear'?`${GRADES[it.grade].n} ${gearName(it)}`:it.n+((it.q||1)>1?' ×'+it.q:'');}
 function itemValue(it){return it.type==='gear'?Math.round(22*(1+it.tier)*(1+it.grade*0.6)):it.v*(it.q||1);}
@@ -2982,9 +2986,9 @@ function isDowngrade(it){return it.type==='gear'&&!!worn(it.kind)&&gearScore(it)
 function isUpgrade(it){return it.type==='gear'&&gearScore(it)>gearScore(worn(it.kind))+1e-6;}
 function pushStack(arr,it,max){if(it.type==='goods'){const s0=arr.find(o=>o.type==='goods'&&o.n===it.n&&(o.q||1)+(it.q||1)<=STACK);if(s0){s0.q=(s0.q||1)+(it.q||1);return true;}}if(arr.length>=max)return false;arr.push(it);return true;}
 function addToBag(it){return pushStack(INV.bag,it,BAG_MAX);}
-function equipFromBag(i){const it=INV.bag[i];if(!it||it.type!=='gear')return;const k=it.kind,cur=H[k];H[k]={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff||[],set:it.set};
-  if(cur)INV.bag[i]={type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set};else{INV.bag.splice(i,1);invSel=null;}recalc(H);sfx('chest');}
-function unequip(k){if(!EXTRA.includes(k)||!H[k])return;if(INV.bag.length>=BAG_MAX){toast('Your bag is full.');return;}const cur=H[k];INV.bag.push({type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H[k]=null;recalc(H);sfx('door');}
+function equipFromBag(i){const it=INV.bag[i];if(!it||it.type!=='gear')return;const k=it.kind,cur=H[k];H[k]={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff||[],set:it.set,rb:it.rb,plus:it.plus,rs:it.rs};
+  if(cur)INV.bag[i]={type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs};else{INV.bag.splice(i,1);invSel=null;}recalc(H);sfx('chest');}
+function unequip(k){if(!EXTRA.includes(k)||!H[k])return;if(INV.bag.length>=BAG_MAX){toast('Your bag is full.');return;}const cur=H[k];INV.bag.push({type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H[k]=null;recalc(H);sfx('door');}
 function gearLines(it){const k=it.kind,out=[];
   if(k==='weapon')out.push(`<span>Damage <b>×${((1+0.25*it.tier)*(1+0.08*it.grade)).toFixed(2)}</b></span>`);
   const r=itemRating(k,it,H.cls);if(r)out.push(`<span>Armor <b>${r}</b></span>`);
@@ -3889,7 +3893,22 @@ function drawDaily(g,x,y){const D=INV&&INV.daily;if(!D||!D.taken||D.day!==dayKey
   g.save();g.textAlign='left';const w=262,h=28+D.list.length*18;g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(159,227,255,.5)';g.lineWidth=1.5;g.stroke();
   g.font=`800 12px ${BF}`;g.fillStyle='#9fe3ff';g.fillText("Today's bounties",x+10,y+20);
   D.list.forEach((b,i)=>{const d=b.p>=b.n;g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=b.paid?'rgba(242,231,207,.45)':d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+dailyText(b)+(b.paid?': paid':d?': get paid':`  ${Math.min(b.p,b.n)}/${b.n}`),x+10,y+38+i*18,w-18);});g.restore();}
-function jobKill(type){dailyCount('slay',type);if(EN[type]&&EN[type].boss)dailyCount('boss',type);if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
+function rbBtn(act,name,info,label,ok){return `<button class="buy" type="button" data-act="${act}" ${ok?'':'disabled'}><span class="nm"><span><b>${esc(name)}</b><small>${esc(info)}</small></span></span><span class="cost">${esc(label)}</span></button>`;}
+function rbHtml(){const G0=INV.gold,st=INV.star||0,w=H.weapon;let h=`<div class="scard"><h3>The Runeblade</h3>`;
+  if(!INV.rbq)h+=`<p class="note l">"Long ago I forged a weapon of star iron and runes for the castle's champion. Grimtusk broke it and kept the hilt. Bring me that hilt and 3 chunks of star iron, and I will forge it again, for you."</p>`+rbBtn('rbq','Take the quest','Star iron drops from every dungeon boss','Free',true);
+  else if(INV.rbq===1)h+=`<p class="note l">Broken hilt: ${INV.rbHilt?'✓ found':'beat Grimtusk the Warden on Floor 1'}<br>Star iron: ${Math.min(st,3)}/3 (every dungeon boss drops one)</p>`+buyBtn('rbforge',`Forge the ${rbName()}`,'Epic Mithril or better, crystal settings, upgrades to +5',250,!!INV.rbHilt&&st>=3&&G0>=250);
+  else if(!w.rb)h+=`<p class="note l">Put on your ${rbName()} from your bag to upgrade it or set a runestone.</p>`;
+  else{const n=w.plus||0,c=rbUpCost(n);h+=`<p class="note l">Star iron: ${st}. Bosses drop more star iron, and sometimes a runestone.</p>`+(n<RB_MAX?buyBtn('rbup',`Upgrade to +${n+1}`,`+8% damage. Needs ${c.star} star iron`,c.gold,st>=c.star&&G0>=c.gold):'<p class="note l">Your Runeblade is +5, as strong as it gets.</p>');
+    for(const k in RSTONE){const have=(INV.rstones||{})[k]||0;if(have||w.rs===k)h+=rbBtn('rbrs-'+k,w.rs===k?`${RSTONE[k].n} (set)`:`Set the ${RSTONE[k].n}`,`It ${RSTONE[k].e}. You have ${have} more`,w.rs===k?'Set':'Free',w.rs!==k&&have>0);}}
+  return h+'</div>';}
+// boss kills feed the Runeblade quest: the hilt from Grimtusk, star iron from every boss, and runestones once the blade is forged
+function rbKill(type){if(!INV||!INV.rbq||!EN[type]||!EN[type].boss||!H)return;
+  if(INV.rbq===1&&type==='warden'&&!INV.rbHilt){INV.rbHilt=1;floatText(H.x,3.4,H.z,'The broken Runeblade hilt!','#ffd35c',22);toast('You found the broken Runeblade hilt. Take it to the smith.');}
+  INV.star=(INV.star||0)+1;setTimeout(()=>{if(H)floatText(H.x,3.0,H.z,'+1 star iron','#bfe6ff',18);},500);
+  if(INV.rbq===2&&(type==='lich'||Math.random()<0.35)){const ks=Object.keys(RSTONE),k=ks[Math.floor(Math.random()*ks.length)];INV.rstones=INV.rstones||{};INV.rstones[k]=(INV.rstones[k]||0)+1;
+    setTimeout(()=>{if(H){floatText(H.x,3.6,H.z,'A '+RSTONE[k].n+'!',RSTONE[k].c,22);toast(`You found a ${RSTONE[k].n}. The smith can set it in your Runeblade.`);}},1100);}
+  save();}
+function jobKill(type){rbKill(type);dailyCount('slay',type);if(EN[type]&&EN[type].boss)dailyCount('boss',type);if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
 function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=jobsReady();
   const D=dailyRoll(),dn=D.list.filter(b=>!b.paid&&b.p>=b.n);let dTalk=false;
   if(dn.length){dTalk=true;const g=dn.reduce((a,b)=>a+b.gold,0),all=!D.bonus&&D.list.every(b=>b.paid||b.p>=b.n),sid=SCR_IDS[Math.floor(Math.random()*SCR_IDS.length)];
@@ -3996,9 +4015,9 @@ function renderShop3(id){
       +(SHOP_IDS.some(i=>!shopOpen(i))?`<p class="note l">"The Lich Queen's dead dragged our shopkeepers into the castle. Free them and their shops will open again."</p>`:'');}
   else if(id==='spice'){card=spiceCard(G0);}
   else if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
-    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set}))}</b> ${socketsHtml(w,'weapon',false)}</div>`
+    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set,rb:w.rb,plus:w.plus}))}</b> ${socketsHtml(w,'weapon',false)}${w.rs?` <b style="color:${RSTONE[w.rs].c}">◆ ${RSTONE[w.rs].n}</b>`:''}</div>`
       +buyBtn('wtier',w.tier<5?`Forge ${WEAPON_TIERS[w.tier+1]} ${HEROES[H.cls].weapon}`:'Best metal reached','+25% damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
-      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rackHtml();}
+      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rbHtml()+rackHtml();}
   else if(id==='armory'){const tc=a.tier<4?COST.atier(a.tier):null,gc=a.grade<4?COST.agrade(a.grade):null;
     card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'armor',tier:a.tier,grade:a.grade,set:a.set})}" width="40" height="40" alt=""><b style="color:${GRADES[a.grade].c}">${GRADES[a.grade].n} ${esc(gearName({kind:'armor',tier:a.tier,set:a.set}))}</b> ${socketsHtml(a,'armor',false)}</div>`
       +buyBtn('atier',a.tier<4?ARMOR_SETS[H.cls][a.tier+1]:'Best armor reached','Take about 9% less damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
@@ -4036,11 +4055,18 @@ function renderShop3(id){
     if(k==='bag'){openInv();return;}
     if(k==='craft'){showCraft();return;}
     if(k==='rack'){const it=rackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.weapon;
-      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
+      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
       toast('You bought the '+GRADES[it.grade].n+' '+gearName({kind:'weapon',tier:it.tier})+'. Your old weapon is in your bag.');}}}
     if(k==='arack'){const it=armRackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.armor;
-      addToBag({type:'gear',kind:'armor',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set});H.armor={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.arack.items[+x]=null;
+      addToBag({type:'gear',kind:'armor',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H.armor={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.arack.items[+x]=null;
       toast('You bought the '+GRADES[it.grade].n+' '+ARMOR_SETS[H.cls][it.tier]+'. Your old armor is in your bag.');}}}
+    if(k==='rbq'&&!INV.rbq){INV.rbq=1;sfx('go');toast('Quest: bring the smith the broken hilt from Grimtusk, and 3 star iron from the dungeon bosses.');}
+    if(k==='rbforge'&&INV.rbq===1&&INV.rbHilt&&(INV.star||0)>=3){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(250)){const cur=H.weapon;
+      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});
+      H.weapon={tier:Math.max(3,cur.tier),grade:Math.max(3,cur.grade),sockets:Array(Math.max(2,GRADES[Math.max(3,cur.grade)].s)).fill(null),aff:[],rb:1,plus:0};
+      INV.star-=3;INV.rbHilt=0;INV.rbq=2;recalc(H);sparks(H.x,1.4,H.z,24);sfx('magic');toast(`The smith forged your ${rbName()}! Your old weapon and its crystals are in your bag.`);}}
+    if(k==='rbup'&&H.weapon.rb&&(H.weapon.plus||0)<RB_MAX){const c=rbUpCost(H.weapon.plus||0);if((INV.star||0)>=c.star&&pay(c.gold)){INV.star-=c.star;H.weapon.plus=(H.weapon.plus||0)+1;recalc(H);sparks(H.x,1.4,H.z,16);toast(`Your ${rbName()} is now +${H.weapon.plus}!`);}}
+    if(k==='rbrs'&&H.weapon.rb&&RSTONE[x]&&(INV.rstones||{})[x]&&H.weapon.rs!==x){const old=H.weapon.rs;INV.rstones[x]--;if(old)INV.rstones[old]=(INV.rstones[old]||0)+1;H.weapon.rs=x;recalc(H);sfx('magic');toast(`The ${RSTONE[x].n} is set in your ${rbName()}: it ${RSTONE[x].e}.`);}
     if(k==='wtier'&&H.weapon.tier<5&&pay(COST.wtier(H.weapon.tier)))H.weapon.tier++;
     if(k==='wgrade'&&H.weapon.grade<4&&pay(COST.wgrade(H.weapon.grade)))setGrade(H.weapon,H.weapon.grade+1);
     if(k==='atier'&&H.armor.tier<4&&pay(COST.atier(H.armor.tier)))H.armor.tier++;
