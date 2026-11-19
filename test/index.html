@@ -2915,11 +2915,12 @@ function loadCoinBag(){if(COINBAG.st!=='none'||!THREE.GLTFLoader)return;COINBAG.
 function coinBagMesh(){if(COINBAG.st!=='ready'){loadCoinBag();return null;}const m=new THREE.Mesh(COINBAG.m.geometry,COINBAG.m.material);m.castShadow=true;return m;}
 // the keys are real models (Fantasy Keys Pack): every key has its own shape and metal
 const KEYM={st:'none',g:{}},KEY_ICON={};
-function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)KEYM.g[o.name]=o.geometry;});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
-const KEY_LOOK={rusty:['Key_A','#a0582e',0.35,0.6],'Jailer’s Key':['Key_C','#9aa0aa',0.5,0.35],'Crypt Key':['Key_D','#e2dac4',0.1,0.6],'Root Key':['Key_B','#86b04e',0.2,0.5,'#2a4a10'],
-  'Frost Key':['Key_E','#b8e4ff',0.4,0.25,'#2a6a9a'],'Ember Key':['Key_D','#ff9a4a',0.3,0.4,'#b8400a'],'Crown Key':['Key_E','#ffd35c',0.55,0.25,'#5a3a00'],'Rune Key':['Key_C','#c09aff',0.4,0.3,'#5a2aa8']};
+function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh){KEYM.g[o.name]=o.geometry;KEYM.mat=o.material;}});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
+// [shape, tint over the pack's own painted metal, glow]
+const KEY_LOOK={rusty:['Key_A','#e8b090'],'Jailer’s Key':['Key_C','#ffffff'],'Crypt Key':['Key_D','#ffffff'],'Root Key':['Key_B','#d8f0c0','#1a3008'],
+  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
 function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
-  const m=new THREE.Mesh(KEYM.g[L[0]],new THREE.MeshStandardMaterial({color:L[1],metalness:L[2],roughness:L[3],emissive:new THREE.Color(L[4]||'#000000')}));m.castShadow=true;return m;}
+  const mat=KEYM.mat.clone();mat.color=new THREE.Color(L[1]);mat.metalness=0.3;mat.roughness=0.45;mat.emissive=new THREE.Color(L[2]||'#000000');const m=new THREE.Mesh(KEYM.g[L[0]],mat);m.castShadow=true;return m;}
 function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
 function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='rkey'||kind==='gkey')return keyMesh(kind==='rkey'?'rusty':GKEY[S.floor]);if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
 // the Gate Captain's job list is a rolled parchment scroll with a leather tie
