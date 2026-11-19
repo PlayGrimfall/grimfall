@@ -2149,7 +2149,7 @@ function mzReveal(){
 function mzRevealRoom(r){const W=MZ.W;for(let z=r.z0-(r.kind==='piece'?4:1);z<=r.z1+1;z++)for(let x=r.x0-1;x<=r.x1+1;x++)MZ.seen[z*W+x]=1;}
 function openAllDoors(){if(!MZ||S.level!=='dungeon')return;for(const d of MZ.doors){d.lock=null;d.open=true;d.bar=false;}mzRefreshBlk();}
 function mzBars(r,on){if(S.openDoors)on=false;for(const di of r.doors){const d=MZ.doors[di];d.bar=on;}mzRefreshBlk();if(on){sfx('door');S.shake=Math.max(S.shake,0.15);}}
-function mzRoomDone(){if(S.aRoom==null)return;const r=MZ.rooms[S.aRoom];r.state='clear';S.aRoom=null;mzBars(r,false);}
+function mzRoomDone(){if(S.aRoom==null)return;dailyCount('room');const r=MZ.rooms[S.aRoom];r.state='clear';S.aRoom=null;mzBars(r,false);}
 function partyExtra(r){if(!NET.on||!NET.host||!r.foes.length)return [];let n=0;for(const id in NET.peers){const s=NET.peers[id].s;if(s&&s.lvl==='dungeon'&&s.floor===S.floor)n++;}
   const out=[];for(let i=0;i<n*3;i++)out.push(r.foes[ri(0,r.foes.length-1)]);return out;}
 // monsters find their way through the maze: a distance map from the hero over the floor tiles, refreshed a few times a second
@@ -2647,7 +2647,7 @@ function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
     m.anim++;m.moving=false;if(m.flash>0)m.flash--;if(m.cd>0)m.cd--;if(--m.life<=0||!H){minionCrumble(m);return;}
     for(const p of S.eproj){if(p.dead||p.g)continue;if(Math.hypot(p.x-m.x,p.z-m.z)<0.55){p.dead=true;minionHurt(m,p.dmg,p.vx,p.vz);sparks(p.x,p.y,p.z,5,'#ff9a4a');if(m.state==='dead')return;}}
     let tg=null,bd=8;for(const e of S.enemies){if(e.state==='dead'||e.remove)continue;const d=Math.hypot(e.x-m.x,e.z-m.z);if(d<bd&&Math.hypot(e.x-H.x,e.z-H.z)<13){bd=d;tg=e;}}
-    if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,m.dmg||spDmg(10,2)*(setN(H)>=4?1.3:1),m.fx,m.fz,false);}return;}
+    if(m.state==='wind'){if(--m.t<=0){m.state='strike';m.t=12;sfx('swing');const e=m.tg;if(e&&e.state!=='dead'&&Math.hypot(e.x-m.x,e.z-m.z)<1.3+eRad(e))hurtEnemy(e,(m.dmg||spDmg(10,2)*(setN(H)>=4?1.3:1))*(e.def.boss?0.4:1),m.fx,m.fz,false);}return;}
     if(m.state==='strike'){if(--m.t<=0)m.state='walk';return;}
     // a skeleton that makes no headway for about a second (stuck behind a door or wall) pops back beside the Necromancer
     const home=()=>{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0;poof(m.x,0,m.z,0.6);m.x=H.x+Math.cos(a)*1.9;m.z=H.z+Math.sin(a)*1.9;clampPos(m);poof(m.x,0,m.z,0.7);m.stuck=0;m.lastD=undefined;},prog=d=>{if(m.lastD!==undefined&&d>m.lastD-0.012)m.stuck=(m.stuck||0)+1;else m.stuck=0;m.lastD=d;};
@@ -3874,8 +3874,29 @@ const jobDone=j=>{const a=jobState().jobs[j.id];if(!a)return false;return j.kind
 const jobsReady=()=>JOBS.filter(j=>jobDone(j));
 const jobsOpen=()=>{jobState();return JOBS.filter(j=>!INV.jobs[j.id]&&(INV.jobR[j.id]||0)<jobRanks(j)&&j.fl<=(INV.deepest||0));};
 function jobText(j){const a=INV.jobs[j.id];if(j.kind==='slay'){const n=j.n[a.r];return `Slay ${n} ${j.what}  ${Math.min(a.p,n)}/${n}`;}if(j.kind==='boss')return 'Defeat '+j.what;return `Find ${j.name.replace(/^the /,'the ')} (${FLOORS[j.fl].name})`;}
-function jobKill(type){if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
+// ---- daily bounties: three fresh tasks from the gate captain every day, with a bonus for finishing all three ----
+const DAILY_BONUS=200;
+function dayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function dailyRoll(){const k=dayKey();if(INV.daily&&INV.daily.day===k)return INV.daily;let sd=7;for(const c of k)sd=(sd*31+c.charCodeAt(0))>>>0;const rr=()=>{sd=(sd*1103515245+12345)>>>0;return sd/4294967296;};
+  const deep=INV.deepest||0,pool=[];for(const j of JOBS)if(j.kind==='slay'&&j.fl<=deep)pool.push({k:'slay',t:j.t,what:j.what,n:Math.max(5,Math.round(j.n[0]*0.8)),gold:Math.round(j.gold[0]*0.9)});
+  pool.push({k:'room',what:'rooms',n:5+deep*2,gold:90+40*deep});if(deep>=1)pool.push({k:'boss',what:'bosses',n:1,gold:150+50*deep});
+  const list=[];while(list.length<3&&pool.length){const i=Math.floor(rr()*pool.length);list.push(Object.assign(pool.splice(i,1)[0],{p:0,paid:0}));}
+  INV.daily={day:k,list,bonus:0,taken:0};return INV.daily;}
+const dailyText=b=>b.k==='slay'?`Slay ${b.n} ${b.what}`:b.k==='room'?`Clear ${b.n} dungeon rooms`:(b.n>1?`Defeat ${b.n} bosses`:'Defeat a boss');
+function dailyCount(kind,type){const D=INV&&INV.daily;if(!D||!D.taken||D.day!==dayKey()||!H)return;for(const b of D.list){if(b.paid||b.p>=b.n||b.k!==kind||(kind==='slay'&&!b.t.includes(type)))continue;b.p++;
+  if(b.p>=b.n){floatText(H.x,3.1,H.z,'Bounty done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
+function drawDaily(g,x,y){const D=INV&&INV.daily;if(!D||!D.taken||D.day!==dayKey()||(D.bonus&&D.list.every(b=>b.paid)))return;
+  g.save();g.textAlign='left';const w=262,h=28+D.list.length*18;g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(159,227,255,.5)';g.lineWidth=1.5;g.stroke();
+  g.font=`800 12px ${BF}`;g.fillStyle='#9fe3ff';g.fillText("Today's bounties",x+10,y+20);
+  D.list.forEach((b,i)=>{const d=b.p>=b.n;g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=b.paid?'rgba(242,231,207,.45)':d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+dailyText(b)+(b.paid?': paid':d?': get paid':`  ${Math.min(b.p,b.n)}/${b.n}`),x+10,y+38+i*18,w-18);});g.restore();}
+function jobKill(type){dailyCount('slay',type);if(EN[type]&&EN[type].boss)dailyCount('boss',type);if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
 function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=jobsReady();
+  const D=dailyRoll(),dn=D.list.filter(b=>!b.paid&&b.p>=b.n);let dTalk=false;
+  if(dn.length){dTalk=true;const g=dn.reduce((a,b)=>a+b.gold,0),all=!D.bonus&&D.list.every(b=>b.paid||b.p>=b.n),sid=SCR_IDS[Math.floor(Math.random()*SCR_IDS.length)];
+    lines.push(dn.length===1?'You finished a bounty. Well done!':`You finished ${dn.length} bounties. Well done!`);
+    cb[lines.length]=()=>{for(const b of dn)b.paid=1;INV.gold+=g;gainXP(Math.round(g*0.6));if(all){D.bonus=1;INV.gold+=DAILY_BONUS;scrGive(sid,1);}sfx('chest');sparks(H.x,1.4,H.z,14);save();};
+    lines.push(`Bounty pay: ${g} gold.`+(all?` And for all three today, ${DAILY_BONUS} more gold and a ${scrName(sid,1)}!`:''));}
+  if(!D.taken){dTalk=true;cb[lines.length]=()=>{D.taken=1;save();};lines.push("I post three new bounties every day. Finish all three for a bonus!");}
   if(ready.length){let gold=0,xp=0;lines.push(ready.length===1?'Good work, hero! That job is done.':`Good work, hero! ${ready.length} jobs done.`);
     for(const j of ready){if(j.kind==='relic')lines.push(j.thanks);const r=INV.jobs[j.id].r;gold+=j.gold[r];xp+=Math.round(j.gold[r]*0.8);}
     cb[lines.length]=()=>{for(const j of ready){const a=INV.jobs[j.id];if(!a)continue;delete INV.jobs[j.id];INV.jobR[j.id]=(INV.jobR[j.id]||0)+1;if(j.kind==='relic')delete INV.relics[j.id];}INV.gold+=gold;gainXP(xp);sfx('chest');sparks(H.x,1.4,H.z,14);save();};
@@ -3883,13 +3904,13 @@ function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=job
   const fresh=jobsOpen();
   if(fresh.length){cb[lines.length]=()=>{for(const j of fresh)INV.jobs[j.id]={r:INV.jobR[j.id]||0,p:0};save();toast('Your jobs are listed on the left of the screen.');};
     lines.push(fresh.length===1?'I have a new job for you.':`I have ${fresh.length} new jobs for you. Take them all!`);for(const j of fresh)if(j.kind==='relic')lines.push(j.ask);lines.push('Come back when they are done.');}
-  else if(!ready.length)lines.push(Object.keys(INV.jobs).length?'Your jobs are on your list. Come back when they are done.':'No work right now. Go deeper, then come see me.');
+  else if(!ready.length&&!dTalk)lines.push(Object.keys(INV.jobs).length?'Your jobs are on your list. Come back when they are done.':'No work right now. Go deeper, then come see me.');
   GATE.talk={i:-1,t:0,lines,cb,vo:lines.map(t=>/^Good work/.test(t)?'c_good':/^Here is your pay/.test(t)?'c_pay':/new job/.test(t)?'c_new':voText(t))};}
-function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length)return;const show=list.slice(0,7);
+function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length){drawDaily(g,x,y);return;}const show=list.slice(0,7);
   g.save();g.textAlign='left';const w=262,h=28+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
   {const si=scrollIcon();if(si)g.drawImage(si,25,45,110,70,x+4,y+2,44,28);g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Captain's jobs",x+(si?50:10),y+20);}
   show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+38+i*18,w-18);});
-  if(list.length>7){g.font=`600 11px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(`and ${list.length-7} more`,x+10,y+h-8);}g.restore();}
+  if(list.length>7){g.font=`600 11px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(`and ${list.length-7} more`,x+10,y+h-8);}g.restore();drawDaily(g,x,y+h+8);}
 // a relic waits on a stone stand in a far room of its floor
 function relicSpawn(fi){if(!MZ)return;MZ.relic=null;jobState();const j=JOBS.find(j=>j.kind==='relic'&&j.fl===fi&&INV.jobs[j.id]&&!INV.relics[j.id]);if(!j)return;
   const st=MZ.rooms.find(r=>r.kind==='start');const [sx,sz]=st?mzCenter(st):[0,0];const cand=MZ.rooms.filter(r=>r.kind==='normal');if(!cand.length)return;
@@ -5210,7 +5231,7 @@ function netClientRooms(){const d=NET.dun;if(!d)return;
   const r0=mzRoomOf(H.x,H.z);if(r0&&!r0.seen){r0.seen=true;mzRevealRoom(r0);}
   for(let i=0;i<MZ.rooms.length;i++){const r=MZ.rooms[i];if(d.rs[i]==='c'&&r.state==='idle')r.state='clear';}
   const ha=d.a;
-  if(S.aRoom!=null&&ha!==S.aRoom){const ar=MZ.rooms[S.aRoom];ar.state='clear';S.aRoom=null;if(NET.bars)mzBars(ar,false);NET.bars=false;
+  if(S.aRoom!=null&&ha!==S.aRoom){const ar=MZ.rooms[S.aRoom];ar.state='clear';S.aRoom=null;dailyCount('room');if(NET.bars)mzBars(ar,false);NET.bars=false;
     if(ar.kind!=='boss'){sfx('go');if(ar.key){const [cx,cz]=mzCenter(ar);dropPickup(ar.key==='great'?'gkey':'rkey',cx,cz);floatText(cx,2.2,cz,ar.key==='great'?GKEY[S.floor]+'!':'A rusty key!','#ffd35c',20);}
       else floatText(H.x,2.4,H.z,'Room cleared!','#bfffcf',18);}}
   if(ha!=null&&S.aRoom==null&&MZ.rooms[ha]&&MZ.rooms[ha].state!=='clear'){const r=MZ.rooms[ha];r.state='fight';S.aRoom=ha;
