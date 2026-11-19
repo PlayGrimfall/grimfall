@@ -2332,6 +2332,7 @@ const EN={
  boneKing:{look:'skeleton',hp:620,spd:1.15,dmg:15,reach:100,wind:36,cd:85,gold:[24,24],w:60,scale:1.9,boss:true,heavy:true,name:'The Bone King'},
  deathRider:{look:'skeleton',hp:380,spd:1.7,dmg:14,reach:100,wind:28,cd:90,gold:[14,14],w:60,scale:1.7,elite:true,heavy:true,name:'The Death Rider'},
  troll:{look:'troll',hp:760,spd:1.05,dmg:17,reach:108,wind:40,cd:95,gold:[28,28],w:70,scale:1.9,boss:true,heavy:true,name:'Mossback the Troll'},
+ frostWraith:{look:'lich',hp:720,spd:1.25,dmg:13,ranged:true,keep:260,wind:30,cd:95,gold:[30,30],w:60,scale:1.7,boss:true,heavy:true,fly:true,hover:20,name:'The Frost Wraith'},
  lich:{look:'lich',hp:840,spd:1.3,dmg:12,ranged:true,keep:300,wind:30,cd:100,gold:[32,32],w:60,scale:1.8,boss:true,heavy:true,fly:true,hover:24,name:'The Lich Queen'},
  goblin:{look:'goblin',hp:30,spd:2.0,dmg:6,reach:46,wind:16,cd:60,gold:[1,4],w:26,scale:.9},
  skelArcher:{look:'skeleton',archer:true,hp:34,spd:1.3,dmg:9,ranged:true,keep:250,wind:32,cd:115,gold:[2,5],w:30},
@@ -5089,7 +5090,7 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';const hips=[];REAL.gltf.scene.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)for(const b of o.skeleton.bones)if(/Hips(_\d+)?$/.test(b.name)&&b.name.length<30)hips.push(b.name);});
   {const hn=hips.find(n=>/Hips$/.test(n))||hips[0];if(hn){const m=/^(.*)Hips(_\d+)?$/.exec(hn);pre=m[1];suf=m[2]||'';}} // skinned bones decide; a plain Hips wins (files with copied skeletons are rebound to it), else the only one there is, like a skeleton's Hips_2
   // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
