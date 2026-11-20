@@ -2008,6 +2008,7 @@ function buildMaze(fi){
   let wallM=tint(texRep(M.brick,1,1),F.wall),floorM=tint(texRep(M.slab,1,1),F.floor);
   if(theme==='ice'){const im=(rough,c,rep)=>{const m=new THREE.MeshStandardMaterial({map:fxTex('ice_base.jpg',rep,1),normalMap:fxTex('ice_nrm.jpg',rep),color:c,roughness:rough,metalness:0.08});MZ.mats.push(m);return m;};
     wallM=im(0.6,0x8aa4c4,0.5);floorM=im(0.5,0x6a82a0,1);}
+  if(theme==='cistern'){floorM.roughness=0.35;floorM.metalness=0.15;}
   if(theme==='fungal'){floorM.color.multiply(new THREE.Color(0x8fb08a));wallM.color.multiply(new THREE.Color(0x9fb09a));}
   const capHi=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.22)),capLo=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.55));
   floorM.color.multiplyScalar(0.6); // darker dungeon floors so the monsters stand out
@@ -2199,6 +2200,46 @@ function fogPuff(x,z,s=1,col=0xe8e4ff){if(!scene)return;for(let i=0;i<8;i++){con
   const up=()=>{t++;sp.position.x+=vx;sp.position.z+=vz;sp.position.y+=0.006;sp.scale.multiplyScalar(1.008);m.opacity=t<10?t/10*0.9:Math.max(0,0.9*(1-(t-10)/55));if(t<65)requestAnimationFrame(up);else{scene.remove(sp);m.dispose();}};up();}}
 function mzFog(G,r,tint){const n=Math.max(1,Math.round((r.x1-r.x0+1)*(r.z1-r.z0+1)/14));for(let i=0;i<n;i++){const k=4+ri(0,3),w=rnd(6,9),m=new THREE.MeshBasicMaterial({map:fogTex(k),color:new THREE.Color(0xffffff).lerp(new THREE.Color(tint),0.35),transparent:true,depthWrite:false,opacity:0.22,side:THREE.DoubleSide});MZ.mats.push(m);
   const f=new THREE.Mesh(new THREE.PlaneGeometry(w,w/FOGA[k]),m);f.rotation.set(-Math.PI/2,0,rnd(-0.4,0.4));const x=rnd(r.x0*TS+2,(r.x1+1)*TS-2),z=rnd(r.z0*TS+2,(r.z1+1)*TS-1);f.position.set(x,0.12+i*0.01,z);G.add(f);(MZ.fogs=MZ.fogs||[]).push([f,x,rnd(0,6.3),m]);}}
+// bosses made from still models, brought to life in code: the Water Serpent rears, lunges and dives in its own pool; the Reaper floats and whirls his scythe
+const STATMON={waterSerpent:{m:'serpent',h:4.6,yaw:-Math.PI/2,sink:0.45,water:true},reaper:{m:'reaper',h:3.1}};const STM={};
+function loadStat(n){if(STM[n])return STM[n];STM[n]={st:'loading'};loadModelData(n).then(gl=>{const sc=gl.scene;sc.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(sc);STM[n]={st:'ready',sc,h:bb.max.y-bb.min.y,y0:bb.min.y,cx:(bb.min.x+bb.max.x)/2,cz:(bb.min.z+bb.max.z)/2};}).catch(()=>{STM[n]={st:'fail'};});return STM[n];}
+function buildStat(e,I){const L=STM[I.m],root=new THREE.Group(),tilt=new THREE.Group(),piv=new THREE.Group(),inner=L.sc.clone(true),k=I.h/L.h,mats=[];
+  inner.scale.multiplyScalar(k);inner.position.set(-L.cx*k,-L.y0*k,-L.cz*k);piv.rotation.y=I.yaw||0;piv.add(inner);tilt.add(piv);root.add(tilt);
+  inner.traverse(o=>{if(!o.isMesh)return;o.material=o.material.clone();const m=o.material;if(m.map&&m.emissive){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);}mats.push(m);o.castShadow=true;o.frustumCulled=false;});
+  let pool=null;if(I.water){const pm=new THREE.MeshStandardMaterial({color:0x0e3242,roughness:0.42,metalness:0.1,transparent:true,opacity:0.9,emissive:0x041820});mats.push(pm);pool=new THREE.Mesh(new THREE.CircleGeometry(2.3,40),pm);pool.rotation.x=-Math.PI/2;pool.position.y=0.05;pool.receiveShadow=true;root.add(pool);
+    const rm=new THREE.MeshBasicMaterial({color:0xbfefff,transparent:true,opacity:0.4,depthWrite:false});mats.push(rm);const rip=new THREE.Mesh(new THREE.RingGeometry(0.9,1.05,40),rm);rip.rotation.x=-Math.PI/2;rip.position.y=0.07;root.add(rip);pool.userData.rip=rip;}
+  scene.add(root);return {root,tilt,piv,mats,pool,yaw:Math.atan2(e.fx||0,e.fz||1),I,ph:Math.random()*6,tx:0,sink:I.sink||0,twist:0};}
+function poseStat(R,e){const t=performance.now()/1000,st=e.state,I=R.I;
+  const w=Math.atan2(e.fx,e.fz);let dd=w-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.12;
+  let tx=Math.sin(t*1.3+R.ph)*0.05,sink=I.sink||0;
+  if(st==='wind')tx=-0.2;else if(st==='strike')tx=I.water?0.38:0.15;else if(st==='hurt'||st==='kd')tx=-0.12;
+  if(e.subT>0)sink+=I.h*(e.subT>45?(70-e.subT)/25:e.subT<20?e.subT/20:1); // sink under, then burst back up
+  let f=1;if(st==='dead'){f=Math.min(1,e.t/40);sink+=(1-f)*I.h*0.7;}
+  R.tx+=(tx-R.tx)*0.15;R.sink+=(sink-R.sink)*0.2;
+  // the Reaper whirls a full turn with his scythe when he reaps
+  if(e.spin){R.twist+=0.32;if(R.twist>Math.PI*2){R.twist=0;e.spin=0;}}else R.twist*=0.85;
+  R.root.position.set(e.x,(e.y||0)+(I.water?0:Math.sin(t*1.6+R.ph)*0.1),e.z);R.root.rotation.y=R.yaw+R.twist;R.tilt.rotation.x=R.tx;
+  R.piv.position.y=-R.sink+(I.water?Math.sin(t*1.5+R.ph)*0.12:0);R.piv.rotation.z=I.water?Math.sin(t*0.9+R.ph)*0.06:0;
+  if(R.pool){R.pool.visible=st!=='dead'||f>0.2;const rp=R.pool.userData.rip,k=(t*0.6+R.ph)%1;rp.scale.setScalar(1+k*1.2);rp.material.opacity=0.45*(1-k);}
+  for(const m of R.mats){if(m.emissive&&m.emissiveMap)m.emissiveIntensity=e.flash>0?1.1:0.28;if(st==='dead'){if(!m.transparent){m.transparent=true;m.needsUpdate=true;}m.opacity=Math.min(m.opacity,f);}}}
+function disposeStat(R){scene.remove(R.root);for(const m of R.mats)m.dispose();if(R.pool){R.pool.geometry.dispose();R.pool.userData.rip.geometry.dispose();}}
+// Flooded Cistern: a water channel along the back wall, round pools with ripples, mossy pillars and dripping pipes
+function mzWater(){if(!MZ.waterM){MZ.waterM=new THREE.MeshStandardMaterial({color:0x0c2a36,roughness:0.42,metalness:0.1,transparent:true,opacity:0.9,emissive:0x03121a});MZ.mats.push(MZ.waterM);MZ.ripM=new THREE.MeshBasicMaterial({color:0x9fd8ee,transparent:true,opacity:0.25,depthWrite:false});MZ.mats.push(MZ.ripM);}return MZ.waterM;}
+function mzCistern(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',wm=mzWater(),stone=lam({color:0x6a7a78}),moss=lam({color:0x3f6a3a}),copper=lam({color:0x6a8a7a});MZ.mats.push(stone,moss,copper);
+  if(back.length>1){const x0=bx(back[0]),x1=bx(back[back.length-1])+TS,ch=mesh(new THREE.PlaneGeometry(x1-x0,1.3),wm,(x0+x1)/2,0.04,bz+0.95,false,true);ch.rotation.x=-Math.PI/2;G.add(ch);
+    for(let k=1;k<back.length;k+=3){const x=bx(back[k])+1,pp=mesh(new THREE.CylinderGeometry(0.16,0.16,0.9,10),copper,x,2.2,bz+0.45,false,false);pp.rotation.x=Math.PI/2;G.add(pp);glowSpr(x,1.2,bz+0.9,0x7fd8ff,0.9);(MZ.drips=MZ.drips||[]).push([x,bz+0.95]);}}
+  const np=big?3:ri(0,2);for(let i=0;i<np;i++){const rr=rnd(1.0,1.7),x=rnd(r.x0*TS+2.5,(r.x1+1)*TS-2.5),z=rnd(r.z0*TS+3,(r.z1+1)*TS-2.5),pl=mesh(new THREE.CircleGeometry(rr,32),wm,x,0.045,z,false,true);pl.rotation.x=-Math.PI/2;G.add(pl);
+    const rp=mesh(new THREE.RingGeometry(rr*0.5,rr*0.56,32),MZ.ripM,x,0.06,z,false,false);rp.rotation.x=-Math.PI/2;G.add(rp);(MZ.rips=MZ.rips||[]).push([rp,Math.random()]);
+    const rim=mesh(new THREE.TorusGeometry(rr,0.12,6,32),stone,x,0.06,z,false,true);rim.rotation.x=Math.PI/2;G.add(rim);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.3:0.3),pz=z*TS+TS/2+0.3;G.add(mesh(new THREE.CylinderGeometry(0.45,0.55,WALL_H,10),stone,px,WALL_H/2,pz));G.add(mesh(new THREE.CylinderGeometry(0.58,0.6,0.5,10),moss,px,0.25,pz,false,false));col(px,pz,0.55,0.55);}}
+// Shadow Garden: dead trees, black-rose hedges, old gravestones and violet lanterns
+function deadTree(G,x,z,h,m){const t=new THREE.Group();t.position.set(x,0,z);t.add(mesh(new THREE.CylinderGeometry(0.14,0.3,h,7),m,0,h/2,0));
+  for(let i=0;i<5;i++){const y=h*rnd(0.45,0.95),a=rnd(0,6.3),l=rnd(0.7,1.4),b=mesh(new THREE.CylinderGeometry(0.03,0.08,l,5),m,Math.cos(a)*l*0.35,y+l*0.3,Math.sin(a)*l*0.35);b.rotation.set(Math.sin(a)*0.9,0,-Math.cos(a)*0.9);t.add(b);}G.add(t);}
+function mzGarden(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',bark=lam({color:0x3a3036}),hedge=lam({color:0x14201a}),rose=lam({color:0x8a1030,emissive:0x2a0010}),grave=lam({color:0x7a7a82});MZ.mats.push(bark,hedge,rose,grave);
+  for(let k=1;k+1<back.length;k+=3){const x=bx(back[k])+1,z=bz+0.6;for(let j=0;j<5;j++)G.add(mesh(new THREE.DodecahedronGeometry(rnd(0.55,0.75),1),hedge,x-1.1+j*0.55,rnd(0.55,0.8),z+rnd(-0.1,0.1)));for(let j=0;j<6;j++)G.add(mesh(new THREE.SphereGeometry(0.09,6,5),rose,x+rnd(-1.2,1.2),rnd(0.4,1.3),z+0.46,false,false));col(x,z,1.3,0.45);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.2:0.2),pz=z*TS+TS/2+0.3;deadTree(G,px,pz,rnd(2.6,3.6)*(big?1.2:1),bark);col(px,pz,0.4,0.4);}
+  for(let i=0;i<(big?5:2);i++){const x=rnd(r.x0*TS+2,(r.x1+1)*TS-2),z=rnd(r.z0*TS+2.5,(r.z1+1)*TS-2);const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rnd(-0.3,0.3);g.add(mesh(new THREE.BoxGeometry(0.9,1.0,0.22),grave,0,0.5,0));const top=mesh(new THREE.CylinderGeometry(0.45,0.45,0.22,14,1,false,-Math.PI/2,Math.PI),grave,0,1.0,0);top.rotation.x=Math.PI/2;g.add(top);G.add(g);col(x,z,0.4,0.2);}
+  for(let i=0;i<(big?3:1);i++){const x=rnd(r.x0*TS+2,(r.x1+1)*TS-2),z=rnd(r.z0*TS+2.5,(r.z1+1)*TS-2);G.add(mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,6),bark,x,0.7,z));G.add(mesh(new THREE.SphereGeometry(0.14,8,6),lam({color:0xd8c0ff,emissive:0x8a5aff}),x,1.45,z,false,false));glowSpr(x,1.45,z,0xb08aff,1.4);col(x,z,0.15,0.15);}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2222,6 +2263,8 @@ function mzDecor(fi,theme){
     if(theme==='forge')mzForge(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='library')mzLibrary(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='armory')mzArmory(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='cistern')mzCistern(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='garden')mzGarden(G,r,back,corners,bx,bz,col,glowSpr);
     mzFog(G,r,FLOORS[fi]?FLOORS[fi].mote:0xffffff);
     if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
@@ -2317,6 +2360,8 @@ function updMaze(){
         schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+DEP()*3,life:40,dead:false});
           else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+DEP()*3,life:40,dead:false});}});}}}
   if(MZ.spin)for(const [o,v,ax] of MZ.spin){if(ax==='y')o.rotation.y+=v;else o.rotation.y+=v;}
+  if(MZ.rips)for(const [rp,ph] of MZ.rips){const k=(S.frame*0.008+ph)%1;rp.scale.setScalar(0.4+k*1.6);}
+  if(MZ.drips&&S.frame%14===0){const d=MZ.drips[ri(0,MZ.drips.length-1)];addPart({x:d[0]+rnd(-0.1,0.1),y:2.0,z:d[1],vy:-0.02,g:0.004,life:30,size:0.05,color:'#bfefff'});}
   if(MZ.fogs)for(const [f,x0,ph,m] of MZ.fogs){const k=S.frame*0.004+ph;f.position.x=x0+Math.sin(k)*1.2;m.opacity=0.22+Math.sin(k*1.7)*0.08;}
   if(MZ.bob)for(const [o,y,ph] of MZ.bob)o.position.y=y+Math.sin(S.frame*0.03+ph)*0.08;
   if(MZ.lava)for(const m of MZ.lava){if(m.map)m.map.offset.y+=0.0006;if(m.emissiveMap)m.emissiveMap.offset.y+=0.0006;m.emissiveIntensity=1.4+Math.sin(S.frame*0.05)*0.25;}
@@ -2394,7 +2439,7 @@ function makeSprite(cw,ch,ox,oy,k=1){
   const blob=new THREE.Mesh(new THREE.PlaneGeometry(1,1),M.blob);blob.rotation.x=-Math.PI/2;scene.add(blob);
   return {c,g:c.getContext('2d'),tex,mesh:m,grp,blob,cw,ch,ox,oy,mat,k};
 }
-function killSprite(sp){if(sp.rfig){disposeRealMon(sp.rfig);sp.rfig=null;}if(sp.fig){disposeMon(sp.fig);sp.fig=null;}scene.remove(sp.grp);scene.remove(sp.blob);sp.tex.dispose();sp.mat.dispose();sp.mesh.geometry.dispose();sp.mesh.customDepthMaterial.dispose();sp.blob.geometry.dispose();}
+function killSprite(sp){if(sp.sfig){disposeStat(sp.sfig);sp.sfig=null;}if(sp.rfig){disposeRealMon(sp.rfig);sp.rfig=null;}if(sp.fig){disposeMon(sp.fig);sp.fig=null;}scene.remove(sp.grp);scene.remove(sp.blob);sp.tex.dispose();sp.mat.dispose();sp.mesh.geometry.dispose();sp.mesh.customDepthMaterial.dispose();sp.blob.geometry.dispose();}
 function paintSprite(sp,fn,o={}){
   const g=sp.g;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,sp.cw,sp.ch);g.save();g.translate(sp.ox,sp.oy);g.scale(K*sp.k,K*sp.k);
   if(o.rot)g.rotate(o.rot);if(o.alpha!=null)g.globalAlpha=o.alpha;if(o.flash)g.filter='brightness(2.3)';
@@ -2425,6 +2470,8 @@ const EN={
  riderBoss:{look:'skeleton',hp:600,spd:1.7,dmg:16,reach:100,wind:28,cd:85,gold:[26,26],w:60,scale:1.7,boss:true,heavy:true,name:'The Death Rider'},
  deathRider:{look:'skeleton',hp:380,spd:1.7,dmg:14,reach:100,wind:28,cd:90,gold:[14,14],w:60,scale:1.7,elite:true,heavy:true,name:'The Death Rider'},
  troll:{look:'troll',hp:760,spd:1.05,dmg:17,reach:108,wind:40,cd:95,gold:[28,28],w:70,scale:1.9,boss:true,heavy:true,name:'Mossback the Troll'},
+ waterSerpent:{look:'troll',hp:840,spd:0.75,dmg:15,ranged:true,keep:220,wind:34,cd:90,gold:[30,30],w:80,scale:2.0,boss:true,heavy:true,name:'The Water Serpent'},
+ reaper:{look:'lich',hp:880,spd:1.35,dmg:17,reach:115,wind:30,cd:80,gold:[36,36],w:60,scale:1.8,boss:true,heavy:true,fly:true,hover:14,name:'The Reaper'},
  archivist:{look:'lich',hp:700,spd:1.15,dmg:13,ranged:true,keep:240,wind:30,cd:90,gold:[30,30],w:56,scale:1.6,boss:true,heavy:true,name:'The Archivist'},
  ironColossus:{look:'troll',hp:860,spd:1.05,dmg:18,reach:110,wind:40,cd:95,gold:[34,34],w:80,scale:2.1,boss:true,heavy:true,name:'The Iron Colossus'},
  moltenGiant:{look:'troll',hp:900,spd:1.0,dmg:19,reach:115,wind:44,cd:100,gold:[34,34],w:80,scale:2.1,boss:true,heavy:true,name:'The Molten Giant'},
@@ -2444,6 +2491,8 @@ const FLOORS=[
   waves:[{x:8,list:['skeleton','skelArcher','goblin']},{x:22,list:['goblin','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','skelArcher','goblin','skelArcher','skeleton']},{x:53,boss:true,list:['riderBoss','skeleton','skelArcher']}]},
  {sub:'Floor 3',id:'fungal',key:'Root Key',piece:'the Glow Grotto',gil:1,name:'The Fungal Deep',decor:'fungal',blurb:'Rot-lit caverns, crawling slime, and the troll that eats intruders.',wall:0x7ab8b8,floor:0x8ab8a8,torch:0x7af0d0,mote:0x9ff5d6,fog:new THREE.Fog(0x050e12,11,36),hemi:[0x4a9a9a,0x0a1a1a],
   waves:[{x:8,list:['mushroom','slime','mushroom']},{x:22,list:['goblin','slime','slime','mushroom']},{x:37,list:['orc','mushroom','goblin','slime','mushroom']},{x:53,boss:true,list:['troll','slime','mushroom']}]},
+ {sub:'',id:'cistern',key:'Tide Key',piece:'the Sluice Gate',name:'The Flooded Cistern',decor:'cistern',blurb:'Old stone tunnels where the town\'s water once ran. Something huge swims in the dark pools now.',wall:0x7a9a9a,floor:0x5a7a7a,torch:0x9fe0ff,mote:0xbfefff,fog:new THREE.Fog(0x061014,11,36),hemi:[0x5a8a9a,0x08141a],
+  waves:[{x:8,list:['slime','goblin','slime']},{x:22,list:['slime','skelArcher','goblin','slime']},{x:37,list:['orc','slime','skelArcher','slime','goblin']},{x:53,boss:true,list:['waterSerpent','slime','slime']}]},
  {sub:'',id:'ice',key:'Frost Key',piece:'the Ice Crypt',name:'The Frozen Vault',decor:'ice',blurb:'A vault of ice where the Frost Wraith keeps the dead frozen, waiting for her call.',wall:0xd6e8ff,floor:0xe6f2ff,torch:0x8fd0ff,mote:0xe8f6ff,fog:new THREE.Fog(0x0a1424,11,36),hemi:[0x8ab0e0,0x101828],
   waves:[{x:8,list:['skeleton','skelArcher','skeleton']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['frostWraith','skeleton','skelArcher']}]},
  {sub:'',id:'forge',key:'Ember Key',piece:'the Slag Pit',name:'The Forge of the Damned',decor:'forge',blurb:'Rivers of lava and the hammer-song of the dead. The Molten Giant keeps the fires burning.',wall:0x6a4e46,floor:0x5a4a44,torch:0xff6a2a,mote:0xffa040,fog:new THREE.Fog(0x140604,11,36),hemi:[0x9a5a3a,0x180806],
@@ -2452,6 +2501,8 @@ const FLOORS=[
   waves:[{x:8,list:['skeleton','skelArcher','imp']},{x:22,list:['skelArcher','skeleton','imp','skeleton']},{x:37,list:['skeleton','skelArcher','orc','imp','skelArcher']},{x:53,boss:true,list:['archivist','skeleton','skelArcher']}]},
  {sub:'',id:'armory',key:'Cog Key',piece:'the Gear Vault',name:'The Clockwork Armory',decor:'armory',blurb:'Gears grind in the dark. The Iron Colossus still guards the old king\'s war machines.',wall:0x9aa0a8,floor:0x7a7468,torch:0xffc070,mote:0xffd9a0,fog:new THREE.Fog(0x080a0c,11,36),hemi:[0x6a7a8a,0x0c1014],
   waves:[{x:8,list:['orc','goblin','skeleton']},{x:22,list:['orc','skelArcher','goblin','orc']},{x:37,list:['orc','skeleton','orc','skelArcher','goblin']},{x:53,boss:true,list:['ironColossus','orc','goblin']}]},
+ {sub:'',id:'garden',key:'Thorn Key',piece:'the Black Rose Maze',name:'The Shadow Garden',decor:'garden',blurb:'The old royal garden, dead and grey. Nothing grows here now except the Reaper\'s harvest.',wall:0x5a5a6a,floor:0x4a4a52,torch:0xb08aff,mote:0xc8b0ff,fog:new THREE.Fog(0x0a0812,11,34),hemi:[0x6a5a8a,0x0c0a14],
+  waves:[{x:8,list:['skeleton','imp','skeleton']},{x:22,list:['skelArcher','skeleton','imp','orc']},{x:37,list:['skeleton','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['reaper','skeleton','skelArcher']}]},
  {sub:'',id:'throne',key:'Crown Key',piece:'the Royal Ossuary',rider:1,name:"The Bone King's Throne",decor:'crypt',blurb:'The Bone King rules here from a throne of skulls. Only the Lich Queen lies deeper.',wall:0xd8c0a0,floor:0xb8a088,torch:0xffb060,mote:0xffd9a0,fog:new THREE.Fog(0x0c0806,11,36),hemi:[0x8a6a4a,0x140c08],
   waves:[{x:8,list:['skeleton','skelArcher','orc']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','skeleton','imp']},{x:53,boss:true,list:['boneKing','skeleton','skelArcher']}]},
  {sub:'Floor 4',id:'sanctum',key:'Rune Key',piece:'the Ritual Hall',rider:1,name:"The Lich Queen's Sanctum",decor:'sanctum',blurb:'The bottom of the world. The Lich Queen waits on her throne of the dead.',wall:0xa888b8,floor:0x9a80a8,torch:0xffa860,mote:0xffd9a0,fog:new THREE.Fog(0x08030c,11,36),hemi:[0x6a4a8a,0x100818],
@@ -2646,7 +2697,7 @@ function dmgMult(){const w=H.weapon;return (1+0.25*w.tier)*(1+0.08*w.grade)*(1+0
 function heroDmg(base){return base*dmgMult()*(H.rage>0?1.8:1)*rnd(0.9,1.1);}
 function spDmg(base,n=1){return heroDmg(base)*(H.rune==='fury'?1.3:1)*(1+0.2*(spRank(n)-1))*(PRIM[H.cls]==='mag'?1:1+0.01*(stat(H,'mag')-BASE_ST[H.cls].mag));}
 function spCost(n){return Math.round(HEROES[H.cls]['s'+n].cost*(H.rune==='flow'?0.8:1));}
-function gemSum(h,t){let s=0;for(const it of allItems(h)){for(const g of (it.sockets||[]))if(g&&g.t===t)s+=g.lv;if(it.rs&&RSTONE[it.rs]&&RSTONE[it.rs].g===t)s+=4;}return s;} // a runestone counts as a crystal stronger than any flawless one
+function gemSum(h,t){let s=0;for(const it of allItems(h)){for(const g of (it.sockets||[]))if(g&&g.t===t)s+=g.lv*(it.sum?1.5:1);if(it.rs&&RSTONE[it.rs]&&RSTONE[it.rs].g===t)s+=4;}return s;} // a runestone counts as a crystal stronger than any flawless one
 function itemOf(h,k){return (k==='weapon'||k==='armor'||EXTRA.includes(k))?h[k]:h.jewels[k];}
 function jp(h,id){const j=h.jewels[id];return j?j.tier+1:0;}
 function recalc(h){const d=HEROES[h.cls],b=BASE_ST[h.cls],sk=h.sk||{};
@@ -2921,6 +2972,20 @@ function bossThink(e,dist){
     for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#ff7a2a',3.4,0.01,30));
     schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');for(let k=0;k<26;k++){const a=k/26*Math.PI*2;addPart({x:gx+Math.cos(a)*1.2,y:0.3,z:gz+Math.sin(a)*1.2,vx:Math.cos(a)*0.12,vz:Math.sin(a)*0.12,vy:0.08,g:0.004,life:30,size:rnd(0.12,0.22),color:k%2?'#ff7a2a':'#ffd060'});}
       ring(gx,gz,'#ffb050',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='waterSerpent'&&e.sp%600===0&&n<7)summon(['slime'],'Children of the deep!');
+  if(e.type==='waterSerpent'&&e.sp%300===120&&!(e.subT>0)&&e.state!=='dead'&&H.state!=='down'){floatText(e.x,5,e.z,'Tidal spit!','#9fe8ff',22);const a0=Math.atan2(H.z-e.z,H.x-e.x),dm=e.def.dmg*0.8*(1+0.12*DEP())*rkM('dmg');e.fx=Math.cos(a0);e.fz=Math.sin(a0);e.state='strike';e.t=20;
+    for(let k=-2;k<=2;k++)schedule(8+Math.abs(k)*3,()=>{const a=a0+k*0.2;S.eproj.push({kind:'water',x:e.x+Math.cos(a)*1.4,z:e.z+Math.sin(a)*1.4,y:2.2,vx:Math.cos(a)*0.16,vz:Math.sin(a)*0.16,dmg:dm,life:95,dead:false});});sfx('shoot');}
+  // dives under and bursts up somewhere else in the room, knocking back anyone near
+  if(e.type==='waterSerpent'&&e.sp%430===330&&e.state!=='dead'){e.subT=70;e.spawnInv=70;floatText(e.x,3,e.z,'It dives!','#9fe8ff',20);sparks(e.x,0.3,e.z,16,'#bfefff');ring(e.x,e.z,'#9fe8ff',0.5,0.08,24);
+    schedule(45,()=>{if(e.state==='dead'||S.level!=='dungeon')return;const sp=mzRoomSpot(H.x,H.z,3.5);e.x=sp[0];e.z=sp[1];});
+    schedule(70,()=>{if(e.state==='dead'||S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.5);sfx('boss');sparks(e.x,0.6,e.z,22,'#bfefff');ring(e.x,e.z,'#9fe8ff',0.6,0.12,26);floatText(e.x,4.4,e.z,'SPLASH!','#bfefff',24);
+      const dm=e.def.dmg*1.2*(1+0.12*DEP())*rkM('dmg');if(H.state!=='down'&&Math.hypot(H.x-e.x,H.z-e.z)<3&&H.y<1)hurtHero(dm,H.x-e.x,H.z-e.z,true);});}
+  if(e.subT>0)e.subT--;
+  if(e.type==='reaper'&&e.sp%600===300&&n<7)summon(['skeleton','skelArcher'],'Rise, my harvest!');
+  if(e.type==='reaper'&&e.sp%330===150&&e.state!=='dead'&&H.state!=='down'){const gx=e.x,gz=e.z,dm=e.def.dmg*1.25*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4,e.z,'REAP!','#d8b0ff',24);e.state='wind';e.t=36;e.spin=1;
+    for(let k=0;k<3;k++)schedule(k*10,()=>ring(gx,gz,'#b08aff',3.3,0.01,26));
+    schedule(36,()=>{if(S.level!=='dungeon')return;sparks(gx,1,gz,18,'#d8b0ff');ring(gx,gz,'#e8d0ff',0.6,0.14,24);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.3&&H.y<1.2)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='reaper'&&e.sp%420===40&&e.state==='walk'&&H.state!=='down'){fogPuff(e.x,e.z,0.9,0x8a6aaa);const bx=H.x-(H.fx||0)*2.2,bz=H.z-(H.fz||1)*2.2,c=mzRoomClamp(bx,bz);e.x=c[0];e.z=c[1];fogPuff(e.x,e.z,0.9,0x8a6aaa);floatText(e.x,3.6,e.z,'Behind you...','#d8b0ff',20);e.cd=Math.min(e.cd,12);}
   if(e.type==='ironColossus'&&e.sp%600===0&&n<7)summon(['goblin','orc'],'Repair crew!');
   if(e.type==='ironColossus'&&e.sp%330===180&&e.state!=='dead'&&H.state!=='down'){const gx=e.x,gz=e.z,dm=e.def.dmg*1.3*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4.2,e.z,'CLANG!','#dfe6f0',24);e.state='wind';e.t=40;
     for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#c8d0dc',3.4,0.01,30));
@@ -2931,7 +2996,7 @@ function bossThink(e,dist){
   if(e.tele>0)e.tele--;
   if((e.type==='lich'||e.type==='frostWraith')&&!(e.tele>0)&&dist<2.4&&e.state==='walk'){poof(e.x,e.y,e.z,1.5);{const p=mzRoomSpot(H.x,H.z,6);e.x=p[0];e.z=p[1];}poof(e.x,e.y,e.z,1.5);e.tele=200;e.cd=Math.min(e.cd,30);}
 }
-const PJC={lbolt:'#9dff8a',frost:'#9fe3ff'};
+const PJC={lbolt:'#9dff8a',frost:'#9fe3ff',water:'#7fd8ff'};
 function chillHero(n){if(!H)return;if(!(H.chill>0))floatText(H.x,2.6,H.z,'Chilled!','#bfe6ff',16);H.chill=Math.max(H.chill||0,n);}
 function iceSpikes(x,z){const G=new THREE.Group(),m=lam({color:0xcfe8ff,emissive:0x2a5a80,transparent:true,opacity:0.88});for(let k=0;k<7;k++){const a=k/7*Math.PI*2+Math.random(),d=k?rnd(0.4,1.1):0,h=rnd(0.9,1.8),c=mesh(new THREE.ConeGeometry(rnd(0.14,0.26),h,6),m,x+Math.cos(a)*d,h/2-1.6,z+Math.sin(a)*d,true,false);c.rotation.set(rnd(-0.25,0.25),0,rnd(-0.25,0.25));G.add(c);}
   scene.add(G);sfx('hit');sparks(x,0.6,z,14,'#cfeeff');let t=0;const up=()=>{t++;G.position.y=Math.min(1.6,t*0.32);if(t<70)requestAnimationFrame(up);else{scene.remove(G);G.traverse(o=>{if(o.geometry)o.geometry.dispose();});m.dispose();}};up();}
@@ -2988,7 +3053,7 @@ const KEYM={st:'none',g:{}},KEY_ICON={};
 function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh){KEYM.g[o.name]=o.geometry;KEYM.mat=o.material;}});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
 // [shape, tint over the pack's own painted metal, glow]
 const KEY_LOOK={rusty:['Key_A','#e8b090'],'Jailer’s Key':['Key_C','#ffffff'],'Crypt Key':['Key_D','#ffffff'],'Root Key':['Key_B','#d8f0c0','#1a3008'],
-  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Tome Key':['Key_B','#f0e0b0','#2a2008'],'Cog Key':['Key_C','#ffd9a0','#2a1a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
+  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Tide Key':['Key_B','#7fd8e8','#0a3a4a'],'Thorn Key':['Key_D','#b890e0','#2a1040'],'Tome Key':['Key_B','#f0e0b0','#2a2008'],'Cog Key':['Key_C','#ffd9a0','#2a1a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
 function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
   const mat=KEYM.mat.clone();mat.color=new THREE.Color(L[1]);mat.metalness=0.3;mat.roughness=0.45;mat.emissive=new THREE.Color(L[2]||'#000000');const m=new THREE.Mesh(KEYM.g[L[0]],mat);m.castShadow=true;return m;}
 function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
@@ -3145,7 +3210,26 @@ const DROP_KINDS=[['weapon',28],['armor',18],['helm',11],['hands',11],['feet',11
 function pickKind(){let r=Math.random()*100;for(const [k,w] of DROP_KINDS){if((r-=w)<0)return k;}return 'armor';}
 function gearFor(b=0,kind){kind=kind||pickKind();const tier=clamp((S.level==='dungeon'?S.floor+1:0)+(Math.random()<0.45?1:0)-(Math.random()<0.3?1:0),0,kind==='weapon'?5:4);const grade=rollGrade(b);
   const it=fillAff({type:'gear',kind,tier,grade,sockets:Array(GRADES[grade].s).fill(null),aff:[]});if(SET_SLOTS.includes(kind)&&grade>=2&&H&&CLASS_SET[H.cls]&&Math.random()<(b>=0.3?0.5:0.22))it.set=CLASS_SET[H.cls];return it;}
-function gearName(it,cls){cls=cls||H.cls;const k=it.kind,t=it.tier;if(it.set&&SETS[it.set]&&SETS[it.set].names[k])return SETS[it.set].names[k];if(k==='weapon'&&it.rb)return rbName(cls)+(it.plus?' +'+it.plus:'');if(k==='weapon')return `${WEAPON_TIERS[t]} ${HEROES[cls].weapon}`;if(k==='armor')return ARMOR_SETS[cls][t];
+// ---- Sumeran Steel: one piece from each floor's boss (the first time you beat it); the smith forges them into bottom-tier gear whose value is extra crystal settings (crystals in Sumeran Steel count 50% more) ----
+const SUMP={castle:{id:'blade',n:'Broken Sumeran blade',g:'wpn'},crypt:{id:'grip',n:'Sumeran grip',g:'wpn'},fungal:{id:'pommel',n:'Sumeran pommel',g:'wpn'},
+  cistern:{id:'chestL',n:'Left half of a Sumeran chest plate',g:'armor'},ice:{id:'chestR',n:'Right half of a Sumeran chest plate',g:'armor'},
+  forge:{id:'ringA',n:'Sumeran ring',g:'ring1'},library:{id:'ringB',n:'Second Sumeran ring',g:'ring2'},armory:{id:'neckP',n:'Sumeran necklace',g:'neck'},
+  garden:{id:'handsP',n:'Sumeran gauntlets',g:'hands'},throne:{id:'feetP',n:'Sumeran boots',g:'feet'},sanctum:{id:'helmP',n:'Sumeran helm',g:'helm'}};
+const SUMG=[{g:'wpn',kind:'weapon',s:3,n:()=>'Sumeran Steel '+HEROES[H.cls].weapon},{g:'armor',kind:'armor',s:2,n:()=>'Sumeran Steel Chest Plate'},{g:'ring1',jewel:'ring1',s:2,n:()=>'Sumeran Steel Ring'},{g:'ring2',jewel:'ring2',s:2,n:()=>'Second Sumeran Steel Ring'},
+  {g:'neck',jewel:'neck',s:3,n:()=>'Sumeran Steel Necklace'},{g:'hands',kind:'hands',s:2,n:()=>'Sumeran Steel Gauntlets'},{g:'feet',kind:'feet',s:2,n:()=>'Sumeran Steel Boots'},{g:'helm',kind:'helm',s:2,n:()=>'Sumeran Steel Helm'}];
+const SUM_N={weapon:()=>'Sumeran Steel '+HEROES[H.cls].weapon,armor:()=>'Sumeran Steel Chest Plate',hands:()=>'Sumeran Steel Gauntlets',feet:()=>'Sumeran Steel Boots',helm:()=>'Sumeran Steel Helm'};
+const jwName=(J,it)=>it&&it.sum?'Sumeran Steel '+J.n:METALS[it.tier]+' '+J.n;
+function sumNeed(G){return Object.values(SUMP).filter(p=>p.g===G.g);}
+function sumKill(type){if(!INV||!H||S.level!=='dungeon'||!EN[type]||!EN[type].boss)return;const F=FLOORS[S.floor],P=F&&SUMP[F.id];if(!P)return;INV.sum=INV.sum||{};if(INV.sum[P.id])return;INV.sum[P.id]=1;
+  const G=SUMG.find(x=>x.g===P.g),need=sumNeed(G),have=need.filter(q=>INV.sum[q.id]).length;
+  setTimeout(()=>{if(!H)return;floatText(H.x,3.8,H.z,P.n+'!','#cfe4ff',22);S.banner={top:'Sumeran Steel',text:P.n,t:200};sfx('chest');
+    toast(have>=need.length?`${P.n}! Take it to the smith to forge the ${G.n()}.`:`${P.n}! ${have} of ${need.length} pieces of the ${G.n()}.`);},1500);save();}
+function sumHtml(){const sm=INV.sum||{};let h=`<div class="scard"><h3>Sumeran Steel</h3><p class="note l">"Sumeran Steel was the old kingdom's metal. It is plain to look at, but it holds more crystals than any other. Every boss down there guards a piece. Bring them to me."</p>`;
+  for(const G of SUMG){const need=sumNeed(G),have=need.filter(q=>sm[q.id]).length,done=sm['made_'+G.g];
+    const where=need.map(q=>(sm[q.id]?'✓ ':'')+q.n+' ('+FLOORS[flIdx(Object.keys(SUMP).find(f=>SUMP[f]===q))].name+')').join('<br>');
+    h+=done?`<p class="note l"><b>${esc(G.n())}</b>: forged ✓</p>`:`<p class="note l" style="margin-bottom:4px">${where}</p>`+buyBtn('sumf-'+G.g,`Forge the ${G.n()}`,`Bottom-tier metal with ${G.s} crystal settings${G.jewel?(H.jewels[G.jewel]?', replaces your '+jwName(JEWELS.find(j=>j.id===G.jewel),H.jewels[G.jewel]).toLowerCase():''):''}`,100,have>=need.length&&INV.gold>=100);}
+  return h+'</div>';}
+function gearName(it,cls){cls=cls||H.cls;const k=it.kind,t=it.tier;if(it.sum&&SUM_N[k])return k==='weapon'?'Sumeran Steel '+HEROES[cls].weapon:SUM_N[k]();if(it.set&&SETS[it.set]&&SETS[it.set].names[k])return SETS[it.set].names[k];if(k==='weapon'&&it.rb)return rbName(cls)+(it.plus?' +'+it.plus:'');if(k==='weapon')return `${WEAPON_TIERS[t]} ${HEROES[cls].weapon}`;if(k==='armor')return ARMOR_SETS[cls][t];
   if(k==='helm')return GEARN.helm[cls==='barbarian'?'heavy':(cls==='necromancer'||cls==='healer')?'robe':'light'][t];if(k==='off')return GEARN.off[cls][t];return GEARN[k][t];}
 function itemLabel(it){return it.type==='gear'?`${GRADES[it.grade].n} ${gearName(it)}`:it.n+((it.q||1)>1?' ×'+it.q:'');}
 function itemValue(it){return it.type==='gear'?Math.round(22*(1+it.tier)*(1+it.grade*0.6)):it.v*(it.q||1);}
@@ -3156,9 +3240,9 @@ function isDowngrade(it){return it.type==='gear'&&!!worn(it.kind)&&gearScore(it)
 function isUpgrade(it){return it.type==='gear'&&gearScore(it)>gearScore(worn(it.kind))+1e-6;}
 function pushStack(arr,it,max){if(it.type==='goods'){const s0=arr.find(o=>o.type==='goods'&&o.n===it.n&&(o.q||1)+(it.q||1)<=STACK);if(s0){s0.q=(s0.q||1)+(it.q||1);return true;}}if(arr.length>=max)return false;arr.push(it);return true;}
 function addToBag(it){return pushStack(INV.bag,it,BAG_MAX);}
-function equipFromBag(i){const it=INV.bag[i];if(!it||it.type!=='gear')return;const k=it.kind,cur=H[k];H[k]={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff||[],set:it.set,rb:it.rb,plus:it.plus,rs:it.rs};
-  if(cur)INV.bag[i]={type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs};else{INV.bag.splice(i,1);invSel=null;}recalc(H);sfx('chest');}
-function unequip(k){if(!EXTRA.includes(k)||!H[k])return;if(INV.bag.length>=BAG_MAX){toast('Your bag is full.');return;}const cur=H[k];INV.bag.push({type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H[k]=null;recalc(H);sfx('door');}
+function equipFromBag(i){const it=INV.bag[i];if(!it||it.type!=='gear')return;const k=it.kind,cur=H[k];H[k]={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff||[],set:it.set,rb:it.rb,plus:it.plus,rs:it.rs,sum:it.sum};
+  if(cur)INV.bag[i]={type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum};else{INV.bag.splice(i,1);invSel=null;}recalc(H);sfx('chest');}
+function unequip(k){if(!EXTRA.includes(k)||!H[k])return;if(INV.bag.length>=BAG_MAX){toast('Your bag is full.');return;}const cur=H[k];INV.bag.push({type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum});H[k]=null;recalc(H);sfx('door');}
 function gearLines(it){const k=it.kind,out=[];
   if(k==='weapon')out.push(`<span>Damage <b>×${((1+0.25*it.tier)*(1+0.08*it.grade)).toFixed(2)}</b></span>`);
   const r=itemRating(k,it,H.cls);if(r)out.push(`<span>Armor <b>${r}</b></span>`);
@@ -4042,6 +4126,8 @@ const JOBS=[
  {id:'troll',fl:'fungal',kind:'boss',t:['troll'],what:'Mossback the Troll',gold:[380]},
  {id:'eye',fl:'fungal',kind:'relic',name:'the Eye of Ulvareth',icon:'eye',gold:[320],ask:'The Eye of Ulvareth lies in the Fungal Deep. Get it!',thanks:'The Eye of Ulvareth! Now I can watch the whole castle.'},
  {id:'giant',fl:'forge',kind:'boss',t:['moltenGiant'],what:'the Molten Giant',gold:[380]},
+ {id:'serp',fl:'cistern',kind:'boss',t:['waterSerpent'],what:'the Water Serpent',gold:[340]},
+ {id:'reap',fl:'garden',kind:'boss',t:['reaper'],what:'the Reaper',gold:[440]},
  {id:'archv',fl:'library',kind:'boss',t:['archivist'],what:'the Archivist',gold:[360]},
  {id:'colos',fl:'armory',kind:'boss',t:['ironColossus'],what:'the Iron Colossus',gold:[400]},
  {id:'wraith',fl:'ice',kind:'boss',t:['frostWraith'],what:'the Frost Wraith',gold:[340]},
@@ -4083,7 +4169,7 @@ function rbKill(type){if(!INV||!INV.rbq||!EN[type]||!EN[type].boss||!H)return;
   if(INV.rbq===2&&(type==='lich'||Math.random()<0.35)){const ks=Object.keys(RSTONE),k=ks[Math.floor(Math.random()*ks.length)];INV.rstones=INV.rstones||{};INV.rstones[k]=(INV.rstones[k]||0)+1;
     setTimeout(()=>{if(H){floatText(H.x,3.6,H.z,'A '+RSTONE[k].n+'!',RSTONE[k].c,22);toast(`You found a ${RSTONE[k].n}. The smith can set it in your Runeblade.`);}},1100);}
   save();}
-function jobKill(type){rbKill(type);dailyCount('slay',type);if(EN[type]&&EN[type].boss)dailyCount('boss',type);if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
+function jobKill(type){rbKill(type);sumKill(type);dailyCount('slay',type);if(EN[type]&&EN[type].boss)dailyCount('boss',type);if(!INV||!INV.jobs)return;for(const j of JOBS){const a=INV.jobs[j.id];if(!a||j.kind==='relic'||!j.t.includes(type)||jobDone(j))continue;a.p++;if(jobDone(j)){floatText(H.x,2.8,H.z,'Job done! Back to the captain','#ffd35c',18);sfx('chest');save();}}}
 function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=jobsReady();
   const D=dailyRoll(),dn=D.list.filter(b=>!b.paid&&b.p>=b.n);let dTalk=false;
   if(dn.length){dTalk=true;const g=dn.reduce((a,b)=>a+b.gold,0),all=!D.bonus&&D.list.every(b=>b.paid||b.p>=b.n),sid=SCR_IDS[Math.floor(Math.random()*SCR_IDS.length)];
@@ -4190,17 +4276,17 @@ function renderShop3(id){
       +(SHOP_IDS.some(i=>!shopOpen(i))?`<p class="note l">"The Lich Queen's dead dragged our shopkeepers into the castle. Free them and their shops will open again."</p>`:'');}
   else if(id==='spice'){card=spiceCard(G0);}
   else if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
-    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set,rb:w.rb,plus:w.plus}))}</b> ${socketsHtml(w,'weapon',false)}${w.rs?` <b style="color:${RSTONE[w.rs].c}">◆ ${RSTONE[w.rs].n}</b>`:''}</div>`
+    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'weapon',tier:w.tier,grade:w.grade})}" width="40" height="40" alt=""><b style="color:${GRADES[w.grade].c}">${GRADES[w.grade].n} ${esc(gearName({kind:'weapon',tier:w.tier,set:w.set,rb:w.rb,plus:w.plus,sum:w.sum}))}</b> ${socketsHtml(w,'weapon',false)}${w.rs?` <b style="color:${RSTONE[w.rs].c}">◆ ${RSTONE[w.rs].n}</b>`:''}</div>`
       +buyBtn('wtier',w.tier<5?`Forge ${WEAPON_TIERS[w.tier+1]} ${HEROES[H.cls].weapon}`:'Best metal reached','+25% damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
-      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rbHtml()+rackHtml();}
+      +buyBtn('wgrade',w.grade<4?`Temper to ${GRADES[w.grade+1].n}`:'Legendary already',w.grade<4?`+8% damage${GRADES[w.grade+1].s>w.sockets.length?', adds a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc);extra=rbHtml()+sumHtml()+rackHtml();}
   else if(id==='armory'){const tc=a.tier<4?COST.atier(a.tier):null,gc=a.grade<4?COST.agrade(a.grade):null;
-    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'armor',tier:a.tier,grade:a.grade,set:a.set})}" width="40" height="40" alt=""><b style="color:${GRADES[a.grade].c}">${GRADES[a.grade].n} ${esc(gearName({kind:'armor',tier:a.tier,set:a.set}))}</b> ${socketsHtml(a,'armor',false)}</div>`
+    card=`<div class="itemline"><img src="${iconURL({type:'gear',kind:'armor',tier:a.tier,grade:a.grade,set:a.set})}" width="40" height="40" alt=""><b style="color:${GRADES[a.grade].c}">${GRADES[a.grade].n} ${esc(gearName({kind:'armor',tier:a.tier,set:a.set,sum:a.sum}))}</b> ${socketsHtml(a,'armor',false)}</div>`
       +buyBtn('atier',a.tier<4?ARMOR_SETS[H.cls][a.tier+1]:'Best armor reached','Take about 9% less damage. Keeps your crystals',tc,tc!==null&&G0>=tc)
       +buyBtn('agrade',a.grade<4?`Reinforce to ${GRADES[a.grade+1].n}`:'Legendary already',a.grade<4?`Sturdier, plus a bonus${GRADES[a.grade+1].s>a.sockets.length?' and a crystal setting':''}`:'Top grade',gc,gc!==null&&G0>=gc)+armRackHtml();
     extra=`<div class="scard"><h3>Helmets, gloves, boots, capes${H.cls==='barbarian'?' and shields':''}</h3>`+EXTRA.map(k=>{const it=H[k],ic=iconURL({type:'gear',kind:k,tier:it?it.tier:0,grade:it?it.grade:0,set:it&&it.set}),desc=k==='off'?SLOT_E.off[H.cls==='barbarian'?'barbarian':'other']:SLOT_E[k];
       if(!it)return buyBtn('xbuy-'+k,`Common ${gearName({kind:k,tier:0})}`,`${SLOT_N[k]} · ${desc}`,COST.xbuy,G0>=COST.xbuy,ic);
       const tc=it.tier<4?COST.xtier(it.tier):null,gc2=it.grade<4?COST.xgrade(it.grade):null;
-      return `<div class="itemline"><img src="${ic}" width="34" height="34" alt=""><b style="color:${GRADES[it.grade].c}">${GRADES[it.grade].n} ${esc(gearName({kind:k,tier:it.tier,set:it.set}))}</b></div>`
+      return `<div class="itemline"><img src="${ic}" width="34" height="34" alt=""><b style="color:${GRADES[it.grade].c}">${GRADES[it.grade].n} ${esc(gearName({kind:k,tier:it.tier,set:it.set,sum:it.sum}))}</b></div>`
         +buyBtn('xtier-'+k,it.tier<4?`Upgrade to ${gearName({kind:k,tier:it.tier+1})}`:'Best metal reached',SLOT_N[k]+'. Keeps your crystals',tc,tc!==null&&G0>=tc)
         +buyBtn('xgrade-'+k,it.grade<4?`Improve to ${GRADES[it.grade+1].n}`:'Legendary already','Adds a bonus stat',gc2,gc2!==null&&G0>=gc2);}).join('')+`</div>`;}
   else if(id==='magic'){
@@ -4211,9 +4297,9 @@ function renderShop3(id){
       +`<p class="sub l">Mystery scrolls</p>`+[0,1,2,3].map(t=>buyBtn('scr-'+t,`${SCR_TIER[t]} mystery scroll`,'A random scroll: summoning, healing, luck, gold, gems, weapons, armor or haste',SCR_PRICE[t],G0>=SCR_PRICE[t],scrURL(t)||null)).join('');}
   else{
     const line=(kind,label,col)=>`<div class="itemline"><span style="color:${col}">${esc(label)}</span> ${socketsHtml(itemOf(H,kind),kind,true)}</div>`;
-    card=line('weapon',gearName({kind:'weapon',tier:w.tier,set:w.set}),GRADES[w.grade].c)+line('armor',gearName({kind:'armor',tier:a.tier,set:a.set}),GRADES[a.grade].c)+EXTRA.filter(k=>H[k]).map(k=>line(k,gearName({kind:k,tier:H[k].tier,set:H[k].set}),GRADES[H[k].grade].c)).join('')+`<p class="sub l">Jewelry · rings go two on each hand</p>`;
+    card=line('weapon',gearName({kind:'weapon',tier:w.tier,set:w.set,sum:w.sum}),GRADES[w.grade].c)+line('armor',gearName({kind:'armor',tier:a.tier,set:a.set,sum:a.sum}),GRADES[a.grade].c)+EXTRA.filter(k=>H[k]).map(k=>line(k,gearName({kind:k,tier:H[k].tier,set:H[k].set,sum:H[k].sum}),GRADES[H[k].grade].c)).join('')+`<p class="sub l">Jewelry · rings go two on each hand</p>`;
     for(const J of JEWELS){const it=H.jewels[J.id];
-      if(it){card+=line(J.id,`${METALS[it.tier]} ${J.n}`,METAL_COL[it.tier]);if(it.tier<3){const c=COST.jup(it.tier);card+=buyBtn('jup-'+J.id,`Upgrade ${J.n.toLowerCase()} to ${METALS[it.tier+1]}`,J.bonus,c,G0>=c,iconURL({type:'jewel',id:J.id,tier:it.tier+1}));}}
+      if(it){card+=line(J.id,`${jwName(J,it)}`,METAL_COL[it.tier]);if(it.tier<3){const c=COST.jup(it.tier);card+=buyBtn('jup-'+J.id,`Upgrade ${J.n.toLowerCase()} to ${METALS[it.tier+1]}`,J.bonus,c,G0>=c,iconURL({type:'jewel',id:J.id,tier:it.tier+1}));}}
       else card+=buyBtn('jbuy-'+J.id,`Copper ${J.n}`,`${J.s} crystal setting${J.s>1?'s':''} · ${J.bonus}`,COST.jbuy,G0>=COST.jbuy,iconURL({type:'jewel',id:J.id,tier:0}));}
     const owned=Object.keys(INV.gems).sort();
     card+=`<p class="sub l">Your crystal pouch</p>`+(owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<button class="chip ${gemSel===k?'sel':''}" type="button" data-act="pick-${k}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</button>`;}).join('')}</div>`:'<p class="note l">No crystals yet. Buy some here or find them in the dungeon.</p>')
@@ -4230,14 +4316,19 @@ function renderShop3(id){
     if(k==='bag'){openInv();return;}
     if(k==='craft'){showCraft();return;}
     if(k==='rack'){const it=rackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.weapon;
-      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
+      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum});H.weapon={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.rack.items[+x]=null;
       toast('You bought the '+GRADES[it.grade].n+' '+gearName({kind:'weapon',tier:it.tier})+'. Your old weapon is in your bag.');}}}
     if(k==='arack'){const it=armRackStock()[+x];if(it){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(it.price)){const cur=H.armor;
-      addToBag({type:'gear',kind:'armor',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});H.armor={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.arack.items[+x]=null;
+      addToBag({type:'gear',kind:'armor',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum});H.armor={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff};INV.arack.items[+x]=null;
       toast('You bought the '+GRADES[it.grade].n+' '+ARMOR_SETS[H.cls][it.tier]+'. Your old armor is in your bag.');}}}
     if(k==='rbq'&&!INV.rbq){INV.rbq=1;sfx('go');toast('Quest: bring the smith the broken hilt from Grimtusk, and 3 star iron from the dungeon bosses.');}
+    if(k==='sumf'){const G=SUMG.find(q=>q.g===x),sm=INV.sum||{};if(G&&!sm['made_'+G.g]&&sumNeed(G).every(q=>sm[q.id])){
+      if(G.kind&&INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');
+      else if(pay(100)){sm['made_'+G.g]=1;INV.sum=sm;const so=Array(G.s).fill(null);
+        if(G.jewel){H.jewels[G.jewel]={tier:0,sockets:so,sum:1};recalc(H);toast(`The smith forges your ${G.n()}. It is on now.`);}
+        else{addToBag({type:'gear',kind:G.kind,tier:0,grade:0,sockets:so,aff:[],sum:1});toast(`The smith forges your ${G.n()}. It is in your bag.`);}save();}}}
     if(k==='rbforge'&&INV.rbq===1&&INV.rbHilt&&(INV.star||0)>=3){if(INV.bag.length>=BAG_MAX)toast('Your bag is full. Sell something first.');else if(pay(250)){const cur=H.weapon;
-      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs});
+      addToBag({type:'gear',kind:'weapon',tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum});
       H.weapon={tier:Math.max(3,cur.tier),grade:Math.max(3,cur.grade),sockets:Array(Math.max(2,GRADES[Math.max(3,cur.grade)].s)).fill(null),aff:[],rb:1,plus:0};
       INV.star-=3;INV.rbHilt=0;INV.rbq=2;recalc(H);sparks(H.x,1.4,H.z,24);sfx('magic');toast(`The smith forged your ${rbName()}! Your old weapon and its crystals are in your bag.`);}}
     if(k==='rbup'&&H.weapon.rb&&(H.weapon.plus||0)<RB_MAX){const c=rbUpCost(H.weapon.plus||0);if((INV.star||0)>=c.star&&pay(c.gold)){INV.star-=c.star;H.weapon.plus=(H.weapon.plus||0)+1;recalc(H);sparks(H.x,1.4,H.z,16);toast(`Your ${rbName()} is now +${H.weapon.plus}!`);}}
@@ -4296,13 +4387,13 @@ function invDnD(){if(INVD_ON)return;INVD_ON=true;
   addEventListener('pointercancel',()=>{if(INVD&&INVD.g)INVD.g.remove();INVD=null;document.querySelectorAll('#dlg .hot,#dlg .hotz').forEach(e=>e.classList.remove('hot','hotz'));},true);
   addEventListener('click',ev=>{if(INVD_EAT&&ev.target.closest&&ev.target.closest('#dlg')){ev.stopPropagation();ev.preventDefault();}},true);}
 function openInv(){bagGlow(false);
-  const eq=['weapon','off','helm','armor','hands','feet','cape'].map(k=>{const it=H[k];return [k,it?{type:'gear',kind:k,...it}:{type:'empty',label:'+'},it?`${GRADES[it.grade].n} ${gearName({kind:k,tier:it.tier,set:it.set})}`:`No ${SLOT_N[k].toLowerCase()}`,it?GRADES[it.grade].c:'var(--dim)',it];})
-    .concat(JEWELS.map(J=>{const it=H.jewels[J.id];return [J.id,it?{type:'jewel',id:J.id,tier:it.tier}:{type:'empty',label:'+'},it?`${METALS[it.tier]} ${J.n}`:`No ${J.n.toLowerCase()}`,it?METAL_COL[it.tier]:'var(--dim)',it];}));
+  const eq=['weapon','off','helm','armor','hands','feet','cape'].map(k=>{const it=H[k];return [k,it?{type:'gear',kind:k,...it}:{type:'empty',label:'+'},it?`${GRADES[it.grade].n} ${gearName({kind:k,tier:it.tier,set:it.set,sum:it.sum})}`:`No ${SLOT_N[k].toLowerCase()}`,it?GRADES[it.grade].c:'var(--dim)',it];})
+    .concat(JEWELS.map(J=>{const it=H.jewels[J.id];return [J.id,it?{type:'jewel',id:J.id,tier:it.tier}:{type:'empty',label:'+'},it?`${jwName(J,it)}`:`No ${J.n.toLowerCase()}`,it?METAL_COL[it.tier]:'var(--dim)',it];}));
   const cells=[];for(let i=0;i<BAG_MAX;i++){const it=INV.bag[i];cells.push(it?`<button class="cell ${isUpgrade(it)?'up':isDowngrade(it)?'down':''} ${invSel===i?'sel':''}" type="button" data-act="sel-${i}" data-bi="${i}" title="${esc(itemLabel(it))}"><img src="${iconURL(it)}" alt="">${(it.q||1)>1?`<span class="q">${it.q}</span>`:''}</button>`:'<div class="cell empty"></div>');}
   let det='<p class="note l">Tap an item in your bag to see it. Green items are better than what you have on, red ones are weaker.</p>';
   const it=invSel!==null?INV.bag[invSel]:null;
   if(!it&&invWS){const isJ=!SLOT_N[invWS],w=isJ?H.jewels[invWS]:H[invWS],J=isJ?JEWELS.find(j=>j.id===invWS):null;
-    if(w){const g=isJ?null:{type:'gear',kind:invWS,...w},ic=isJ?{type:'jewel',id:invWS,tier:w.tier}:g;det=`<div class="detail"><div class="itemline"><img src="${iconURL(ic)}" width="48" height="48" alt=""><div><h4 style="color:${isJ?METAL_COL[w.tier]:GRADES[w.grade].c}">${esc(isJ?METALS[w.tier]+' '+J.n:GRADES[w.grade].n+' '+gearName({kind:invWS,tier:w.tier,set:w.set}))}</h4><span class="note l">You are wearing this</span></div></div>
+    if(w){const g=isJ?null:{type:'gear',kind:invWS,...w},ic=isJ?{type:'jewel',id:invWS,tier:w.tier}:g;det=`<div class="detail"><div class="itemline"><img src="${iconURL(ic)}" width="48" height="48" alt=""><div><h4 style="color:${isJ?METAL_COL[w.tier]:GRADES[w.grade].c}">${esc(isJ?METALS[w.tier]+' '+J.n:GRADES[w.grade].n+' '+gearName({kind:invWS,tier:w.tier,set:w.set,sum:w.sum}))}</h4><span class="note l">You are wearing this</span></div></div>
       ${isJ?'':`<div class="stats3">${gearLines(g)}</div>${w.sockets&&w.sockets.some(Boolean)?`<div class="itemline">${socketsHtml(g,'',false)}</div>`:''}`}
       <div class="row left">${!isJ&&EXTRA.includes(invWS)?`<button class="btn alt" type="button" data-act="unwear" style="font-size:18px">Take it off</button>`:`<span class="note l">${isJ?'Jewelry stays on. Buy better at Crystals &amp; Jewels.':'You always need this. Swap it by dragging a new one on.'}</span>`}</div></div>`;}}
   if(it){
@@ -4346,13 +4437,13 @@ let heroTab='gear',heroSel=null,resetArm=false;
 const pips=(n,m)=>`<span class="pips">${Array.from({length:m},(_,i)=>`<i class="${i<n?'on':''}"></i>`).join('')}</span>`;
 function slotBtn(k){const isJ=!SLOT_N[k];const it=isJ?H.jewels[k]:H[k];const J=isJ?JEWELS.find(j=>j.id===k):null;
   const ic=it?(isJ?{type:'jewel',id:k,tier:it.tier}:{type:'gear',kind:k,...it}):{type:'empty',label:'+'};
-  const label=it?(isJ?`${METALS[it.tier]} ${J.n}`:`${GRADES[it.grade].n} ${gearName({kind:k,tier:it.tier,set:it.set})}`):(isJ?J.n:SLOT_N[k]);
+  const label=it?(isJ?`${jwName(J,it)}`:`${GRADES[it.grade].n} ${gearName({kind:k,tier:it.tier,set:it.set,sum:it.sum})}`):(isJ?J.n:SLOT_N[k]);
   const col=it?(isJ?METAL_COL[it.tier]:GRADES[it.grade].c):'var(--dim)';
   return `<button class="slotb ${it?'':'empty'} ${heroSel===k?'sel':''}" type="button" data-act="slot-${k}"><img src="${iconURL(ic)}" alt=""><span style="min-width:0"><span style="color:${col}">${esc(label)}</span><small>${it?(isJ?it.sockets.map(x=>x?gemSpan(x.t):'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>').join(' '):(it.aff&&it.aff.length?esc(affText(it.aff[0]))+(it.aff.length>1?' +'+(it.aff.length-1)+' more':''):SLOT_N[k])):'Empty'}</small></span></button>`;}
 function slotDetail(k){const isJ=!SLOT_N[k];const it=isJ?H.jewels[k]:H[k];
   if(!it)return `<div class="detail"><h4>${isJ?'No '+JEWELS.find(j=>j.id===k).n.toLowerCase()+' yet':'Empty '+SLOT_N[k].toLowerCase()+' slot'}</h4><span class="note l">${isJ?'Buy jewelry at Crystals &amp; Jewels in town, or craft a silver ring at a workbench.':'Find one in chests and on monsters, or buy a common one at the Armory.'}</span></div>`;
-  if(isJ){const J=JEWELS.find(j=>j.id===k);return `<div class="detail"><h4 style="color:${METAL_COL[it.tier]}">${METALS[it.tier]} ${J.n}</h4><div class="stats3"><span>${esc(J.bonus)}</span></div><div class="itemline">${socketsHtml(it,'',false)}</div></div>`;}
-  return `<div class="detail"><h4 style="color:${GRADES[it.grade].c}">${GRADES[it.grade].n} ${esc(gearName({kind:k,tier:it.tier,set:it.set}))}</h4><span class="note l">${SLOT_N[k]}</span><div class="stats3">${gearLines(Object.assign({kind:k},it))}</div><div class="itemline">${socketsHtml(it,'',false)}</div>
+  if(isJ){const J=JEWELS.find(j=>j.id===k);return `<div class="detail"><h4 style="color:${METAL_COL[it.tier]}">${jwName(J,it)}</h4><div class="stats3"><span>${esc(J.bonus)}</span></div><div class="itemline">${socketsHtml(it,'',false)}</div></div>`;}
+  return `<div class="detail"><h4 style="color:${GRADES[it.grade].c}">${GRADES[it.grade].n} ${esc(gearName({kind:k,tier:it.tier,set:it.set,sum:it.sum}))}</h4><span class="note l">${SLOT_N[k]}</span><div class="stats3">${gearLines(Object.assign({kind:k},it))}</div><div class="itemline">${socketsHtml(it,'',false)}</div>
     ${EXTRA.includes(k)?`<div class="row left"><button class="btn alt" type="button" data-act="unequip-${k}" style="font-size:17px">Take off</button></div>`:''}</div>`;}
 function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
   const tabs=[['gear','Gear',0],['stats','Stats',H.pts],['skills','Skills',H.sp],['look','Look',0]].map(([id,n,dot])=>`<button class="tab ${heroTab===id?'sel':''}" type="button" data-act="tab-${id}">${n}${dot?`<span class="dot">${dot}</span>`:''}</button>`).join('');
@@ -5551,8 +5642,9 @@ function render3D(){
   for(const e of S.enemies.concat(S.minions||[],S.rminions||[])){
     e.face=screenFace(e.fx,e.fz,e.face);let rot=0,alpha=1;
     if(e.state==='dead'){alpha=Math.min(1,e.t/20);rot=-e.face*Math.min(1.4,(36-e.t)*0.08);}else if(e.state==='kd')rot=-e.face*(e.y>0?0.6:1.3);
-    const rmi=SET.style==='real'&&rmInfo(e);
-    if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig){e.spr.rfig=buildRealMon(e,rmi);for(const m of e.spr.rfig.mats)if(m.map&&!m.emissiveMap&&m.emissive){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.needsUpdate=true;}}/* monsters glow faintly with their own colours, so bony skeletons stand out */poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
+    const rmi=SET.style==='real'&&rmInfo(e),smi=SET.style==='real'&&STATMON[e.type];
+    if(smi&&loadStat(smi.m).st==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.sfig)e.spr.sfig=buildStat(e,smi);poseStat(e.spr.sfig,e);e.spr.mesh.visible=false;}
+    else if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig){e.spr.rfig=buildRealMon(e,rmi);for(const m of e.spr.rfig.mats)if(m.map&&!m.emissiveMap&&m.emissive){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.needsUpdate=true;}}/* monsters glow faintly with their own colours, so bony skeletons stand out */poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
     else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f,3500));} // foes are never invisible for long: on a slow connection the simple figure shows until the real model arrives
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
