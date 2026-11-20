@@ -2260,9 +2260,10 @@ function mzRoamTick(){if(!MZ||!MZ.flow||S.aRoom!=null||S.exitOpen||!H||H.state==
   floatText(H.x,2.5,H.z,'Something is coming…','#ff9a6a',16);}
 // T: open a portal back to town (a short cast; moving slows it, getting knocked down cancels it)
 function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast('You are already in town.');return;}if(S.level==='house'){toast('Walk out the door to leave the house.');return;}if(S.portT>0)return;
-  S.portT=90;H.castT=Math.max(H.castT||0,20);toast('Opening a portal to town…');sfx('magic');}
+  S.portT=90;H.castT=Math.max(H.castT||0,20);toast('Opening a portal to town…');sfx('magic');fogPuff(H.x,H.z,0.8,0xd8d0ff);}
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
   const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:pcol().p[Math.random()<0.5?0:1]});
+  if(S.portT===40)fogPuff(H.x,H.z,1.1,0xd8d0ff);
   if(--S.portT===0){sfx('go');goTown();}}
 // where everyone in the party is on this floor (the host sees friends through their last sent position)
 function partyXZ(){const L=[[H.x,H.z]];if(NET.on&&S.level==='dungeon')for(const id in NET.peers){const t=NET.peers[id].s;if(t&&t.lvl==='dungeon'&&t.floor===S.floor&&t.state!=='down')L.push([+t.x,+t.z]);}return L;}
@@ -3272,7 +3273,7 @@ function setLevel(lv){
   scene.fog=lv==='town'?fogTown:lv==='dungeon'?FLOORS[S.floor].fog:fogHouse;
   for(const n of S.npcs){n.spr.grp.visible=n.spr.blob.visible=lv==='town';if(n.spr.fig)n.spr.fig.root.visible=lv==='town';if(n.spr.rfig)n.spr.rfig.root.visible=lv==='town';}
 }
-function goTown(spot){setTimeout(()=>{if(H)fogPuff(H.x,H.z);},60);
+function goTown(spot){for(const ms of [80,450])setTimeout(()=>{if(H&&S.level==='town')fogPuff(H.x,H.z,1.2);},ms);
   if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};NET.tp=2;if(typeof vcUI==='function')vcUI();
   if(INV.cleared&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
@@ -4008,7 +4009,7 @@ function interactables(){
     if(DKFX.maren)L.push({x:DKFX.maren.x,z:DKFX.maren.z+0.9,r:2.3,y:2.8,label:'Shop with Old Maren',act:()=>{gemSel=null;renderShop3('maren');}});
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
     if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push(freed().gil?{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()}:{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:"Gil's fish boat: empty",act:()=>toast("Gil's fish boat is empty. Gil went into the castle to fight the Lich Queen and never came back.")});
-    if(!INV.gift&&(GATE.cap||GATE.guards.length)){const q=GATE.cap?GATE.cap.e:GATE.guards[0].e;L.push({x:q.x,z:q.z,r:GATE.cap?3:6,y:2.7,label:INV.gift?(jobsReady().length?'Collect your pay from the captain':'Ask the captain for work'):'Talk to the gate captain',act:guardGift});}
+    if((GATE.cap&&S.level==='town')||(!INV.gift&&GATE.guards.length)){const q=GATE.cap?GATE.cap.e:GATE.guards[0].e;L.push({x:q.x,z:q.z,r:GATE.cap?3:6,y:2.7,label:INV.gift?(jobsReady().length?'Collect your pay from Captain Jordan':'Ask Captain Jordan for work'):'Talk to Captain Jordan',act:guardGift});}
     walkInteract(L);
   } else if(S.level==='dungeon'){if(MZ&&MZ.relic&&!MZ.relic.got)L.push({x:MZ.relic.x,z:MZ.relic.z,r:2.2,y:2.3,label:'Take '+MZ.relic.j.name,act:takeRelic});if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
   else{const hd=HOUSES.find(h=>h.id===S.house);L.push({x:0,z:4.2,r:1.5,y:3,label:'Go outside',act:()=>goTown(hd.shop?{x:hd.x,z:-7.6,fx:0,fz:1,house:true}:{x:hd.x,z:11.9,fx:0,fz:-1,house:true})});
