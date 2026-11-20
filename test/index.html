@@ -2990,7 +2990,14 @@ const KEY_LOOK={rusty:['Key_A','#e8b090'],'Jailer’s Key':['Key_C','#ffffff'],'
 function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
   const mat=KEYM.mat.clone();mat.color=new THREE.Color(L[1]);mat.metalness=0.3;mat.roughness=0.45;mat.emissive=new THREE.Color(L[2]||'#000000');const m=new THREE.Mesh(KEYM.g[L[0]],mat);m.castShadow=true;return m;}
 function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
-function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='rkey'||kind==='gkey')return keyMesh(kind==='rkey'?'rusty':GKEY[S.floor]);if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+// dropped gear shows the real thing from the weapons pack and the paladin armor: your class's weapon at that tier, or the helm / plate / gauntlets / boots, spinning
+function gearLoot(it){if(!it||!H)return null;const mats=[],g=new THREE.Group();
+  if(it.kind==='weapon'){if(WPN_ST!=='ready'||!WPN_SET[H.cls]){loadWpn();return null;}const w=wpnMesh(H.cls,it.tier,mats);if(w.userData.tip)w.userData.tip.visible=false;w.rotation.x=-Math.PI/2;g.add(w);}
+  else if(ARM_ICON[it.kind]){if(ARM_ST!=='ready'){loadArm();return null;}const mt=armMat(it.tier,mats);for(const [k,mir] of ARM_ICON[it.kind].p)g.add(new THREE.Mesh(armGeo(k,!!mir),mt));}
+  else return null;
+  g.updateMatrixWorld(true);const bb=new THREE.Box3().setFromObject(g),c=bb.getCenter(new THREE.Vector3()),sz=bb.getSize(new THREE.Vector3()),k=1/Math.max(sz.x,sz.y,sz.z,0.001);
+  g.scale.multiplyScalar(k);g.position.set(-c.x*k,-bb.min.y*k,-c.z*k);const o=new THREE.Group();o.add(g);o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false;}});return o;}
+function lootMesh(kind,item){if(kind==='gear')return gearLoot(item);if(kind==='goods')return coinBagMesh();if(kind==='rkey'||kind==='gkey')return keyMesh(kind==='rkey'?'rusty':GKEY[S.floor]);if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
 // the Gate Captain's job list is a rolled parchment scroll with a leather tie
 const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
@@ -3059,13 +3066,13 @@ function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&
 function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
   return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
-function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();loadKeys();
+function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();loadKeys();if(kind==='gear'){loadWpn();loadArm();}
   const map=kind==='scroll'?TX.glow:kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
   if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
     if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
-  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
+  {const lm=lootMesh(kind,item);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:kind==='gear'?1.35:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -3275,7 +3282,7 @@ function goTown(spot){setTimeout(()=>{if(H)fogPuff(H.x,H.z);},60);
 }
 function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon')fogPuff(H.x,H.z,1,0xd8d0ff);},60);
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();loadKeys();loadMush();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();loadMush();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
