@@ -2010,6 +2010,7 @@ function buildMaze(fi){
     wallM=im(0.6,0x8aa4c4,0.5);floorM=im(0.5,0x6a82a0,1);}
   if(theme==='fungal'){floorM.color.multiply(new THREE.Color(0x8fb08a));wallM.color.multiply(new THREE.Color(0x9fb09a));}
   const capHi=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.22)),capLo=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.55));
+  floorM.color.multiplyScalar(0.6); // darker dungeon floors so the monsters stand out
   MZ.wallM=wallM;MZ.floorM=floorM;MZ.ironM=new THREE.MeshStandardMaterial({color:0x4a4a52,metalness:0.8,roughness:0.38});MZ.mats.push(MZ.ironM);MZ.capHi=capHi;
   // wall heights: walls with floor just north of them are cut low so the camera can see in
   const h=new Float64Array(W*H2);
@@ -5550,7 +5551,7 @@ function render3D(){
     e.face=screenFace(e.fx,e.fz,e.face);let rot=0,alpha=1;
     if(e.state==='dead'){alpha=Math.min(1,e.t/20);rot=-e.face*Math.min(1.4,(36-e.t)*0.08);}else if(e.state==='kd')rot=-e.face*(e.y>0?0.6:1.3);
     const rmi=SET.style==='real'&&rmInfo(e);
-    if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig)e.spr.rfig=buildRealMon(e,rmi);poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
+    if(rmi&&loadReal(null,rmi.f)==='ready'&&(!rmi.rider||loadReal(null,rmi.rider)==='ready')&&animState==='ready'){if(e.spr.fig){disposeMon(e.spr.fig);e.spr.fig=null;}if(!e.spr.rfig){e.spr.rfig=buildRealMon(e,rmi);for(const m of e.spr.rfig.mats)if(m.map&&!m.emissiveMap&&m.emissive){m.emissiveMap=m.map;m.emissive=new THREE.Color(0xffffff);m.needsUpdate=true;}}/* monsters glow faintly with their own colours, so bony skeletons stand out */poseRealMon(e.spr.rfig,e);e.spr.mesh.visible=false;}
     else if(syncFig(e.spr,()=>buildMon(e))){poseMon(e.spr.fig,e);e.spr.fig.root.visible=!(rmi&&realWaiting(rmi.f,3500));} // foes are never invisible for long: on a slow connection the simple figure shows until the real model arrives
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
