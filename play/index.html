@@ -95,7 +95,7 @@ body.phone #nub{width:54px;height:54px;margin:-27px 0 0 -27px}
 body.phone .tb{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));grid-template-columns:repeat(2,56px);gap:10px}
 body.phone .tb button{width:56px;height:56px;display:grid;place-items:center;padding:0;color:#f2e7cf}
 body.phone .tb button[data-b="attack"]{width:68px;height:68px;margin:-6px;background:rgba(140,40,30,.6)}
-body.phone .tb{display:block;width:176px;height:168px}
+body.phone .tb{display:block;width:176px;height:168px;pointer-events:none}.tb button{pointer-events:auto} /* the empty corner of the button box must not swallow taps on the potion buttons */
 body.phone .tb button{position:absolute}
 body.phone .tb button[data-b="attack"]{right:0;bottom:0;margin:0;width:74px;height:74px}
 body.phone .tb button[data-b="jump"]{right:86px;bottom:0;width:50px;height:50px}
