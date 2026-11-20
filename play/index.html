@@ -292,7 +292,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
       <span><kbd>B</kbd> bag <kbd>H</kbd> hero <kbd>1</kbd> <kbd>2</kbd> potions <kbd>M</kbd> map <kbd>T</kbd> town</span>
       <span><kbd>Q</kbd> <kbd>E</kbd> or drag to turn camera · <kbd>C</kbd> switch camera</span>
       <span>Online: <kbd>Enter</kbd> chat · <kbd>V</kbd> mute mic</span>
-      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>4</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party · <kbd>Shift</kbd>+<kbd>Y</kbd> Lich Queen falls</span>
+      <span>Shortcuts: <kbd>Shift</kbd>+<kbd>1</kbd>–<kbd>9</kbd> jump to a floor · <kbd>Shift</kbd>+<kbd>B</kbd> skip to boss · <kbd>Shift</kbd>+<kbd>0</kbd> town · <kbd>Shift</kbd>+<kbd>F</kbd> victory party · <kbd>Shift</kbd>+<kbd>Y</kbd> Lich Queen falls</span>
     </div>
     <div class="tools">
       <button class="tbtn" id="bBag" type="button">Bag</button>
@@ -813,7 +813,7 @@ function loadSfx(){if(SFX_ST!=='none'||!AC)return;SFX_ST='loading';fetch('sfx/li
 const SFX_VOL={swing:0.7,hit:0.75,hurt:0.7,block:0.6,shoot:0.7,magic:0.5,boom:0.55,chest:0.8,door:0.7,gate:0.7,boss:0.8,go:0.6,gem:0.6,tick:0.5,bagopen:0.6,bagclose:0.6,jump:0.4,land:0.4,step_dirt:0.32,step_stone:0.5,step_wood:0.35,whoosh:0.6,thud:0.7,zap:0.45,spellhit:0.5,arrowhit:0.6,chop:0.6};
 // which swing and hit sounds fit each hero and monster: only bladed weapons clang
 const HERO_SWING={barbarian:'swing',archer:'shoot',elf:'whoosh',necromancer:'zap',healer:'whoosh'},HERO_HIT={barbarian:'hit',archer:'arrowhit',elf:'hit',necromancer:'spellhit',healer:'thud'};
-const BLADE_FOES=new Set(['skeleton','boneKing','deathRider','goblin','orc','warden']);
+const BLADE_FOES=new Set(['skeleton','boneKing','deathRider','riderBoss','goblin','orc','warden']);
 const foeSwing=e=>e.def.ranged?(e.def.archer?'shoot':'zap'):BLADE_FOES.has(e.type)?'swing':'whoosh';
 function playSample(k,vol){const L=SFXB[k];if(!AC||!L||!L.length)return false;const s=AC.createBufferSource(),g=AC.createGain();s.buffer=L[Math.floor(Math.random()*L.length)];s.playbackRate.value=0.94+Math.random()*0.12;g.gain.value=vol==null?(SFX_VOL[k]||0.5):vol;s.connect(g);g.connect(AC.destination);s.start();return true;}
 // footsteps: dirt in town, stone in the dungeon, wood inside houses
@@ -821,7 +821,7 @@ function stepSnd(){if(muted||!AC)return;playSample(S.level==='dungeon'?'step_sto
 // background sounds under the music: cave in the dungeon, forest by day or night in town
 // ================= fireworks over Grimfall once the castle has fallen =================
 const FW={pts:null,n:1800,pos:null,col:null,vel:null,life:null,next:0,party:0,i:0,rk:[]};
-function won(){return (INV.deepest||0)>=4||!!S.celebPreview;}
+function won(){return !!INV.cleared||!!S.celebPreview;}
 function celebrating(){return S.level==='town'&&won()&&(FW.party>0||(DN.day||0)<0.45);}
 // the crowd waiting outside the castle gate, in an arc facing the hero
 // the party crowd: three groups lined up across the road facing the hero
@@ -840,7 +840,7 @@ function partyCrowdTick(){const want=FW.party>0&&S.level==='town'&&won();pearlFu
     if(f.kind==='cheer'){R.play('jump',false,1.15+f.ph*0.3);}else R.play(f.kind);R.mixer.update(dt);}}
 const FW_SPOTS=[[-33,4.5],[-18,-4.5],[-8,6.5],[-5,-4.2],[7,6.8],[24,-4.5],[30,5.2],[36,-3.5],[2,9]];
 function fwCrowd(){const L=S.npcs.filter(n=>!n.keeper&&!n.route);L.forEach((n,i)=>{const p=FW_SPOTS[i%FW_SPOTS.length];n.cspot=[p[0],p[1]];n.x=p[0];n.z=p[1];n.dspot=n.dspot||[p[0],p[1]];n.dancer=true;n.dclip=i%2?'gangnam':'samba';n.cheer=false;});} // everyone dances, all through town
-function lqPreview(){if(!S.lqKeep)S.lqKeep={d:INV.deepest||0,c:!!INV.cleared,f:INV.fwShown};goDungeon(3);if(!MZ)return;const BR=MZ.rooms.find(r=>r.kind==='boss');if(!BR)return;
+function lqPreview(){if(!S.lqKeep)S.lqKeep={d:INV.deepest||0,c:!!INV.cleared,f:INV.fwShown};goDungeon(lastF());if(!MZ)return;const BR=MZ.rooms.find(r=>r.kind==='boss');if(!BR)return;
   for(const i of BR.doors){const d=MZ.doors[i];d.lock=null;d.open=true;}mzRefreshBlk();const [cx,cz]=mzCenter(BR);H.x=cx;H.z=cz+TS;camUpdate(true);toast('Preview: the Lich Queen falls (your progress is put back afterwards)');
   let n=0;const iv=setInterval(()=>{n++;if(S.level!=='dungeon'||n>80){clearInterval(iv);return;}const b=S.enemies.find(e=>e.def&&e.def.boss&&e.state!=='dead');if(b){clearInterval(iv);b.spawnInv=0;b.inv=0;hurtEnemy(b,b.hp+99999,0,1,false);}},250);}
 function partyNow(preview){if(preview)S.celebPreview=true;FW.party=60*45;FW.next=0;goTown(DOCK_SPOT);fwCrowd();setTimeout(()=>toast(preview?'Preview: the victory party, seen from the docks (your progress is unchanged)':'We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.'),900);}
@@ -1459,6 +1459,11 @@ function giveBow(R){const E=REALS.erika&&REALS.erika.gltf.scene;if(!E)return;let
   const geo=bow.geometry.clone();geo.deleteAttribute('skinIndex');geo.deleteAttribute('skinWeight');geo.applyMatrix4(new THREE.Matrix4().copy(bow.skeleton.boneInverses[li]).multiply(bow.bindMatrix));
   const mat=(Array.isArray(bow.material)?bow.material[0]:bow.material).clone();mat.skinning=false;const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.frustumCulled=false;
   let lh=null;R.model.traverse(o=>{if(!lh&&o.isBone&&/LeftHand(_\d+)?$/.test(o.name))lh=o;});if(lh){lh.add(m);R.mats.push(mat);}}
+// Captain Jordan wears the hero's paladin plate: bind the armor file's pieces to her own bones
+function giveArmor(R,arm){const AR=REALS[arm];if(!AR||AR.state!=='ready')return;const bones={};R.model.traverse(o=>{if(o.isBone)bones[o.name.replace(/_\d+$/,'')]=o;});
+  const ac=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(AR.gltf.scene):AR.gltf.scene,list=[];ac.traverse(o=>{if(o.isSkinnedMesh)list.push(o);});
+  for(const o of list){const bs=o.skeleton.bones.map(b=>bones[b.name.replace(/_\d+$/,'')]);if(bs.some(b=>!b))continue;o.bind(new THREE.Skeleton(bs,o.skeleton.boneInverses),o.bindMatrix);o.parent.remove(o);o.frustumCulled=false;R.model.add(o);
+    const m=(Array.isArray(o.material)?o.material[0]:o.material).clone();m.skinning=true;o.material=m;R.mats.push(m);}}
 function makeGateGuards(){const G=THREE;
   for(const T of GATE.towers||[]){const g=T.g;g.updateMatrixWorld(true);
     const rc=new G.Raycaster(new G.Vector3(T.x,40,T.z),new G.Vector3(0,-1,0));let y=4;for(const h of rc.intersectObject(g,true)){const n=h.face&&h.face.normal.clone().transformDirection(h.object.matrixWorld);if(n&&n.y>0.7){y=h.point.y;break;}}
@@ -1466,7 +1471,7 @@ function makeGateGuards(){const G=THREE;
       const R=buildRealMon(e,{f:'guard',tall:1.85});giveBow(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.guards.push({R,e,next:performance.now()+1500+Math.random()*3000,aim:false,tg:null});}}
   GATE.guards.sort((a,b)=>Math.abs(a.e.z-1.5)-Math.abs(b.e.z-1.5));
   // the gate captain stands on the road below the towers: you must talk to him (and put on his armor) before you reach the gate
-  {const e={x:80,y:0,z:INV.gift?3.3:1.5,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'guard',tall:1.9});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.cap={R,e};}}  // guards[0] is the one by the road: he hands out the armor
+  {const e={x:80,y:0,z:INV.gift?3.3:1.5,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'hero_f',tall:1.8});giveArmor(R,'arm_pal_f');bossWpn(R,'sword-07',1.0,0.12);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});GATE.cap={R,e};}}  // guards[0] is the one by the road: he hands out the armor
 // the courtyard between town and castle: skeletons stagger out of the castle toward town and the crossbowmen shoot them down.
 // They ignore you, so you just run through them. Fewer come out as you clear deeper floors.
 const CY={sk:[],bolts:[],next:0};
@@ -1478,7 +1483,7 @@ function cyReset(s){const e=s.e;Object.assign(e,{x:rnd(82,87),z:rnd(-12,14),y:0,
   for(const m of s.R.mats){m.opacity=1;if(m.transparent){m.transparent=false;m.needsUpdate=true;}}}
 function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null,'skel2')==='ready';
   for(const s of CY.sk)s.R.root.visible=town&&!s.hidden;for(const b of CY.bolts)if(!town){b.live=false;b.m.visible=false;}if(!town)return;
-  const want=won()?0:Math.max(2,9-2*(INV.deepest||0)),now=performance.now();
+  const want=won()?0:Math.max(2,9-2*story()),now=performance.now();
   if(CY.sk.length<want&&now>CY.next){CY.next=now+1500;const e={x:0,z:0,y:0,fx:-1,fz:0,state:'walk',moving:true,t:0,flash:0,def:{wind:30}},R=buildRealMon(e,{f:'skel2',tall:1.8});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});const s={R,e};cyReset(s);CY.sk.push(s);}
   CY.sk.forEach((s,i)=>{const e=s.e;if(i>=want){s.hidden=true;s.R.root.visible=false;return;}
     if(s.hidden){if(now>s.back){cyReset(s);s.R.root.visible=true;}return;}
@@ -1489,7 +1494,7 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
   for(const b of CY.bolts){if(!b.live)continue;b.t+=0.06;b.m.position.lerpVectors(b.a,b.b,Math.min(1,b.t));
     if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
-  if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
+  if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||loadReal(null,'hero_f')!=='ready'||loadReal(null,'arm_pal_f')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
@@ -1615,7 +1620,7 @@ const DOCK_W=[[-58,-38.9,1.15,3.25],[-44.4,-40.45,-17,19.4],[-55.3,-44.3,11.2,13
 function dockClamp(o,r,b){for(const q of DOCK_W)if(o.x>=q[0]+r&&o.x<=q[1]-r&&o.z>=q[2]+r&&o.z<=q[3]-r)return;
   let bx=b.minX,bz=clamp(o.z,b.minZ,b.maxZ),bd=Math.hypot(o.x-bx,o.z-bz);
   for(const q of DOCK_W){const x=clamp(o.x,q[0]+r,q[1]-r),z=clamp(o.z,q[2]+r,q[3]-r),d=Math.hypot(x-o.x,z-o.z);if(d<bd){bd=d;bx=x;bz=z;}}o.x=bx;o.z=bz;}
-function harborTier(){const d=S.celebPreview?4:INV.deepest||0;return d>=4?4:d;}
+function harborTier(){const d=S.celebPreview?4:story();return d>=4?4:d;}
 function buildVessel(kind){
   const war=kind==='war',g=new THREE.Group(),big=kind==='merchant'||war,L=war?5.2:big?6.2:3.1,B=war?1.6:big?2.1:1.2,D=war?1.6:big?1.9:0.9,dy=war?0.9:big?1.0:0.42,wallH=big?0.6:0.3;
   const hullM=war?lam({map:TX.hull,color:0x8a8a9a}):lam({map:TX.hull}),trim=lam({color:0x3e2616}),hm=lam({map:TX.hull,side:THREE.DoubleSide});
@@ -1879,15 +1884,15 @@ function updDayNight(){if(!DN.sky)return;DN.t=(DN.t+1/DN.len)%1;if(FW.party>0&&S
 // ================= maze dungeons (Diablo-style camera, cutaway walls) =================
 const TS=2,MW=5,MH=4,CS=15,WALL_H=4.0;
 const MZ_CFG=[{start:[0,1],boss:[4,2],piece:[2,0]},{start:[0,2],boss:[4,1],piece:[2,3]},{start:[0,0],boss:[4,3],piece:[3,1]},{start:[0,3],boss:[4,0],piece:[2,1]}];
-const GKEY=['Jailer’s Key','Crypt Key','Root Key','Rune Key'];
-const PIECE_N=['the Prison Block','the Burial Vault','the Glow Grotto','the Ritual Hall'];
+const GKEY=new Proxy([],{get:(t,k)=>FLOORS[k]&&FLOORS[k].key}); // read from FLOORS, which is defined further down
+const PIECE_N=new Proxy([],{get:(t,k)=>FLOORS[k]&&FLOORS[k].piece});
 let MZ=null;
 function genMaze(fi){
   for(let tries=0;tries<30;tries++){const m=genMazeTry(fi);if(m)return m;}
   return genMazeTry(fi,true);
 }
 function genMazeTry(fi,force){
-  const cfg=MZ_CFG[fi],W=MW*CS+2,H2=MH*CS+2,N=W*H2,t=new Uint8Array(N),rid=new Int16Array(N).fill(-1);
+  const cfg=MZ_CFG[fi%MZ_CFG.length],W=MW*CS+2,H2=MH*CS+2,N=W*H2,t=new Uint8Array(N),rid=new Int16Array(N).fill(-1);
   const I=(x,z)=>z*W+x,K=(x,z)=>z*MW+x,eq=(a,b)=>a[0]===b[0]&&a[1]===b[1],NB=[[1,0],[-1,0],[0,1],[0,-1]];
   const edges=[],deg=new Array(MW*MH).fill(0),has=new Set(),hk=(a,b)=>Math.min(K(...a),K(...b))+'-'+Math.max(K(...a),K(...b));
   const link=(a,b)=>{edges.push([a,b]);deg[K(...a)]++;deg[K(...b)]++;has.add(hk(a,b));};
@@ -1918,7 +1923,7 @@ function genMazeTry(fi,force){
       for(let z=za;z<=zm+1;z++){carve(xa,z);carve(xa+1,z);}for(let x=Math.min(xa,xb);x<=Math.max(xa,xb)+1;x++){carve(x,zm);carve(x,zm+1);}for(let z=zm;z<=zb;z++){carve(xb,z);carve(xb+1,z);}
       addDoor(A,xa,za,'z',false);addDoor(B,xb,zb,'z',true);}}
   const P=rooms.find(r=>r.kind==='piece');
-  if(fi<=1){const kinds=['burst','locked','decor'].sort(()=>Math.random()-0.5);
+  if(FLOORS[fi].cells){const kinds=['burst','locked','decor'].sort(()=>Math.random()-0.5);
     for(let k=0;k<3;k++){const cx=P.x0+1+k*4;for(let z=P.z0-3;z<=P.z0-1;z++){t[I(cx,z)]=1;t[I(cx+1,z)]=1;}cells.push({k,tx:cx,tz:P.z0-1,kind:kinds[k],open:false,anim:0});}}
   // seal any accidental gaps in room walls
   const doorT=new Int16Array(N).fill(-1);for(const d of doors){doorT[I(d.tx,d.tz)]=d.i;doorT[d.axis==='z'?I(d.tx+1,d.tz):I(d.tx,d.tz+1)]=d.i;}
@@ -1937,7 +1942,7 @@ function genMazeTry(fi,force){
   // monsters
   const F=FLOORS[fi],pool=[...new Set(F.waves.filter(w=>!w.boss).flatMap(w=>w.list))];
   for(const r of rooms){if(r.kind==='normal')r.foes=[...Array(ri(4,5+Math.min(fi,2)))].map(()=>pool[ri(0,pool.length-1)]);
-    else if(r.kind==='piece')r.foes=(fi===1||fi===3?['deathRider']:[]).concat(F.waves[2].list);else if(r.kind==='boss')r.foes=F.waves.find(w=>w.boss).list.slice();}
+    else if(r.kind==='piece')r.foes=(F.rider?['deathRider']:[]).concat(F.waves[2].list);else if(r.kind==='boss')r.foes=F.waves.find(w=>w.boss).list.slice();}
   // traps in corridors
   const traps=[],near=(x,z,R)=>{for(const d of doors)if(Math.abs(d.tx-x)<=R&&Math.abs(d.tz-z)<=R)return true;return false;};
   const corr=(x,z)=>t[I(x,z)]&&rid[I(x,z)]<0&&doorT[I(x,z)]<0&&cellT[I(x,z)]<0;
@@ -1991,11 +1996,14 @@ TX.pick.rkey=keyTex('#c9884a');TX.pick.gkey=keyTex('#ffd35c');
 function buildMaze(fi){
   if(MZ){scene.remove(MZ.grp);MZ.grp.traverse(o=>{if(o.geometry&&!o.userData.shared)o.geometry.dispose();});for(const m of MZ.mats)m.dispose();}
   const D=netSeeded(fi,()=>genMaze(fi)),F=FLOORS[fi],theme=F.decor,G=new THREE.Group();scene.add(G);G.visible=false;
-  if(fi===2)gilCarve(D);
+  if(F.gil)gilCarve(D);
   MZ=Object.assign(D,{grp:G,mats:[],cols:[],torches:[],doorObjs:[],trapObjs:[],cellObjs:[]});
   const {W,H:H2,t}=D,I=(x,z)=>z*W+x,fl=(x,z)=>x>=0&&z>=0&&x<W&&z<H2&&t[I(x,z)]===1;
   const tint=(m,c)=>{m.color=new THREE.Color(c);MZ.mats.push(m);return m;};
-  const wallM=tint(texRep(M.brick,1,1),F.wall),floorM=tint(texRep(M.slab,1,1),F.floor);if(theme==='fungal'){floorM.color.multiply(new THREE.Color(0x8fb08a));wallM.color.multiply(new THREE.Color(0x9fb09a));}
+  let wallM=tint(texRep(M.brick,1,1),F.wall),floorM=tint(texRep(M.slab,1,1),F.floor);
+  if(theme==='ice'){const im=(rough,c,rep)=>{const m=new THREE.MeshStandardMaterial({map:fxTex('ice_base.jpg',rep,1),normalMap:fxTex('ice_nrm.jpg',rep),color:c,roughness:rough,metalness:0.08});MZ.mats.push(m);return m;};
+    wallM=im(0.6,0x8aa4c4,0.5);floorM=im(0.5,0x6a82a0,1);}
+  if(theme==='fungal'){floorM.color.multiply(new THREE.Color(0x8fb08a));wallM.color.multiply(new THREE.Color(0x9fb09a));}
   const capHi=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.22)),capLo=tint(texRep(M.stone,1,1),new THREE.Color(F.wall).multiplyScalar(0.55));
   MZ.wallM=wallM;MZ.floorM=floorM;MZ.ironM=new THREE.MeshStandardMaterial({color:0x4a4a52,metalness:0.8,roughness:0.38});MZ.mats.push(MZ.ironM);MZ.capHi=capHi;
   // wall heights: walls with floor just north of them are cut low so the camera can see in
@@ -2115,6 +2123,57 @@ function buildTrap(tr,fi){
     G.add(mesh(new THREE.BoxGeometry(0.4,0.01,0.06),lam({color:0x2a2228,transparent:true,opacity:0.5}),0,0.032,0,false,false)).rotation.y=tr.dir==='s'?Math.PI/2:0;}
   return o;
 }
+// ice textures for the Frozen Vault, loaded once
+// a fresh texture per use (the browser caches the file): a clone made before the picture arrives would stay blank
+function fxTex(f,rep,srgb){const t=new THREE.TextureLoader().load('fx/'+f);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);if(srgb)t.encoding=THREE.sRGBEncoding;return t;}
+let ICICLE=null;function icicleMesh(){if(ICICLE===null){ICICLE=0;loadModelData('icicles').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)ICICLE=o;});}).catch(()=>{});}return ICICLE||null;}
+function mzIce(G,r,back,corners,bx,bz,col,glowSpr){const ic=icicleMesh();
+  for(let k=0;k<back.length;k+=2){const x=bx(back[k])+rnd(-0.4,0.4),s=rnd(0.55,1.05);if(ic){const m=new THREE.Mesh(ic.geometry,ic.material);m.scale.setScalar(s);m.rotation.y=rnd(0,6.3);m.position.set(x,WALL_H-1.6*s,bz+0.35);G.add(m);}
+    else{for(let j=0;j<3;j++){const h=rnd(0.4,1.1);G.add(mesh(new THREE.ConeGeometry(0.08,h,5),lam({color:0xcfe8ff}),x+j*0.25-0.25,WALL_H-h/2,bz+0.3,false,false).rotateX(Math.PI));}}}
+  for(const [x,z] of corners){const px=x*TS+TS/2+(x===r.x0?-0.25:0.25),pz=z*TS+TS/2+(z===r.z0?-0.25:0.25);if(z===r.z1)continue;const big=r.kind==='piece'||r.kind==='boss';
+    for(let k=0;k<(big?6:4);k++){const h=rnd(0.7,big?2.6:1.7),c=mesh(new THREE.ConeGeometry(rnd(0.16,0.32),h,6),lam({color:0xd6ecff,emissive:0x1a4a6a,transparent:true,opacity:0.9}),px+rnd(-0.45,0.45),h/2,pz+rnd(-0.45,0.45),true,false);c.rotation.set(rnd(-0.3,0.3),0,rnd(-0.3,0.3));G.add(c);}
+    glowSpr(px,0.9,pz,0x8fd0ff,2.2);col(px,pz,0.6,0.6);}
+}
+let FORT=null;function fortMesh(){if(FORT===null){FORT=0;loadModelData('fortress').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)FORT=o;});if(MZ&&MZ.fortSpots)for(const f of MZ.fortSpots)f();}).catch(()=>{});}return FORT||null;}
+function lavaMat(rep){const m=new THREE.MeshStandardMaterial({map:fxTex('lava_base.jpg',rep,1),emissiveMap:fxTex('lava_emi.jpg',rep,1),emissive:0xff6a2a,emissiveIntensity:1.6,roughness:0.6,metalness:0});MZ.mats.push(m);(MZ.lava=MZ.lava||[]).push(m);return m;}
+function mzForge(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',[cx,cz]=mzCenter(r);
+  const pools=big?2:ri(1,2);for(let k=0;k<pools;k++){const rad=rnd(0.8,1.3),px=rnd(r.x0*TS+2.2,(r.x1+1)*TS-2.2),pz=rnd(r.z0*TS+2.4,(r.z1+1)*TS-2.2);if(Math.hypot(px-cx,pz-cz)<2.6)continue;
+    const pool=mesh(new THREE.CircleGeometry(rad,28),lavaMat(rad*0.4),px,0.05,pz,false,false);pool.rotation.x=-Math.PI/2;G.add(pool);
+    for(let j=0;j<16;j++){const a=j/16*Math.PI*2,rk=mesh(new THREE.DodecahedronGeometry(0.2+Math.random()*0.18,0),MZ.capLoM,px+Math.cos(a)*(rad+0.1),0.08,pz+Math.sin(a)*(rad+0.1));rk.scale.y=0.6;rk.rotation.set(Math.random()*3,Math.random()*3,0);G.add(rk);}
+    glowSpr(px,0.3,pz,0xc8400e,rad*1.7);col(px,pz,rad*0.8,rad*0.8);}
+  if(big){const place=()=>{const f=fortMesh();if(!f||!MZ||MZ.grp!==G)return false;for(const [x,z] of corners.slice(0,2)){if(z!==r.z0)continue;const px=x*TS+TS/2+(x===r.x0?0.3:-0.3),pz=z*TS+TS/2+0.2,m=new THREE.Mesh(f.geometry,f.material);m.scale.setScalar(0.55);m.position.set(px,0,pz);m.rotation.y=x===r.x0?0.5:-0.5;m.castShadow=true;G.add(m);col(px,pz,1.2,1.2);}return true;};
+    if(!place())(MZ.fortSpots=MZ.fortSpots||[]).push(place);}}
+// Bone Library: tall bookshelves, floating candles, loose pages and stacks of books
+let BOOKTX=null;function bookTex(){if(BOOKTX)return BOOKTX;const c=document.createElement('canvas');c.width=256;c.height=320;const g=c.getContext('2d');g.fillStyle='#2a1a10';g.fillRect(0,0,256,320);
+  const cols=['#7a2a22','#2a4a6a','#3a5a2a','#6a4a1a','#4a2a5a','#8a6a3a','#2a2a2a','#9a8a6a'];
+  for(let sh=0;sh<4;sh++){let x=6;const y0=sh*80+8,y1=sh*80+74;while(x<248){const w=8+Math.random()*12,h=40+Math.random()*26;if(x+w>250)break;g.fillStyle=cols[Math.floor(Math.random()*cols.length)];g.fillRect(x,y1-h,w-1.5,h);g.fillStyle='rgba(230,200,120,0.55)';g.fillRect(x+1,y1-h+6,w-3.5,2);g.fillRect(x+1,y1-12,w-3.5,2);
+      if(Math.random()<0.12){g.fillStyle='#e8e0cc';g.beginPath();g.arc(x+w/2,y1-h-5,5,0,7);g.fill();}x+=w;}
+    g.fillStyle='#5a3a22';g.fillRect(0,y1,256,6);}
+  BOOKTX=new THREE.CanvasTexture(c);BOOKTX.colorSpace=THREE.SRGBColorSpace;return BOOKTX;}
+function mzLibrary(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',bm=lam({map:bookTex()});MZ.mats.push(bm);
+  for(let k=0;k+1<back.length;k+=3){const x=bx(back[k])+1,z=bz+0.3;G.add(mesh(new THREE.BoxGeometry(2.7,3.4,0.6),M.wood,x,1.7,z));G.add(mesh(new THREE.PlaneGeometry(2.5,3.2),bm,x,1.7,z+0.31,false,false));col(x,z,1.35,0.35);}
+  const cn=big?8:4;for(let k=0;k<cn;k++){const x=rnd(r.x0*TS+1.2,(r.x1+1)*TS-1.2),z=rnd(r.z0*TS+1.6,(r.z1+1)*TS-1.2),y=rnd(2.2,3.2);const cg=new THREE.Group();cg.position.set(x,y,z);
+    cg.add(mesh(new THREE.CylinderGeometry(0.05,0.05,0.28,8),lam({color:0xf2ead8}),0,0,0,false,false));const fl=new THREE.Sprite(M.flame);fl.scale.set(0.16,0.26,1);fl.position.y=0.24;cg.add(fl);G.add(cg);(MZ.bob=MZ.bob||[]).push([cg,y,Math.random()*6]);glowSpr(x,y+0.25,z,0xffc070,1.1);}
+  for(let k=0;k<(big?14:7);k++){const pg=mesh(new THREE.PlaneGeometry(0.32,0.42),lam({color:0xe8dcc0,side:THREE.DoubleSide}),rnd(r.x0*TS+0.6,(r.x1+1)*TS-0.6),0.03,rnd(r.z0*TS+1,(r.z1+1)*TS-0.6),false,true);pg.rotation.set(-Math.PI/2,0,rnd(0,6.3));G.add(pg);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.3:0.3),pz=z*TS+TS/2+0.4;
+    if(big){const lt=new THREE.Group();lt.position.set(px,0,pz);lt.add(mesh(new THREE.CylinderGeometry(0.12,0.3,1.1,8),M.wood,0,0.55,0));const top=mesh(new THREE.BoxGeometry(0.8,0.08,0.6),M.wood,0,1.15,0);top.rotation.x=0.35;lt.add(top);
+      const bk=mesh(new THREE.BoxGeometry(0.7,0.05,0.5),lam({color:0xf0e6cc,emissive:0x3a5a2a}),0,1.22,0.02,false,false);bk.rotation.x=0.35;lt.add(bk);G.add(lt);glowSpr(px,1.45,pz,0x9dff8a,1.6);}
+    else for(let j=0;j<ri(3,6);j++){const b=mesh(new THREE.BoxGeometry(rnd(0.45,0.6),0.11,rnd(0.35,0.45)),lam({color:[0x7a2a22,0x2a4a6a,0x3a5a2a,0x6a4a1a][j%4]}),px+rnd(-0.05,0.05),0.06+j*0.11,pz+rnd(-0.05,0.05),true,false);b.rotation.y=rnd(-0.4,0.4);G.add(b);}
+    col(px,pz,0.5,0.5);}}
+// Clockwork Armory: big turning gears on the walls, armor stands, weapon racks and copper pipes
+function gearMesh(rad,mat){const g=new THREE.Group();g.add(mesh(new THREE.CylinderGeometry(rad*0.8,rad*0.8,0.18,24),mat,0,0,0,false,false));const n=Math.max(8,Math.round(rad*10));
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,t=mesh(new THREE.BoxGeometry(rad*0.28,0.18,rad*0.3),mat,Math.cos(a)*rad*0.92,0,Math.sin(a)*rad*0.92,false,false);t.rotation.y=-a;g.add(t);}
+  g.add(mesh(new THREE.CylinderGeometry(rad*0.2,rad*0.2,0.3,12),M.dark,0,0,0,false,false));g.rotation.x=Math.PI/2;return g;}
+function mzArmory(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',brass=lam({color:0xb08a3a,emissive:0x1a1004}),iron=lam({color:0x5a5e66}),copper=lam({color:0xb8683a});MZ.mats.push(brass,iron,copper);
+  for(let k=1;k<back.length;k+=4){const x=bx(back[k]),rad=rnd(0.8,1.3),y=rnd(2.0,3.0),gr=gearMesh(rad,k%8===1?brass:iron);gr.position.set(x,y,bz+0.15);G.add(gr);(MZ.spin=MZ.spin||[]).push([gr,(k%8===1?1:-1)*0.012/rad]);
+    const g2=gearMesh(rad*0.55,brass);g2.position.set(x+rad*1.4,y-rad*0.55,bz+0.12);G.add(g2);MZ.spin.push([g2,-(k%8===1?1:-1)*0.012/(rad*0.55)]);}
+  if(back.length>1){const x0=bx(back[0]),x1=bx(back[back.length-1]);const pp=mesh(new THREE.CylinderGeometry(0.11,0.11,x1-x0+2,10),copper,(x0+x1)/2,WALL_H-0.6,bz+0.2,false,false);pp.rotation.z=Math.PI/2;G.add(pp);}
+  for(let k=2;k+1<back.length;k+=4){const x=bx(back[k])+1,z=bz+0.4;const rk=new THREE.Group();rk.position.set(x,0,z);rk.add(mesh(new THREE.BoxGeometry(1.8,0.12,0.3),M.wood,0,1.6,0));rk.add(mesh(new THREE.BoxGeometry(1.8,0.12,0.3),M.wood,0,0.3,0));
+    for(let j=0;j<4;j++){const sw=mesh(new THREE.BoxGeometry(0.08,1.5,0.03),iron,-0.6+j*0.4,1.0,0.12);sw.rotation.z=0.08;rk.add(sw);rk.add(mesh(new THREE.BoxGeometry(0.3,0.05,0.06),brass,-0.6+j*0.4,1.62,0.14,false,false));}G.add(rk);col(x,z,0.95,0.3);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.3:0.3),pz=z*TS+TS/2+0.4,st=new THREE.Group();st.position.set(px,0,pz);st.rotation.y=x===r.x0?0.5:-0.5;
+    st.add(mesh(new THREE.CylinderGeometry(0.06,0.06,1.6,6),M.wood,0,0.8,0));st.add(mesh(new THREE.CylinderGeometry(0.3,0.22,0.7,10),iron,0,1.25,0));st.add(mesh(new THREE.SphereGeometry(0.2,10,8),iron,0,1.8,0));
+    for(const sx of [-1,1])st.add(mesh(new THREE.SphereGeometry(0.15,8,6),brass,sx*0.34,1.52,0));st.add(mesh(new THREE.CylinderGeometry(0.32,0.38,0.08,12),M.dark,0,0.04,0));G.add(st);col(px,pz,0.45,0.45);
+    if(big){const fg=gearMesh(0.9,brass);fg.rotation.set(0,0,0);fg.position.set(px+(x===r.x0?1.4:-1.4),0.1,pz+0.6);G.add(fg);MZ.spin.push([fg,0.01,'y']);col(fg.position.x,fg.position.z,0.9,0.9);}}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2134,6 +2193,10 @@ function mzDecor(fi,theme){
         const px=x*TS+TS/2+(x===r.x0?-0.2:0.2),pz=z*TS+TS/2+(z===r.z0?-0.2:0.2);if(z===r.z1&&hh>1.6)continue;
         const mg=new THREE.Group();mg.add(mesh(new THREE.CylinderGeometry(0.18+cr*0.12,0.3+cr*0.15,hh,10),lam({color:0xd8f6ec}),px,hh/2,pz));const cap=mesh(new THREE.SphereGeometry(cr,16,10,0,Math.PI*2,0,Math.PI/2),lam({color:c,emissive:c,emissiveIntensity:0.18}),px,hh,pz);cap.scale.y=0.6;mg.add(cap);G.add(mg);glowSpr(px,hh*0.7,pz,c,cr*1.6);col(px,pz,0.45,0.45);}
       for(let k=0;k<10;k++)G.add(mesh(new THREE.SphereGeometry(0.07,6,5),new THREE.MeshBasicMaterial({color:0x7af0d0}),rnd(r.x0*TS,(r.x1+1)*TS),0.05,rnd(r.z0*TS,(r.z1+1)*TS),false,false));}
+    if(theme==='ice')mzIce(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='forge')mzForge(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='library')mzLibrary(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='armory')mzArmory(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
       if(r.kind==='piece'||r.kind==='boss'){const [cx,cz]=mzCenter(r);const rg=mesh(new THREE.TorusGeometry(2.2,0.06,6,48),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg.rotation.x=-Math.PI/2;G.add(rg);const rg2=mesh(new THREE.TorusGeometry(1.5,0.04,6,6),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg2.rotation.x=-Math.PI/2;G.add(rg2);glowSpr(cx,0.3,cz,0x9dff8a,4);}}
@@ -2221,11 +2284,14 @@ function updMaze(){
       if(o.spikes){const ty=up?0:warn?-0.62+Math.sin(S.frame*0.9)*0.03:-0.75;o.spikes.position.y+=(ty-o.spikes.position.y)*(up?0.6:0.2);if(up&&tr.t===140)sfx('whoosh');}
       if(o.vent){o.glow.material.opacity=up?0.9:warn?0.35:0;if(up){for(let k=0;k<3;k++)addPart({x:o.G.position.x+rnd(-1.5,1.5),y:0.1,z:o.G.position.z+rnd(-1.5,1.5),vy:rnd(0.06,0.12),g:-0.001,life:ri(14,22),size:rnd(0.12,0.22),color:Math.random()<0.5?'#ffb04a':'#ff5a2a'});}
         else if(warn&&S.frame%4===0)addPart({x:o.G.position.x+rnd(-1.4,1.4),y:0.1,z:o.G.position.z+rnd(-1.4,1.4),vy:0.02,g:0,life:16,size:0.1,color:'#8a7a8a',kind:'smoke'});if(up&&tr.t===140)sfx('boom');}
-      if(up&&on&&H.y<0.5)hurtHero(7+S.floor*3,0,0,false);}
+      if(up&&on&&H.y<0.5)hurtHero(7+DEP()*3,0,0,false);}
     else{if(tr.cd>0)tr.cd--;o.plate.position.y=on?-0.012:0.015;
       if(on&&tr.cd<=0&&H.y<0.5){tr.cd=150;sfx('door');floatText(H.x,2.3,H.z,'Click!','#ffcf8a',16);
-        schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+S.floor*3,life:40,dead:false});
-          else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+S.floor*3,life:40,dead:false});}});}}}
+        schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+DEP()*3,life:40,dead:false});
+          else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+DEP()*3,life:40,dead:false});}});}}}
+  if(MZ.spin)for(const [o,v,ax] of MZ.spin){if(ax==='y')o.rotation.y+=v;else o.rotation.y+=v;}
+  if(MZ.bob)for(const [o,y,ph] of MZ.bob)o.position.y=y+Math.sin(S.frame*0.03+ph)*0.08;
+  if(MZ.lava)for(const m of MZ.lava){if(m.map)m.map.offset.y+=0.0006;if(m.emissiveMap)m.emissiveMap.offset.y+=0.0006;m.emissiveIntensity=1.4+Math.sin(S.frame*0.05)*0.25;}
   // torch flicker + nearest-torch light pool
   for(const tc of MZ.torches){const k=0.85+Math.sin(S.frame*0.25+tc.ph)*0.08;tc.f.scale.set((tc.sw||(tc.big?1:0.5))*k,(tc.sh||(tc.big?1.4:0.75))*(2-k),1);}
   if(--MZ.lightT<=0){MZ.lightT=10;const near=MZ.torches.map(tc=>[Math.hypot(tc.x-H.x,tc.z-H.z),tc]).filter(a=>a[0]<26).sort((a,b)=>a[0]-b[0]);
@@ -2279,7 +2345,7 @@ function drawMaze(g){
   // keys
   let ky=HH-78;g.textAlign='left';g.font=`800 14px ${BF}`;
   for(const [k,label,c] of [['great',GKEY[S.floor],'#ffd35c'],['rusty','Rusty Key','#d08a4a']]){const n=S.keys[k];if(!n)continue;
-    g.save();g.translate(24,ky-5);g.rotate(-0.6);circ(g,-6,0,4.5);g.lineWidth=2.5;g.strokeStyle=c;g.stroke();g.fillStyle=c;g.fillRect(-2,-1.5,13,3);g.fillRect(8,1,2,4);g.restore();
+    {const ki=keyIcon(k==='rusty'?'rusty':label);if(ki)g.drawImage(ki,10,ky-24,32,32);else{g.save();g.translate(24,ky-5);g.rotate(-0.6);circ(g,-6,0,4.5);g.lineWidth=2.5;g.strokeStyle=c;g.stroke();g.fillStyle=c;g.fillRect(-2,-1.5,13,3);g.fillRect(8,1,2,4);g.restore();}}
     g.lineWidth=3;g.strokeStyle=OUT;const txt=label+(n>1?' ×'+n:'');g.strokeText(txt,38,ky);g.fillStyle=c;g.fillText(txt,38,ky);ky-=22;}
   // full map
   if(S.mapOn){g.fillStyle='rgba(6,4,12,.82)';g.fillRect(0,0,HW,HH);const p2=Math.floor(Math.min((HW-60)/W,(HH-120)/MZ.H)),ox=(HW-W*p2)/2,oy=70;
@@ -2328,8 +2394,12 @@ const EN={
  slime:{look:'slime',hp:26,spd:1.5,dmg:6,reach:40,wind:20,cd:70,gold:[1,3],w:34},
  imp:{look:'imp',hp:24,spd:1.8,dmg:8,ranged:true,keep:240,wind:34,cd:120,gold:[2,5],w:26,fly:true,hover:30},
  boneKing:{look:'skeleton',hp:620,spd:1.15,dmg:15,reach:100,wind:36,cd:85,gold:[24,24],w:60,scale:1.9,boss:true,heavy:true,name:'The Bone King'},
+ riderBoss:{look:'skeleton',hp:600,spd:1.7,dmg:16,reach:100,wind:28,cd:85,gold:[26,26],w:60,scale:1.7,boss:true,heavy:true,name:'The Death Rider'},
  deathRider:{look:'skeleton',hp:380,spd:1.7,dmg:14,reach:100,wind:28,cd:90,gold:[14,14],w:60,scale:1.7,elite:true,heavy:true,name:'The Death Rider'},
  troll:{look:'troll',hp:760,spd:1.05,dmg:17,reach:108,wind:40,cd:95,gold:[28,28],w:70,scale:1.9,boss:true,heavy:true,name:'Mossback the Troll'},
+ archivist:{look:'lich',hp:700,spd:1.15,dmg:13,ranged:true,keep:240,wind:30,cd:90,gold:[30,30],w:56,scale:1.6,boss:true,heavy:true,name:'The Archivist'},
+ ironColossus:{look:'troll',hp:860,spd:1.05,dmg:18,reach:110,wind:40,cd:95,gold:[34,34],w:80,scale:2.1,boss:true,heavy:true,name:'The Iron Colossus'},
+ moltenGiant:{look:'troll',hp:900,spd:1.0,dmg:19,reach:115,wind:44,cd:100,gold:[34,34],w:80,scale:2.1,boss:true,heavy:true,name:'The Molten Giant'},
  frostWraith:{look:'lich',hp:720,spd:1.25,dmg:13,ranged:true,keep:260,wind:30,cd:95,gold:[30,30],w:60,scale:1.7,boss:true,heavy:true,fly:true,hover:20,name:'The Frost Wraith'},
  lich:{look:'lich',hp:840,spd:1.3,dmg:12,ranged:true,keep:300,wind:30,cd:100,gold:[32,32],w:60,scale:1.8,boss:true,heavy:true,fly:true,hover:24,name:'The Lich Queen'},
  goblin:{look:'goblin',hp:30,spd:2.0,dmg:6,reach:46,wind:16,cd:60,gold:[1,4],w:26,scale:.9},
@@ -2341,15 +2411,41 @@ const EN={
 const WAVES=[{x:8,list:['goblin','goblin','skeleton']},{x:22,list:['goblin','skelArcher','goblin','orc']},{x:37,list:['skeleton','skeleton','goblin','goblin','orc']},{x:53,boss:true,list:['warden','goblin','goblin']}];
 const PROPS=[['barrel',5,-4.4],['barrel',6.2,4.4],['barrel',15,-4.6],['chest',17,4.0],['barrel',28,4.5],['barrel',30,-4.5],['barrel',44,-4.4],['chest',45.5,-4.0],['barrel',47,4.4],['barrel',61,-4.5]];
 const FLOORS=[
- {sub:'Floor 1',name:'Castle Halls',decor:'castle',blurb:'Goblin raiders and a brutal orc jailer hold the upper halls.',wall:0xffffff,floor:0xffffff,torch:0xff9a40,mote:0xffb36b,fog:new THREE.Fog(0x08060e,12,40),hemi:[0x6a5a9a,0x1a1420],waves:WAVES},
- {sub:'Floor 2',name:'The Ash Crypt',decor:'crypt',blurb:'The dead do not rest here. The Bone King commands them.',wall:0xb8a8d8,floor:0xa898c8,torch:0xff8a3a,mote:0xffb36b,fog:new THREE.Fog(0x0a0612,11,37),hemi:[0x7a5aaa,0x1a1020],
-  waves:[{x:8,list:['skeleton','skelArcher','goblin']},{x:22,list:['goblin','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','skelArcher','goblin','skelArcher','skeleton']},{x:53,boss:true,list:['boneKing','skeleton','skelArcher']}]},
- {sub:'Floor 3',name:'The Fungal Deep',decor:'fungal',blurb:'Rot-lit caverns, crawling slime, and the troll that eats intruders.',wall:0x7ab8b8,floor:0x8ab8a8,torch:0x7af0d0,mote:0x9ff5d6,fog:new THREE.Fog(0x050e12,11,36),hemi:[0x4a9a9a,0x0a1a1a],
+ {sub:'Floor 1',id:'castle',key:'Jailer’s Key',piece:'the Prison Block',cells:1,name:'Castle Halls',decor:'castle',blurb:'Goblin raiders and a brutal orc jailer hold the upper halls.',wall:0xffffff,floor:0xffffff,torch:0xff9a40,mote:0xffb36b,fog:new THREE.Fog(0x08060e,12,40),hemi:[0x6a5a9a,0x1a1420],waves:WAVES},
+ {sub:'Floor 2',id:'crypt',key:'Crypt Key',piece:'the Burial Vault',cells:1,name:'The Ash Crypt',decor:'crypt',blurb:'The dead do not rest here. The Death Rider hunts its halls.',wall:0xb8a8d8,floor:0xa898c8,torch:0xff8a3a,mote:0xffb36b,fog:new THREE.Fog(0x0a0612,11,37),hemi:[0x7a5aaa,0x1a1020],
+  waves:[{x:8,list:['skeleton','skelArcher','goblin']},{x:22,list:['goblin','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','skelArcher','goblin','skelArcher','skeleton']},{x:53,boss:true,list:['riderBoss','skeleton','skelArcher']}]},
+ {sub:'Floor 3',id:'fungal',key:'Root Key',piece:'the Glow Grotto',gil:1,name:'The Fungal Deep',decor:'fungal',blurb:'Rot-lit caverns, crawling slime, and the troll that eats intruders.',wall:0x7ab8b8,floor:0x8ab8a8,torch:0x7af0d0,mote:0x9ff5d6,fog:new THREE.Fog(0x050e12,11,36),hemi:[0x4a9a9a,0x0a1a1a],
   waves:[{x:8,list:['mushroom','slime','mushroom']},{x:22,list:['goblin','slime','slime','mushroom']},{x:37,list:['orc','mushroom','goblin','slime','mushroom']},{x:53,boss:true,list:['troll','slime','mushroom']}]},
- {sub:'Floor 4',name:"The Lich Queen's Sanctum",decor:'sanctum',blurb:'The bottom of the world. The Lich Queen waits on her throne of the dead.',wall:0xa888b8,floor:0x9a80a8,torch:0xffa860,mote:0xffd9a0,fog:new THREE.Fog(0x08030c,11,36),hemi:[0x6a4a8a,0x100818],
+ {sub:'',id:'ice',key:'Frost Key',piece:'the Ice Crypt',name:'The Frozen Vault',decor:'ice',blurb:'A vault of ice where the Frost Wraith keeps the dead frozen, waiting for her call.',wall:0xd6e8ff,floor:0xe6f2ff,torch:0x8fd0ff,mote:0xe8f6ff,fog:new THREE.Fog(0x0a1424,11,36),hemi:[0x8ab0e0,0x101828],
+  waves:[{x:8,list:['skeleton','skelArcher','skeleton']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['frostWraith','skeleton','skelArcher']}]},
+ {sub:'',id:'forge',key:'Ember Key',piece:'the Slag Pit',name:'The Forge of the Damned',decor:'forge',blurb:'Rivers of lava and the hammer-song of the dead. The Molten Giant keeps the fires burning.',wall:0x6a4e46,floor:0x5a4a44,torch:0xff6a2a,mote:0xffa040,fog:new THREE.Fog(0x140604,11,36),hemi:[0x9a5a3a,0x180806],
+  waves:[{x:8,list:['orc','imp','goblin']},{x:22,list:['orc','imp','skeleton','imp']},{x:37,list:['orc','imp','orc','skelArcher','imp']},{x:53,boss:true,list:['moltenGiant','imp','orc']}]},
+ {sub:'',id:'library',key:'Tome Key',piece:'the Forbidden Stacks',name:'The Bone Library',decor:'library',blurb:'Endless shelves of forbidden books, guarded by the dead. The Archivist writes down the name of everyone who enters.',wall:0xc8b088,floor:0x9a7a5a,torch:0xffd08a,mote:0xfff0c0,fog:new THREE.Fog(0x0c0a06,11,36),hemi:[0x8a7a5a,0x14100a],
+  waves:[{x:8,list:['skeleton','skelArcher','imp']},{x:22,list:['skelArcher','skeleton','imp','skeleton']},{x:37,list:['skeleton','skelArcher','orc','imp','skelArcher']},{x:53,boss:true,list:['archivist','skeleton','skelArcher']}]},
+ {sub:'',id:'armory',key:'Cog Key',piece:'the Gear Vault',name:'The Clockwork Armory',decor:'armory',blurb:'Gears grind in the dark. The Iron Colossus still guards the old king\'s war machines.',wall:0x9aa0a8,floor:0x7a7468,torch:0xffc070,mote:0xffd9a0,fog:new THREE.Fog(0x080a0c,11,36),hemi:[0x6a7a8a,0x0c1014],
+  waves:[{x:8,list:['orc','goblin','skeleton']},{x:22,list:['orc','skelArcher','goblin','orc']},{x:37,list:['orc','skeleton','orc','skelArcher','goblin']},{x:53,boss:true,list:['ironColossus','orc','goblin']}]},
+ {sub:'',id:'throne',key:'Crown Key',piece:'the Royal Ossuary',rider:1,name:"The Bone King's Throne",decor:'crypt',blurb:'The Bone King rules here from a throne of skulls. Only the Lich Queen lies deeper.',wall:0xd8c0a0,floor:0xb8a088,torch:0xffb060,mote:0xffd9a0,fog:new THREE.Fog(0x0c0806,11,36),hemi:[0x8a6a4a,0x140c08],
+  waves:[{x:8,list:['skeleton','skelArcher','orc']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','skeleton','imp']},{x:53,boss:true,list:['boneKing','skeleton','skelArcher']}]},
+ {sub:'Floor 4',id:'sanctum',key:'Rune Key',piece:'the Ritual Hall',rider:1,name:"The Lich Queen's Sanctum",decor:'sanctum',blurb:'The bottom of the world. The Lich Queen waits on her throne of the dead.',wall:0xa888b8,floor:0x9a80a8,torch:0xffa860,mote:0xffd9a0,fog:new THREE.Fog(0x08030c,11,36),hemi:[0x6a4a8a,0x100818],
   waves:[{x:8,list:['skeleton','imp','skeleton']},{x:22,list:['orc','skeleton','imp','skeleton']},{x:37,list:['imp','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['lich','skeleton','imp']}]},
 ];
 for(const F of FLOORS){F.fog.near=19;F.fog.far=48;}
+FLOORS.forEach((F,i)=>F.sub='Floor '+(i+1));
+// progress is kept by floor name, so new floors can slot in between old ones without losing anyone's place
+const lastF=()=>FLOORS.length-1,DEP=()=>(S.floor||0)*3/Math.max(1,FLOORS.length-1),flIdx=id=>Math.max(0,FLOORS.findIndex(f=>f.id===id));
+function floorReach(){if(!INV.fcl){INV.fcl={};const old=['castle','crypt','fungal','sanctum'];for(let i=0;i<Math.min(4,INV.deepest||0);i++)INV.fcl[old[i]]=1;}let i=0;while(i<FLOORS.length&&INV.fcl[FLOORS[i].id])i++;return i;}
+// ---- test page only: jump straight to any floor's boss (Shift+1 to Shift+9, Shift+0 for 10, or the Bosses panel) ----
+const TESTPG=/\/test\//.test(location.pathname);
+// shortcut: clear the way and stand at the boss door
+function skipBoss(){if(!(S.level==='dungeon'&&MZ&&!S.exitOpen))return;{S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
+    const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');}}
+function devBoss(i){if(!H||S.state!=='play'||i>=FLOORS.length)return toast('Start playing first, then pick a boss.');INV.gift=1;goDungeon(i);skipBoss();H.hp=H.maxHp;}
+if(TESTPG){addEventListener('load',()=>{const d=document.createElement('div');d.id='devboss';d.style.cssText='position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.92);color:#f2e7cf;font:13px sans-serif;padding:6px 8px;border:1px solid #4a3e68;border-radius:10px;max-width:230px';
+    d.innerHTML='<b style="cursor:pointer" id="devbossT">Bosses ▸</b><div id="devbossL" hidden></div>';document.body.appendChild(d);const L=d.querySelector('#devbossL');
+    L.innerHTML=FLOORS.map((f,i)=>`<button data-i="${i}" style="display:block;width:100%;margin-top:3px;text-align:left;font:12px sans-serif;padding:3px 6px">${i+1}. ${f.name}</button>`).join('');
+    d.querySelector('#devbossT').onclick=()=>{L.hidden=!L.hidden;d.querySelector('#devbossT').textContent=L.hidden?'Bosses ▸':'Bosses ▾';};L.onclick=e=>{const b=e.target.closest('button');if(b)devBoss(+b.dataset.i);};});}
+function floorDone(i){floorReach();INV.fcl[FLOORS[i].id]=1;INV.deepest=floorReach();}
+function story(){return INV.cleared?4:Math.min(3,Math.floor((INV.deepest||0)*4/FLOORS.length));} // the town's mood follows how far down the castle you have got
 
 // ================= input =================
 const keys=Object.create(null);
@@ -2368,11 +2464,10 @@ addEventListener('keydown',e=>{
   if((e.code==='KeyB'&&!e.shiftKey||e.code==='Tab')&&(S.state==='play'||(S.state==='dialog'&&dlgKind==='inv'))){e.preventDefault();if(S.state==='play')openInv();else closeDlg();}
   if(e.code==='Escape'&&S.state==='dialog'&&dlgClosable)closeDlg();
   if(e.target&&e.target.tagName==='INPUT')return;
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow((INV.deepest||0)<4);return;}
+  if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow(!INV.cleared);return;}
   if(S.state==='play'&&e.shiftKey&&e.code==='KeyY'){lqPreview();return;}
-  if(S.state==='play'&&e.shiftKey&&/^Digit[0-4]$/.test(e.code)){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'&&S.level==='dungeon'&&MZ&&!S.exitOpen){S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
-    const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');return;}
+  if(S.state==='play'&&e.shiftKey&&/^Digit[0-9]$/.test(e.code)&&+e.code.slice(5)<=FLOORS.length){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
+  if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'){skipBoss();return;}
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit3'){if(!INV.mealSel)nextMeal(true);eatMeal(INV.mealSel);}
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit4')nextMeal();
@@ -2573,7 +2668,7 @@ if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
     h.strafe=0;if(camMode()==='behind'&&!inp.mv){const tn=inp.tn||0,sx=inp.sx||0;if(tn&&h.swing<=0){const a=-tn*0.042,c=Math.cos(a),si=Math.sin(a),fx=h.fx*c+h.fz*si,fz=-h.fx*si+h.fz*c;h.fx=fx;h.fz=fz;}
       vx=-h.fx*my-h.fz*sx;vz=-h.fz*my+h.fx*sx;bk=my>0||!!sx;if(sx&&!my)h.strafe=sx;} // arrows turn, A/D side-step, W/S forward/back
     if(inp.mv){vx=inp.mv[0];vz=inp.mv[1];}else if(inp.face&&h.swing<=0){const fl=Math.hypot(inp.face[0],inp.face[1]);if(fl>0.01){h.fx=inp.face[0]/fl;h.fz=inp.face[1]/fl;}} const l=Math.hypot(vx,vz);
-    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(1+scrV('haste'))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
+    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(1+scrV('haste'))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*(h.chill>0?(h===H&&h.chill--,0.55):1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
     if(l>0.01){vx/=l;vz/=l;const sp2=bk?spd*0.6:spd;h.x+=vx*sp2;h.z+=vz*sp2;h.moving=true;if(h.swing<=0&&!bk){h.fx=vx;h.fz=vz;}
       if(h===H&&h.y<=0){h.stepD=(h.stepD||0)+spd;if(h.stepD>1.05){h.stepD=0;stepSnd();}}}
     if(inp.jump&&h.y<=0&&h.castT<=0){h.vy=0.24;sfx('jump');}
@@ -2707,7 +2802,7 @@ function curRank(){if(NET.on&&!NET.host){const hid=NET.hostConn&&NET.hostConn.pe
 const rkM=k=>RANKS[curRank()][k];
 function spawnEnemy(type,x,z){
   const d=EN[type],big=!!d.boss;
-  const e={type,def:d,x,z,y:0,vy:0,vx:0,vz:0,hp:Math.round(d.hp*1.35*(1+0.18*S.floor)*rkM('hp')),maxHp:Math.round(d.hp*1.35*(1+0.18*S.floor)*rkM('hp')),face:-1,fx:-1,fz:0,state:'walk',t:0,cd:ri(30,80),anim:ri(0,99),flash:0,rootT:0,spawnInv:20,scale:d.scale||1,moving:false,sp:0,remove:false,
+  const e={type,def:d,x,z,y:0,vy:0,vx:0,vz:0,hp:Math.round(d.hp*1.35*(1+0.18*DEP())*rkM('hp')),maxHp:Math.round(d.hp*1.35*(1+0.18*DEP())*rkM('hp')),face:-1,fx:-1,fz:0,state:'walk',t:0,cd:ri(30,80),anim:ri(0,99),flash:0,rootT:0,spawnInv:20,scale:d.scale||1,moving:false,sp:0,remove:false,
     spr:big?makeSprite(768,768,384,735,1.5):makeSprite(512,512,256,472,2)};
   if(type==='skeleton'){e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)e.hp=e.maxHp=Math.round(e.hp*1.6);} // armored warrior: tougher
   e.nid=++NET.nid;S.enemies.push(e);poof(x,0,z,e.scale*0.8);
@@ -2732,7 +2827,7 @@ function hurtEnemy(e,dmg,dx,dz,kd){
 }
 function killEnemy(e,dx,dz){
   e.kr=1;e.state='dead';e.t=36;e.vx=dx*0.08;e.vz=dz*0.08;e.vy=0.1;S.kills++;jobKill(e.type);powCharge();
-  const d=e.def;gainXP(Math.round(d.hp*0.45*(1+0.3*S.floor)*(d.boss?3:1)*rkM('gold')));for(let i=0;i<ri(d.gold[0],d.gold[1]);i++)dropPickup('gold',e.x,e.z,Math.round((d.boss?10:5)*rkM('gold')));
+  const d=e.def;gainXP(Math.round(d.hp*0.45*(1+0.3*DEP())*(d.boss?3:1)*rkM('gold')));for(let i=0;i<ri(d.gold[0],d.gold[1]);i++)dropPickup('gold',e.x,e.z,Math.round((d.boss?10:5)*rkM('gold')));
   if(d.boss&&Math.random()<0.2)dropPickup('goods',e.x,e.z,0,goodsNamed('Clockwork Fish'));
   if(d.boss){dropPickup('gear',e.x,e.z,0,gearFor(0.4));dropPickup('gear',e.x,e.z,0,gearFor(0.25));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('goods',e.x,e.z,0,randGoods(0.5));dropPickup('hp',e.x,e.z);bossDown();}
   else if(d.elite){if(S.boss===e)S.boss=null;dropPickup('gear',e.x,e.z,0,gearFor(0.35));dropPickup('crystal',e.x,e.z,0,{t:randGem(),lv:2});dropPickup('hp',e.x,e.z);}
@@ -2760,7 +2855,7 @@ function updEnemy(e){
     case 'chargeWind':e.x+=Math.sin(e.anim*1.5)*0.03;e.fx=e.cdx;e.fz=e.cdz;if(--e.t<=0){e.state='charge';e.t=55;e.hitDone=false;}return;
     case 'charge':{e.x+=e.cdx*0.22;e.z+=e.cdz*0.22;e.fx=e.cdx;e.fz=e.cdz;S.shake=Math.max(S.shake,0.06);
       if(e.anim%3===0)addPart({x:e.x-e.cdx,y:0.1,z:e.z-e.cdz,vy:rnd(.02,.05),life:20,size:rnd(.1,.18),color:'#8d7a5a'});
-      if(!e.hitDone&&Math.hypot(H.x-e.x,H.z-e.z)<1.5&&H.y<1){e.hitDone=true;hurtHero((d.dmg+4)*(1+0.12*S.floor)*rkM('dmg'),e.cdx,e.cdz,true);}
+      if(!e.hitDone&&Math.hypot(H.x-e.x,H.z-e.z)<1.5&&H.y<1){e.hitDone=true;hurtHero((d.dmg+4)*(1+0.12*DEP())*rkM('dmg'),e.cdx,e.cdz,true);}
       const ox=e.x,oz=e.z;clampPos(e);if(--e.t<=0||Math.abs(ox-e.x)>0.01||Math.abs(oz-e.z)>0.01){e.state='walk';e.cd=60;}return;}
   }
   if(d.boss||d.elite)bossThink(e,dist);if(e.state!=='walk')return;
@@ -2777,9 +2872,9 @@ function updEnemy(e){
 }
 function enemyStrike(e){
   const d=e.def;e.cd=d.cd*rnd(0.8,1.3);sfx(foeSwing(e));
-  const dx=H.x-e.x,dz=H.z-e.z,dist=Math.hypot(dx,dz)||1,dm=d.dmg*(1+0.12*S.floor)*rkM('dmg');
+  const dx=H.x-e.x,dz=H.z-e.z,dist=Math.hypot(dx,dz)||1,dm=d.dmg*(1+0.12*DEP())*rkM('dmg');
   if(d.ranged){const a0=Math.atan2(dz,dx),lich=e.type==='lich';for(const a of (lich?[-0.25,0,0.25]:[0])){const sp=lich?0.13:0.11;
-    S.eproj.push({kind:lich?'lbolt':e.def.archer?'cbolt':'efire',x:e.x+Math.cos(a0)*0.5,z:e.z+Math.sin(a0)*0.5,y:e.y+0.9*e.scale,vx:Math.cos(a0+a)*sp,vz:Math.sin(a0+a)*sp,dmg:dm,life:150,dead:false});}return;}
+    S.eproj.push({kind:lich?'lbolt':e.type==='frostWraith'?'frost':e.def.archer?'cbolt':'efire',x:e.x+Math.cos(a0)*0.5,z:e.z+Math.sin(a0)*0.5,y:e.y+0.9*e.scale,vx:Math.cos(a0+a)*sp,vz:Math.sin(a0+a)*sp,dmg:dm,life:150,dead:false});}return;}
   if(dist<d.reach*U+0.55&&H.y<1)hurtHero(dm,dx,dz,!!d.heavy);
   if(d.boss){S.shake=Math.max(S.shake,0.2);ring(e.x+e.fx*1.6,e.z+e.fz*1.6,'#a08a62',0.3,0.1,18);}
 }
@@ -2789,12 +2884,31 @@ function bossThink(e,dist){
   if(e.type==='warden'&&e.sp%520===0&&n<7)summon(['goblin'],'Guards! Guards!');
   if(e.type==='boneKing'&&e.sp%560===0&&n<7)summon(['skeleton'],'Rise, my bones!');
   if(e.type==='lich'&&e.sp%520===0&&n<7)summon(['skeleton','imp'],'Serve me!');
-  if((e.type==='troll'||e.type==='deathRider')&&e.sp%(e.type==='troll'?400:220)===0&&e.state==='walk'){e.state='chargeWind';e.t=50;e.cdx=(H.x-e.x)/(dist||1);e.cdz=(H.z-e.z)/(dist||1);floatText(e.x,3.9,e.z,e.type==='troll'?'RAAAH!':'CHARGE!','#ffcf8a',22);if(e.type==='deathRider')voPlay('b_rider');}
+  if(e.type==='frostWraith'&&e.sp%540===0&&n<7)summon(['skeleton'],'Rise, frozen ones!');
+  if(e.type==='moltenGiant'&&e.sp%600===0&&n<7)summon(['imp'],'Burn!');
+  if(e.type==='archivist'&&e.sp%560===0&&n<7)summon(['skeleton','skelArcher'],'Silence in my library!');
+  if(e.type==='archivist'&&e.sp%330===200&&e.state!=='dead'&&H.state!=='down'){floatText(e.x,3.6,e.z,'Page storm!','#bfffd0',22);const a0=Math.atan2(H.z-e.z,H.x-e.x),dm=e.def.dmg*(1+0.12*DEP())*rkM('dmg');
+    for(let k=-3;k<=3;k++)schedule(Math.abs(k)*3,()=>{const a=a0+k*0.22;S.eproj.push({kind:'lbolt',x:e.x+Math.cos(a)*0.8,z:e.z+Math.sin(a)*0.8,y:1.3,vx:Math.cos(a)*0.17,vz:Math.sin(a)*0.17,dmg:dm*0.7,life:90,dead:false});});sfx('shoot');}
+  if(e.type==='moltenGiant'&&e.sp%330===160&&e.state!=='dead'&&H.state!=='down'){const gx=e.x,gz=e.z,dm=e.def.dmg*1.3*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4.2,e.z,'SMASH!','#ffb070',24);e.state='wind';e.t=40;
+    for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#ff7a2a',3.4,0.01,30));
+    schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');for(let k=0;k<26;k++){const a=k/26*Math.PI*2;addPart({x:gx+Math.cos(a)*1.2,y:0.3,z:gz+Math.sin(a)*1.2,vx:Math.cos(a)*0.12,vz:Math.sin(a)*0.12,vy:0.08,g:0.004,life:30,size:rnd(0.12,0.22),color:k%2?'#ff7a2a':'#ffd060'});}
+      ring(gx,gz,'#ffb050',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='ironColossus'&&e.sp%600===0&&n<7)summon(['goblin','orc'],'Repair crew!');
+  if(e.type==='ironColossus'&&e.sp%330===180&&e.state!=='dead'&&H.state!=='down'){const gx=e.x,gz=e.z,dm=e.def.dmg*1.3*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4.2,e.z,'CLANG!','#dfe6f0',24);e.state='wind';e.t=40;
+    for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#c8d0dc',3.4,0.01,30));
+    schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');sparks(gx,0.4,gz,18,'#ffd060');ring(gx,gz,'#e8eef8',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='frostWraith'&&e.sp%300===150&&e.state!=='dead'&&H.state!=='down'){const tx=H.x,tz=H.z,dm=e.def.dmg*1.4*(1+0.12*DEP())*rkM('dmg');floatText(e.x,3.9,e.z,'Freeze!','#bfe6ff',22);for(let k=0;k<3;k++)schedule(k*12,()=>ring(tx,tz,'#9fe3ff',1.5,0.02,30));
+    schedule(42,()=>{if(S.level!=='dungeon')return;iceSpikes(tx,tz);if(H.state!=='down'&&Math.hypot(H.x-tx,H.z-tz)<1.4&&H.y<1){hurtHero(dm,H.x-tx,H.z-tz,true);chillHero(160);}});}
+  if((e.type==='troll'||e.type==='deathRider'||e.type==='riderBoss')&&e.sp%(e.type==='troll'?400:220)===0&&e.state==='walk'){e.state='chargeWind';e.t=50;e.cdx=(H.x-e.x)/(dist||1);e.cdz=(H.z-e.z)/(dist||1);floatText(e.x,3.9,e.z,e.type==='troll'?'RAAAH!':'CHARGE!','#ffcf8a',22);if(e.type!=='troll')voPlay('b_rider');}
   if(e.tele>0)e.tele--;
-  if(e.type==='lich'&&!(e.tele>0)&&dist<2.4&&e.state==='walk'){poof(e.x,e.y,e.z,1.5);{const p=mzRoomSpot(H.x,H.z,6);e.x=p[0];e.z=p[1];}poof(e.x,e.y,e.z,1.5);e.tele=200;e.cd=Math.min(e.cd,30);}
+  if((e.type==='lich'||e.type==='frostWraith')&&!(e.tele>0)&&dist<2.4&&e.state==='walk'){poof(e.x,e.y,e.z,1.5);{const p=mzRoomSpot(H.x,H.z,6);e.x=p[0];e.z=p[1];}poof(e.x,e.y,e.z,1.5);e.tele=200;e.cd=Math.min(e.cd,30);}
 }
-function updEProj(p){if(p.g){p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:p.kind==='lbolt'?'#9dff8a':'#ffb04a'});if(p.life<=0||mzHit(p.x,p.z))p.dead=true;return;}p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:p.kind==='lbolt'?'#9dff8a':'#ffb04a'});
-  if(H.state!=='down'&&Math.hypot(H.x-p.x,H.z-p.z)<0.5&&H.y<1.3){hurtHero(p.dmg,p.vx,p.vz,false);p.dead=true;sparks(p.x,p.y,p.z,6,p.kind==='lbolt'?'#9dff8a':'#ff9a4a');}
+const PJC={lbolt:'#9dff8a',frost:'#9fe3ff'};
+function chillHero(n){if(!H)return;if(!(H.chill>0))floatText(H.x,2.6,H.z,'Chilled!','#bfe6ff',16);H.chill=Math.max(H.chill||0,n);}
+function iceSpikes(x,z){const G=new THREE.Group(),m=lam({color:0xcfe8ff,emissive:0x2a5a80,transparent:true,opacity:0.88});for(let k=0;k<7;k++){const a=k/7*Math.PI*2+Math.random(),d=k?rnd(0.4,1.1):0,h=rnd(0.9,1.8),c=mesh(new THREE.ConeGeometry(rnd(0.14,0.26),h,6),m,x+Math.cos(a)*d,h/2-1.6,z+Math.sin(a)*d,true,false);c.rotation.set(rnd(-0.25,0.25),0,rnd(-0.25,0.25));G.add(c);}
+  scene.add(G);sfx('hit');sparks(x,0.6,z,14,'#cfeeff');let t=0;const up=()=>{t++;G.position.y=Math.min(1.6,t*0.32);if(t<70)requestAnimationFrame(up);else{scene.remove(G);G.traverse(o=>{if(o.geometry)o.geometry.dispose();});m.dispose();}};up();}
+function updEProj(p){if(p.g){p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:PJC[p.kind]||'#ffb04a'});if(p.life<=0||mzHit(p.x,p.z))p.dead=true;return;}p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:PJC[p.kind]||'#ffb04a'});
+  if(H.state!=='down'&&Math.hypot(H.x-p.x,H.z-p.z)<0.5&&H.y<1.3){hurtHero(p.dmg,p.vx,p.vz,false);if(p.kind==='frost')chillHero(110);p.dead=true;sparks(p.x,p.y,p.z,6,PJC[p.kind]||'#ff9a4a');}
   if(NET.on&&NET.host)netProjHit(p);
   if(p.life<=0||mzHit(p.x,p.z))p.dead=true;}
 // ================= projectiles, area, pickups, props =================
@@ -2841,7 +2955,16 @@ function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,
 const COINBAG={st:'none',m:null};
 function loadCoinBag(){if(COINBAG.st!=='none'||!THREE.GLTFLoader)return;COINBAG.st='loading';loadModelData('coinbag').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)COINBAG.m=o;});COINBAG.st=COINBAG.m?'ready':'fail';}).catch(()=>{COINBAG.st='fail';});}
 function coinBagMesh(){if(COINBAG.st!=='ready'){loadCoinBag();return null;}const m=new THREE.Mesh(COINBAG.m.geometry,COINBAG.m.material);m.castShadow=true;return m;}
-function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
+// the keys are real models (Fantasy Keys Pack): every key has its own shape and metal
+const KEYM={st:'none',g:{}},KEY_ICON={};
+function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh){KEYM.g[o.name]=o.geometry;KEYM.mat=o.material;}});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
+// [shape, tint over the pack's own painted metal, glow]
+const KEY_LOOK={rusty:['Key_A','#e8b090'],'Jailer’s Key':['Key_C','#ffffff'],'Crypt Key':['Key_D','#ffffff'],'Root Key':['Key_B','#d8f0c0','#1a3008'],
+  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Tome Key':['Key_B','#f0e0b0','#2a2008'],'Cog Key':['Key_C','#ffd9a0','#2a1a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
+function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
+  const mat=KEYM.mat.clone();mat.color=new THREE.Color(L[1]);mat.metalness=0.3;mat.roughness=0.45;mat.emissive=new THREE.Color(L[2]||'#000000');const m=new THREE.Mesh(KEYM.g[L[0]],mat);m.castShadow=true;return m;}
+function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
+function lootMesh(kind){if(kind==='goods')return coinBagMesh();if(kind==='rkey'||kind==='gkey')return keyMesh(kind==='rkey'?'rusty':GKEY[S.floor]);if(kind==='gold')return coinMesh();if((kind==='hp'||kind==='mp')&&POT.st==='ready'){const src=POT.m['pot_'+kind],m=new THREE.Mesh(src.geometry,src.material);m.castShadow=true;return m;}return null;}
 // the Gate Captain's job list is a rolled parchment scroll with a leather tie
 const SCRL={st:'none',g:null,icon:null};
 function loadScroll(){if(SCRL.st!=='none'||!THREE.GLTFLoader)return;SCRL.st='loading';loadModelData('scroll').then(gl=>{SCRL.g=gl.scene;SCRL.st='ready';}).catch(()=>{SCRL.st='fail';});}
@@ -2910,13 +3033,13 @@ function drawScrBuffs(g,x,y){if(!H||!H.scr)return;let k=MEALS.filter(M=>H.buffs&
 function scrChips(){const ks=Object.keys(INV.scrolls||{}).filter(k=>INV.scrolls[k]>0).sort();if(!ks.length)return '<p class="note l">No scrolls yet. Find them in the dungeon or buy mystery scrolls at the magic shop.</p>';
   return `<div class="chips">${ks.map(k=>{const id=k.slice(0,-1),t=+k.slice(-1),u=scrURL(t);return `<button class="chip" type="button" data-act="read-${k}" title="${esc(scrDesc(id,t))}">${u?`<img src="${u}" width="26" height="26" alt="" style="vertical-align:middle">`:''}<span style="color:${SCR_COL[t]}">${esc(scrName(id,t))}</span> ×${INV.scrolls[k]}</button>`;}).join('')}</div><p class="note l">Tap a scroll to read it.${isTouch?'':' Or press 5 in the dungeon (6 switches).'}</p>`;}
 function potIcon(k){if(POT.icon[k])return POT.icon[k];if(POT.st!=='ready')return null;const c=studio('pot'+k,p=>{p.add(new THREE.Mesh(POT.m['pot_'+k].geometry,POT.m['pot_'+k].material));},{ry:0.4,rx:0.05});if(c)POT.icon[k]=c;return c||null;}
-function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();
+function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();loadKeys();
   const map=kind==='scroll'?TX.glow:kind==='crystal'?crystalTex(item.t):kind==='gear'?TX.pick[item.kind==='weapon'?'weapon':'armor']:kind==='goods'?TX.pick.goods:TX.pick[kind];
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
   if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
     if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
-  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
+  {const lm=lootMesh(kind);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -3119,14 +3242,14 @@ function setLevel(lv){
 function goTown(spot){
   if(S.lqKeep&&!spot){const k=S.lqKeep;S.lqKeep=null;INV.deepest=k.d;INV.cleared=k.c;INV.fwShown=k.f;save();partyNow(true);return;}
   clearLevel();setLevel('town');spot=spot||{x:-28,z:3,fx:1,fz:0};NET.tp=2;if(typeof vcUI==='function')vcUI();
-  if((INV.deepest||0)>=4&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
+  if(INV.cleared&&!INV.fwShown){INV.fwShown=1;FW.party=60*45;FW.next=0;spot=DOCK_SPOT;setTimeout(()=>{if(S.level==='town'){fwCrowd();toast('We have conquered the Fallen. Now it is time to find the true source of the Lich Queen\'s power.');}},60);}
   Object.assign(H,{x:spot.x,z:spot.z,y:0,vy:0,fx:spot.fx,fz:spot.fz,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:0});H.onShip=!!spot.ship;
   if(SET.cam==='free')CAM.yaw=spot.yaw!=null?spot.yaw:spot.house?Math.PI-0.35:0.35;
   S.banner={top:'Sumera',text:'Town of Grimfall',t:170};S.state='play';camUpdate(true);updateTouch();save();
 }
 function goDungeon(fi=0){
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
@@ -3136,6 +3259,7 @@ function goDungeon(fi=0){
   portal.visible=false;portal.userData.pl.intensity=0;
   if(SET.cam==='free')CAM.yaw=0.5;
   S.banner={top:FLOORS[fi].sub,text:FLOORS[fi].name,t:190};S.state='play';camUpdate(true);updateTouch();
+  if(fi===0&&!INV.warned){INV.warned=1;save();schedule(95,()=>{S.banner={top:'A cold voice echoes through the halls',text:'Leave this place… or serve us for eternity.',t:320};sfx('boss');S.shake=Math.max(S.shake||0,0.25);});}
   schedule(200,()=>toast('Find '+PIECE_N[fi]+' and beat its guards to win the '+GKEY[fi]+', then open the boss door. Watch out for traps! Press M for the map.'));
 }
 function spawnFromQueue(){
@@ -3147,10 +3271,10 @@ function bossDown(){
   S.exitOpen=true;S.queue=[];S.eproj=[];if(MZ)mzRoomDone();
   for(const e of S.enemies)if(e.state!=='dead'&&!e.def.boss){e.state='dead';e.t=20;e.vx=e.vz=0;}
   S.banner={top:'Floor cleared',text:(S.boss?S.boss.def.name.replace(/^The /,'')+' falls!':'Floor cleared!'),t:220};S.wave=S.waves.length;S.wallX=DUN.maxX;
-  INV.deepest=Math.max(INV.deepest||0,S.floor+1);if(S.floor>=3){INV.cleared=true;const rk=curRank();if(rk>=2&&rk<4&&rankMax()<rk+1){INV.rankMax=rk+1;setTimeout(()=>toast(`Promoted! You can now play at ${RANKS[rk+1].n} rank.`),2500);}}save();
+  floorDone(S.floor);if(S.floor>=lastF()){INV.cleared=true;const rk=curRank();if(rk>=2&&rk<4&&rankMax()<rk+1){INV.rankMax=rk+1;setTimeout(()=>toast(`Promoted! You can now play at ${RANKS[rk+1].n} rank.`),2500);}}save();
   portal.visible=true;portal.userData.pl.intensity=1.8;
   schedule(150,()=>toast('A glowing portal opened in the boss room. Walk up to it and press J.'));
-  if(S.floor>=3)schedule(240,()=>{if(LT.g&&!LT.broken){if(freed().magic)lichBreak();else toast('Free Master Wren to break the last of the Lich Queen\'s spells.');}});
+  if(S.floor>=lastF())schedule(240,()=>{if(LT.g&&!LT.broken){if(freed().magic)lichBreak();else toast('Free Master Wren to break the last of the Lich Queen\'s spells.');}});
 }
 
 // ================= town folk =================
@@ -3166,7 +3290,7 @@ function npcOpen(ax,az,bx,bz){const r=0.5;for(const c of TOWN_COL.concat(TOWN_JU
   const dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz||1,t=clamp(((0-ax)*dx+(1-az)*dz)/l2,0,1);return Math.hypot(ax+dx*t,az+dz*t-1)>4.3;}
 function pickNpcTarget(n){for(let k=0;k<40;k++){const tx=rnd(-36,48),tz=Math.random()<0.75?rnd(-7,9.5):rnd(-17,19),o={x:tx,z:tz};clampPos(o,0.5);if(Math.hypot(o.x-tx,o.z-tz)>0.01)continue;if(k<30&&S.npcs.some(m=>m!==n&&!m.keeper&&Math.hypot(m.tx-tx,m.tz-tz)<7))continue;if(npcOpen(n.x,n.z,tx,tz)){n.tx=tx;n.tz=tz;n.stuck=0;return;}}n.tx=n.x+rnd(-1,1);n.tz=n.z+rnd(-1,1);n.stuck=0;}
 // the town calms down as you beat the castle: panicked running at first, normal strolling once the deeper floors are cleared
-const townPanic=()=>[1,0.65,0.3,0,0][Math.min(4,INV.deepest||0)];
+const townPanic=()=>[1,0.65,0.3,0,0][story()];
 function updNpc(n){
   if(n.rush||n.home)return;
   n.anim++;if(n.pause>0){n.pause--;return;}
@@ -3270,23 +3394,23 @@ const HOUSE_PROPS={
 const SHOP_IDS=['smith','armory','gems','magic'];
 // ================= captured shopkeepers: each shop stays boarded up until you free its keeper from the castle =================
 const KEEPERS=[
- {id:'armory',fi:0,name:'Borin',him:'him',shop:'The Armory',rm:'guard',col:'#6a6f7a',skin:'#f1c8a5',hat:0,
+ {id:'armory',fid:'castle',fi:0,name:'Borin',him:'him',shop:'The Armory',rm:'guard',col:'#6a6f7a',skin:'#f1c8a5',hat:0,
   thanks:'You came for me! Three weeks in this cage, eating cold gruel. Get back to town, friend. I will have the forge lit and the armor racks full before you get there.',
   hint:'There was another prisoner down here, a fishman called Gil. He sang sea songs all night until the guards dragged him away, deeper into the castle. I never saw where.'},
- {id:'smith',fi:1,name:'Hilda the Smith',him:'her',shop:'The Blacksmith',rm:'smith',col:'#5a4a3a',skin:'#d9a07a',hat:2,
+ {id:'smith',fid:'crypt',fi:1,name:'Hilda the Smith',him:'her',shop:'The Blacksmith',rm:'smith',col:'#5a4a3a',skin:'#d9a07a',hat:2,
   thanks:'Ha! I knew somebody would come. Bring me your weapon when you get back and I will make it sing.',
   hint:'Gil the fishman? The skeletons laughed about him. They hid him on the floor below this one, and not in any cell you can see.'},
- {id:'gems',fi:2,name:'Olive',him:'her',shop:'Crystals & Jewels',rm:'girl',col:'#a463f2',skin:'#f6d5b8',hat:1,
+ {id:'gems',fid:'fungal',fi:2,name:'Olive',him:'her',shop:'Crystals & Jewels',rm:'girl',col:'#a463f2',skin:'#f6d5b8',hat:1,
   thanks:'Oh, thank you, thank you! I thought I would never see daylight again. My crystals are waiting for you in town.',
   hint:'Can you smell the sea? It is strongest on this floor. Somewhere a wall drips salt water. I would bet my best crystal that Gil is behind it.'},
- {id:'magic',fi:3,name:'Master Wren',him:'him',shop:'Runes & Magic',rm:'mage',col:'#3a5a8a',skin:'#e9b58d',hat:1,
+ {id:'magic',fid:'sanctum',fi:3,name:'Master Wren',him:'him',shop:'Runes & Magic',rm:'mage',col:'#3a5a8a',skin:'#e9b58d',hat:1,
   thanks:'The Lich Queen kept me to read her old runes. You have done what no one else could. My shop is yours, hero.',
   hint:'My runes found the fishman. Gil is on the third floor, behind a cracked wall that weeps seawater. Strike it hard and it will break.'}];
 const KEEPER_OF={};KEEPERS.forEach(K=>KEEPER_OF[K.id]=K);
 // old saves keep every shop they already earned
-function freed(){if(!INV.freed){INV.freed={};KEEPERS.forEach(K=>{if((INV.deepest||0)>K.fi)INV.freed[K.id]=1;});}return INV.freed;}
+function freed(){if(!INV.freed){INV.freed={};KEEPERS.forEach(K=>{if((INV.deepest||0)>flIdx(K.fid))INV.freed[K.id]=1;});}return INV.freed;}
 const shopOpen=id=>!KEEPER_OF[id]||!!freed()[id];
-function shutMsg(id){const K=KEEPER_OF[id];toast(K.fi===3?`${K.shop} is boarded up. The Lich Queen holds ${K.name} on floor 4 of the castle. Free ${K.him} to open the shop.`:`${K.shop} is boarded up. ${K.name} is locked up on floor ${K.fi+1} of the castle. Free ${K.him} to open the shop.`);}
+function shutMsg(id){const K=KEEPER_OF[id];toast(K.fid==='sanctum'?`${K.shop} is boarded up. The Lich Queen holds ${K.name} on the bottom floor of the castle. Free ${K.him} to open the shop.`:`${K.shop} is boarded up. ${K.name} is locked up on floor ${flIdx(K.fid)+1} of the castle. Free ${K.him} to open the shop.`);}
 function boardUp(){const g=new THREE.Group(),wd=lam({color:0x6a4a30,map:TX.plank||null}),dk=lam({color:0x3e2a1a});
   for(const sx of [-1.45,1.45])g.add(mesh(new THREE.BoxGeometry(0.18,2.5,0.18),dk,sx,1.25,0));
   for(const [y,r] of [[0.55,0.04],[1.25,-0.05],[1.95,0.03]]){const p=mesh(new THREE.BoxGeometry(3.3,0.32,0.08),wd,0,y,0.1);p.rotation.z=r;g.add(p);}
@@ -3707,8 +3831,8 @@ function gilTankTick(){const on=!!freed().gil;
   const t=S.frame*0.012;TANK.piv.rotation.y=-t;if(TANK.fish)TANK.fish.position.y=Math.sin(t*2.3)*0.18;
   for(const b of TANK.bub){b.position.y+=0.01;if(b.position.y>2.35){b.position.y=0.65;b.position.x=rnd(-0.5,0.5);b.position.z=rnd(-0.5,0.5);}}}
 // the prisoner on each floor: in the spare cell on floors 1-2, chained to the wall on floor 3, in the Lich Queen's own room on floor 4
-function prisSpawn(fi){S.pris=null;const K=KEEPERS[fi];if(!K||!MZ||freed()[K.id])return;
-  const cell=fi<=1?MZ.cells.find(c=>c.kind==='decor'):null,boss=fi>=3,room=MZ.rooms.find(r=>r.kind===(boss?'boss':'piece'));if(!room)return;let x,z,ix,iz;
+function prisSpawn(fi){S.pris=null;const K=KEEPERS.find(k=>k.fid===FLOORS[fi].id);if(!K||!MZ||freed()[K.id])return;
+  const cell=FLOORS[fi].cells?MZ.cells.find(c=>c.kind==='decor'):null,boss=FLOORS[fi].id==='sanctum',room=MZ.rooms.find(r=>r.kind===(boss?'boss':'piece'));if(!room)return;let x,z,ix,iz;
   if(cell){x=(cell.tx+1)*TS;z=(cell.tz-1)*TS+TS/2;const o=MZ.cellObjs[cell.k];ix=o?o.cx:x;iz=(o?o.cz:cell.tz*TS+TS*0.85)+0.6;}
   else{const nearDoor=tx=>MZ.doors.some(d=>mzDoorTiles(d).some(([dx,dz])=>Math.abs(dx-tx)<=2&&Math.abs(dz-room.z0)<=2));let bt=null;
     for(let k=0;k<=room.x1-room.x0;k++){const tx=boss?room.x0+k:Math.round((room.x0+room.x1)/2)+(k%2?-1:1)*Math.ceil(k/2);if(tx<room.x0||tx>room.x1)continue;if(!nearDoor(tx)){bt=tx;break;}}
@@ -3870,31 +3994,35 @@ function capTalkTick(c,vis){const T=GATE.talk;if(!T)return;const now=performance
 // ================= the gate captain's jobs: take them all, do them on your dungeon runs, come back to get paid =================
 // relics are story items: they never go in the bag, so they can't be sold or used
 const JOBS=[
- {id:'skel',fl:0,kind:'slay',t:['skeleton'],n:[12,20,30],what:'skeletons',gold:[80,140,220]},
- {id:'sarch',fl:0,kind:'slay',t:['skelArcher'],n:[8,14,20],what:'skeleton archers',gold:[90,150,230]},
- {id:'gob',fl:0,kind:'slay',t:['goblin'],n:[12,20,30],what:'goblins',gold:[60,110,170]},
- {id:'orc',fl:0,kind:'slay',t:['orc'],n:[5,9,14],what:'orcs',gold:[100,170,260]},
- {id:'warden',fl:0,kind:'boss',t:['warden'],what:'Grimtusk the Warden',gold:[200]},
- {id:'bell',fl:0,kind:'relic',name:'the Bell of Last Rest',icon:'bell',gold:[180],ask:'Find the Bell of Last Rest in the Castle Halls.',thanks:'The Bell of Last Rest! One ring and the dead lie still.'},
- {id:'rider',fl:1,kind:'boss',t:['deathRider'],what:'the Death Rider',gold:[260]},
- {id:'bking',fl:1,kind:'boss',t:['boneKing'],what:'the Bone King',gold:[300]},
- {id:'chal',fl:1,kind:'relic',name:'the Warding Chalice',icon:'chalice',gold:[250],ask:'Bring me the Warding Chalice from the Ash Crypt.',thanks:'The Warding Chalice! Set in the wall, it keeps the dead out.'},
- {id:'fung',fl:2,kind:'slay',t:['slime','mushroom'],n:[12,20,30],what:'slimes and mushroom men',gold:[140,220,320]},
- {id:'troll',fl:2,kind:'boss',t:['troll'],what:'Mossback the Troll',gold:[380]},
- {id:'eye',fl:2,kind:'relic',name:'the Eye of Ulvareth',icon:'eye',gold:[320],ask:'The Eye of Ulvareth lies in the Fungal Deep. Get it!',thanks:'The Eye of Ulvareth! Now I can watch the whole castle.'},
- {id:'imp',fl:3,kind:'slay',t:['imp'],n:[10,16,24],what:'imps',gold:[180,280,400]},
+ {id:'skel',fl:'castle',kind:'slay',t:['skeleton'],n:[12,20,30],what:'skeletons',gold:[80,140,220]},
+ {id:'sarch',fl:'castle',kind:'slay',t:['skelArcher'],n:[8,14,20],what:'skeleton archers',gold:[90,150,230]},
+ {id:'gob',fl:'castle',kind:'slay',t:['goblin'],n:[12,20,30],what:'goblins',gold:[60,110,170]},
+ {id:'orc',fl:'castle',kind:'slay',t:['orc'],n:[5,9,14],what:'orcs',gold:[100,170,260]},
+ {id:'warden',fl:'castle',kind:'boss',t:['warden'],what:'Grimtusk the Warden',gold:[200]},
+ {id:'bell',fl:'castle',kind:'relic',name:'the Bell of Last Rest',icon:'bell',gold:[180],ask:'Find the Bell of Last Rest in the Castle Halls.',thanks:'The Bell of Last Rest! One ring and the dead lie still.'},
+ {id:'rider',fl:'crypt',kind:'boss',t:['deathRider','riderBoss'],what:'the Death Rider',gold:[260]},
+ {id:'bking',fl:'throne',kind:'boss',t:['boneKing'],what:'the Bone King',gold:[300]},
+ {id:'chal',fl:'crypt',kind:'relic',name:'the Warding Chalice',icon:'chalice',gold:[250],ask:'Bring me the Warding Chalice from the Ash Crypt.',thanks:'The Warding Chalice! Set in the wall, it keeps the dead out.'},
+ {id:'fung',fl:'fungal',kind:'slay',t:['slime','mushroom'],n:[12,20,30],what:'slimes and mushroom men',gold:[140,220,320]},
+ {id:'troll',fl:'fungal',kind:'boss',t:['troll'],what:'Mossback the Troll',gold:[380]},
+ {id:'eye',fl:'fungal',kind:'relic',name:'the Eye of Ulvareth',icon:'eye',gold:[320],ask:'The Eye of Ulvareth lies in the Fungal Deep. Get it!',thanks:'The Eye of Ulvareth! Now I can watch the whole castle.'},
+ {id:'giant',fl:'forge',kind:'boss',t:['moltenGiant'],what:'the Molten Giant',gold:[380]},
+ {id:'archv',fl:'library',kind:'boss',t:['archivist'],what:'the Archivist',gold:[360]},
+ {id:'colos',fl:'armory',kind:'boss',t:['ironColossus'],what:'the Iron Colossus',gold:[400]},
+ {id:'wraith',fl:'ice',kind:'boss',t:['frostWraith'],what:'the Frost Wraith',gold:[340]},
+ {id:'imp',fl:'sanctum',kind:'slay',t:['imp'],n:[10,16,24],what:'imps',gold:[180,280,400]},
 ];
 const jobState=()=>{INV.jobs=INV.jobs||{};INV.jobR=INV.jobR||{};INV.relics=INV.relics||{};return INV;};
 const jobRanks=j=>j.kind==='slay'?j.n.length:1;
 const jobDone=j=>{const a=jobState().jobs[j.id];if(!a)return false;return j.kind==='relic'?!!INV.relics[j.id]:a.p>=(j.kind==='slay'?j.n[a.r]:1);};
 const jobsReady=()=>JOBS.filter(j=>jobDone(j));
-const jobsOpen=()=>{jobState();return JOBS.filter(j=>!INV.jobs[j.id]&&(INV.jobR[j.id]||0)<jobRanks(j)&&j.fl<=(INV.deepest||0));};
-function jobText(j){const a=INV.jobs[j.id];if(j.kind==='slay'){const n=j.n[a.r];return `Slay ${n} ${j.what}  ${Math.min(a.p,n)}/${n}`;}if(j.kind==='boss')return 'Defeat '+j.what;return `Find ${j.name.replace(/^the /,'the ')} (${FLOORS[j.fl].name})`;}
+const jobsOpen=()=>{jobState();return JOBS.filter(j=>!INV.jobs[j.id]&&(INV.jobR[j.id]||0)<jobRanks(j)&&flIdx(j.fl)<=(INV.deepest||0));};
+function jobText(j){const a=INV.jobs[j.id];if(j.kind==='slay'){const n=j.n[a.r];return `Slay ${n} ${j.what}  ${Math.min(a.p,n)}/${n}`;}if(j.kind==='boss')return 'Defeat '+j.what;return `Find ${j.name.replace(/^the /,'the ')} (${FLOORS[flIdx(j.fl)].name})`;}
 // ---- daily bounties: three fresh tasks from the gate captain every day, with a bonus for finishing all three ----
 const DAILY_BONUS=200;
 function dayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
 function dailyRoll(){const k=dayKey();if(INV.daily&&INV.daily.day===k)return INV.daily;let sd=7;for(const c of k)sd=(sd*31+c.charCodeAt(0))>>>0;const rr=()=>{sd=(sd*1103515245+12345)>>>0;return sd/4294967296;};
-  const deep=INV.deepest||0,pool=[];for(const j of JOBS)if(j.kind==='slay'&&j.fl<=deep)pool.push({k:'slay',t:j.t,what:j.what,n:Math.max(5,Math.round(j.n[0]*0.8)),gold:Math.round(j.gold[0]*0.9)});
+  const deep=INV.deepest||0,pool=[];for(const j of JOBS)if(j.kind==='slay'&&flIdx(j.fl)<=deep)pool.push({k:'slay',t:j.t,what:j.what,n:Math.max(5,Math.round(j.n[0]*0.8)),gold:Math.round(j.gold[0]*0.9)});
   pool.push({k:'room',what:'rooms',n:5+deep*2,gold:90+40*deep});if(deep>=1)pool.push({k:'boss',what:'bosses',n:1,gold:150+50*deep});
   const list=[];while(list.length<3&&pool.length){const i=Math.floor(rr()*pool.length);list.push(Object.assign(pool.splice(i,1)[0],{p:0,paid:0}));}
   INV.daily={day:k,list,bonus:0,taken:0};return INV.daily;}
@@ -3943,7 +4071,7 @@ function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=
   show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+38+i*18,w-18);});
   if(list.length>7){g.font=`600 11px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(`and ${list.length-7} more`,x+10,y+h-8);}g.restore();drawDaily(g,x,y+h+8);}
 // a relic waits on a stone stand in a far room of its floor
-function relicSpawn(fi){if(!MZ)return;MZ.relic=null;jobState();const j=JOBS.find(j=>j.kind==='relic'&&j.fl===fi&&INV.jobs[j.id]&&!INV.relics[j.id]);if(!j)return;
+function relicSpawn(fi){if(!MZ)return;MZ.relic=null;jobState();const j=JOBS.find(j=>j.kind==='relic'&&flIdx(j.fl)===fi&&INV.jobs[j.id]&&!INV.relics[j.id]);if(!j)return;
   const st=MZ.rooms.find(r=>r.kind==='start');const [sx,sz]=st?mzCenter(st):[0,0];const cand=MZ.rooms.filter(r=>r.kind==='normal');if(!cand.length)return;
   cand.sort((a,b)=>{const [ax,az]=mzCenter(a),[bx,bz]=mzCenter(b);return Math.hypot(bx-sx,bz-sz)-Math.hypot(ax-sx,az-sz);});const [x,z]=mzCenter(cand[0]);
   const G=THREE,g=new G.Group();g.position.set(x,0,z);const stone=new G.MeshStandardMaterial({color:0x6a6470,roughness:0.85}),gold=new G.MeshStandardMaterial({color:0xd9a93a,metalness:0.85,roughness:0.3,emissive:0x3a2604});
@@ -4310,7 +4438,7 @@ function showCraft(){
       for(const [n,k] of Object.entries(r.need))takeGood(n,k);recalc(H);const msg=r.out();sfx('chest');toast(msg);showCraft();});
 }
 function showGate(){
-  const max=Math.min(INV.deepest||0,3);
+  INV.deepest=floorReach();const max=Math.min(INV.deepest||0,lastF());
   const rk=myRank(),lead=NET.on&&!NET.host;
   openDlg(`<h1 class="logo sm"><small>Castle Grimfall</small>Down into the dungeon</h1><p class="tag">Pick a floor. You can start at any floor you have reached.</p>
     <p class="tag">${lead?`You fight at your room leader's rank: <b>${RANKS[curRank()].n}</b>`:`Your rank: <b>${RANKS[rk].n}</b>. ${esc(RANKS[rk].d)}`}</p>
@@ -4319,7 +4447,7 @@ function showGate(){
     <div class="row"><button class="btn alt" type="button" data-act="close">Stay in town</button></div>`,'gate',a=>{const [k,x]=a.split('-');if(k==='rk'&&+x<=rankMax()){INV.rank=+x;save();showGate();return;}if(k==='f'){dlgEl.hidden=true;dlgKind=null;goDungeon(+x);setTimeout(()=>toast(`Reporting for duty, ${RANKS[curRank()].n}!`),900);}});
 }
 function portalChoice(){
-  const last=S.floor>=3;
+  const last=S.floor>=lastF();
   openDlg(`<div class="panel endbox"><h1 class="logo sm"><small>${FLOORS[S.floor].sub} cleared</small>${last?'Sumera is saved!':esc(FLOORS[S.floor].name)+' falls'}</h1>
     <p class="note">${last?'The Lich Queen is beaten! Captain Brin can get the ship ready for Kemet. That voyage comes in a later update.':'Go deeper now, or head back to Grimfall to sell, craft and rest. Your progress is saved either way.'}</p>
     <div class="row">${last?'':`<button class="btn" type="button" data-act="deeper">Go deeper: ${esc(FLOORS[S.floor+1].name)}</button>`}<button class="btn ${last?'':'alt'}" type="button" data-act="town">Return to town</button></div></div>`,'portal',a=>{
@@ -5093,7 +5221,7 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';const hips=[];REAL.gltf.scene.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)for(const b of o.skeleton.bones)if(/Hips(_\d+)?$/.test(b.name)&&b.name.length<30)hips.push(b.name);});
   {const hn=hips.find(n=>/Hips$/.test(n))||hips[0];if(hn){const m=/^(.*)Hips(_\d+)?$/.exec(hn);pre=m[1];suf=m[2]||'';}} // skinned bones decide; a plain Hips wins (files with copied skeletons are rebound to it), else the only one there is, like a skeleton's Hips_2
   // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
@@ -5107,11 +5235,17 @@ function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw==
 function bossWpn(R,name,len,grip){if(WPN_ST!=='ready'){loadWpn();setTimeout(()=>bossWpn(R,name,len,grip),800);return;}const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/RightHand(_\d+)?$/.test(o.name))b=o;});if(!b)return;
   const w=wpnMesh('barbarian',2,R.mats||(R.mats=[]),name,len).children[0],bb=w.geometry.boundingBox,sc=w.scale.x;w.position.z=-(bb.min.z+(bb.max.z-bb.min.z)*grip)*sc;
   const ws=new G.Vector3();b.getWorldScale(ws);const c=new G.Group();c.applyMatrix4(HAND_R);c.scale.multiplyScalar(1/ws.x);c.add(w);b.add(c);R.bossW=c;}
+// a second spellbook for the Archivist's free hand, with a glowing rune on its cover
+function bossBook(R){const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/LeftHand(_\d+)?$/.test(o.name))b=o;});if(!b)return;
+  const m=(c,em)=>{const x=new G.MeshStandardMaterial({color:c,roughness:0.8,emissive:em||0x000000});(R.mats||(R.mats=[])).push(x);return x;},c=new G.Group();
+  c.add(new G.Mesh(new G.BoxGeometry(0.30,0.07,0.40),m(0x4a2a18)));const pg=new G.Mesh(new G.BoxGeometry(0.27,0.075,0.37),m(0xe8dcc0));pg.position.x=0.012;c.add(pg);
+  const rune=new G.Mesh(new G.CircleGeometry(0.07,16),new G.MeshBasicMaterial({color:0x7dff9a}));rune.rotation.x=-Math.PI/2;rune.position.y=0.037;c.add(rune);
+  const ws=new G.Vector3();b.getWorldScale(ws);c.scale.multiplyScalar(1/ws.x);c.position.set(0,0.14/ws.x,0.05/ws.x);c.rotation.set(0.2,0,Math.PI/2);b.add(c);R.book=c;}
 function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(REAL.gltf.scene):REAL.gltf.scene,root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(REAL.s0*info.tall/REAL.h0);
   const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);o.material.skinning=!!o.isSkinnedMesh;o.userData.tr0=o.material.transparent;
     if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.3;}}});
   const R={root,model,mats,info,yaw:Math.atan2(e.fx,e.fz),cur:null,lock:0,clock:new G.Clock(),mixer:new G.AnimationMixer(model),act:{}};for(const cl of (info.quad?REAL.gltf.animations:clipsFor(REAL)))R.act[cl.name]=R.mixer.clipAction(cl);
-  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);
+  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);if(info.book)bossBook(R);
   if(info.crossbow){let hb=null,hd=null;model.traverse(o=>{if(o.isBone&&!hb&&/RightHand$/.test(o.name))hb=o;if(o.isBone&&!hd&&/Head$/.test(o.name))hd=o;});model.updateMatrixWorld(true);
     const ws=new G.Vector3();const mm=(c,m)=>new G.MeshStandardMaterial({color:c,roughness:0.6,metalness:m||0});
     if(hb){hb.getWorldScale(ws);const cb=new G.Group();cb.applyMatrix4(HAND_R);cb.scale.multiplyScalar(1/ws.x);const inner=new G.Group();inner.rotation.x=-0.35;cb.add(inner);
@@ -5239,7 +5373,7 @@ function netTarget(e){let best=null,bd=H&&H.state!=='down'?Math.hypot(H.x-e.x,H.
 function netUpdEnemy(e){if(e.ghost){netGhostUpd(e);return;}const t=netTarget(e);if(!t){updEnemy(e);return;}const real=H;H=t;try{updEnemy(e);}finally{H=real;}}
 function netRooms(){updRooms();if(S.aRoom!=null||S.exitOpen)return;const real=H;
   for(const [id,s] of netCoopPeers()){H=netProxy(id,s);try{updRooms();}finally{H=real;}if(S.aRoom!=null){partyPullIn(MZ.rooms[S.aRoom],+s.x,+s.z);break;}}} // a friend started a fight: the host joins them before the bars shut
-function netProjHit(p){if(p.dead)return;for(const [id,s] of netCoopPeers()){if(s.state==='down')continue;if(Math.hypot(s.x-p.x,s.z-p.z)<0.55&&s.y<1.3){netHurt(id,p.dmg,p.vx,p.vz,false);p.dead=true;sparks(p.x,p.y,p.z,6,p.kind==='lbolt'?'#9dff8a':'#ff9a4a');return;}}}
+function netProjHit(p){if(p.dead)return;for(const [id,s] of netCoopPeers()){if(s.state==='down')continue;if(Math.hypot(s.x-p.x,s.z-p.z)<0.55&&s.y<1.3){netHurt(id,p.dmg,p.vx,p.vz,false);p.dead=true;sparks(p.x,p.y,p.z,6,PJC[p.kind]||'#ff9a4a');return;}}}
 function netUnion(dr,ce){if(!MZ)return;let ch=false;
   if(dr&&dr.length===MZ.doors.length)for(let i=0;i<dr.length;i++){const d=MZ.doors[i];if(dr[i]==='1'&&!d.open){d.open=true;d.lock=null;ch=true;}}
   if(ce&&ce.length===MZ.cells.length)for(let i=0;i<ce.length;i++){const c=MZ.cells[i];if(ce[i]==='1'&&!c.open){c.open=true;ch=true;}}
@@ -5462,7 +5596,7 @@ function drawHUD(){
     }
     g.restore();}
   for(const p of S.eproj){const a=toScreen(p.x,p.y,p.z);if(!a)continue;const s=a.s;if(p.kind==='cbolt'){const b2=toScreen(p.x-p.vx*3.2,p.y,p.z-p.vz*3.2);if(b2){g.strokeStyle='#4a3a2a';g.lineWidth=Math.max(2,0.05*s);g.beginPath();g.moveTo(b2.x,b2.y);g.lineTo(a.x,a.y);g.stroke();g.fillStyle='#b8c0c8';circ(g,a.x,a.y,Math.max(2,0.05*s));g.fill();g.fillStyle='#8a2a2a';circ(g,b2.x,b2.y,Math.max(1.5,0.04*s));g.fill();}continue;}g.save();g.translate(a.x,a.y);g.shadowColor=p.kind==='lbolt'?'#9dff8a':'#ff5a2a';g.shadowBlur=14;
-    circ(g,0,0,0.22*s);g.fillStyle=p.kind==='lbolt'?'#5fd16a':'#ff6a3a';g.fill();circ(g,0,0,0.1*s);g.fillStyle=p.kind==='lbolt'?'#e6ffd8':'#ffd88a';g.fill();g.restore();}
+    circ(g,0,0,0.22*s);g.fillStyle=p.kind==='lbolt'?'#5fd16a':p.kind==='frost'?'#5ab8f0':'#ff6a3a';g.fill();circ(g,0,0,0.1*s);g.fillStyle=p.kind==='lbolt'?'#e6ffd8':p.kind==='frost'?'#f0fbff':'#ffd88a';g.fill();g.restore();}
   // enemy bars and wind-up marks
   for(const e of S.enemies){if(e.state==='dead')continue;
     const top=toScreen(e.x,e.y+(e.def.boss?3.5:1.95*e.scale),e.z);if(!top)continue;

@@ -2144,6 +2144,37 @@ function mzForge(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'|
     glowSpr(px,0.3,pz,0xc8400e,rad*1.7);col(px,pz,rad*0.8,rad*0.8);}
   if(big){const place=()=>{const f=fortMesh();if(!f||!MZ||MZ.grp!==G)return false;for(const [x,z] of corners.slice(0,2)){if(z!==r.z0)continue;const px=x*TS+TS/2+(x===r.x0?0.3:-0.3),pz=z*TS+TS/2+0.2,m=new THREE.Mesh(f.geometry,f.material);m.scale.setScalar(0.55);m.position.set(px,0,pz);m.rotation.y=x===r.x0?0.5:-0.5;m.castShadow=true;G.add(m);col(px,pz,1.2,1.2);}return true;};
     if(!place())(MZ.fortSpots=MZ.fortSpots||[]).push(place);}}
+// Bone Library: tall bookshelves, floating candles, loose pages and stacks of books
+let BOOKTX=null;function bookTex(){if(BOOKTX)return BOOKTX;const c=document.createElement('canvas');c.width=256;c.height=320;const g=c.getContext('2d');g.fillStyle='#2a1a10';g.fillRect(0,0,256,320);
+  const cols=['#7a2a22','#2a4a6a','#3a5a2a','#6a4a1a','#4a2a5a','#8a6a3a','#2a2a2a','#9a8a6a'];
+  for(let sh=0;sh<4;sh++){let x=6;const y0=sh*80+8,y1=sh*80+74;while(x<248){const w=8+Math.random()*12,h=40+Math.random()*26;if(x+w>250)break;g.fillStyle=cols[Math.floor(Math.random()*cols.length)];g.fillRect(x,y1-h,w-1.5,h);g.fillStyle='rgba(230,200,120,0.55)';g.fillRect(x+1,y1-h+6,w-3.5,2);g.fillRect(x+1,y1-12,w-3.5,2);
+      if(Math.random()<0.12){g.fillStyle='#e8e0cc';g.beginPath();g.arc(x+w/2,y1-h-5,5,0,7);g.fill();}x+=w;}
+    g.fillStyle='#5a3a22';g.fillRect(0,y1,256,6);}
+  BOOKTX=new THREE.CanvasTexture(c);BOOKTX.colorSpace=THREE.SRGBColorSpace;return BOOKTX;}
+function mzLibrary(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',bm=lam({map:bookTex()});MZ.mats.push(bm);
+  for(let k=0;k+1<back.length;k+=3){const x=bx(back[k])+1,z=bz+0.3;G.add(mesh(new THREE.BoxGeometry(2.7,3.4,0.6),M.wood,x,1.7,z));G.add(mesh(new THREE.PlaneGeometry(2.5,3.2),bm,x,1.7,z+0.31,false,false));col(x,z,1.35,0.35);}
+  const cn=big?8:4;for(let k=0;k<cn;k++){const x=rnd(r.x0*TS+1.2,(r.x1+1)*TS-1.2),z=rnd(r.z0*TS+1.6,(r.z1+1)*TS-1.2),y=rnd(2.2,3.2);const cg=new THREE.Group();cg.position.set(x,y,z);
+    cg.add(mesh(new THREE.CylinderGeometry(0.05,0.05,0.28,8),lam({color:0xf2ead8}),0,0,0,false,false));const fl=new THREE.Sprite(M.flame);fl.scale.set(0.16,0.26,1);fl.position.y=0.24;cg.add(fl);G.add(cg);(MZ.bob=MZ.bob||[]).push([cg,y,Math.random()*6]);glowSpr(x,y+0.25,z,0xffc070,1.1);}
+  for(let k=0;k<(big?14:7);k++){const pg=mesh(new THREE.PlaneGeometry(0.32,0.42),lam({color:0xe8dcc0,side:THREE.DoubleSide}),rnd(r.x0*TS+0.6,(r.x1+1)*TS-0.6),0.03,rnd(r.z0*TS+1,(r.z1+1)*TS-0.6),false,true);pg.rotation.set(-Math.PI/2,0,rnd(0,6.3));G.add(pg);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.3:0.3),pz=z*TS+TS/2+0.4;
+    if(big){const lt=new THREE.Group();lt.position.set(px,0,pz);lt.add(mesh(new THREE.CylinderGeometry(0.12,0.3,1.1,8),M.wood,0,0.55,0));const top=mesh(new THREE.BoxGeometry(0.8,0.08,0.6),M.wood,0,1.15,0);top.rotation.x=0.35;lt.add(top);
+      const bk=mesh(new THREE.BoxGeometry(0.7,0.05,0.5),lam({color:0xf0e6cc,emissive:0x3a5a2a}),0,1.22,0.02,false,false);bk.rotation.x=0.35;lt.add(bk);G.add(lt);glowSpr(px,1.45,pz,0x9dff8a,1.6);}
+    else for(let j=0;j<ri(3,6);j++){const b=mesh(new THREE.BoxGeometry(rnd(0.45,0.6),0.11,rnd(0.35,0.45)),lam({color:[0x7a2a22,0x2a4a6a,0x3a5a2a,0x6a4a1a][j%4]}),px+rnd(-0.05,0.05),0.06+j*0.11,pz+rnd(-0.05,0.05),true,false);b.rotation.y=rnd(-0.4,0.4);G.add(b);}
+    col(px,pz,0.5,0.5);}}
+// Clockwork Armory: big turning gears on the walls, armor stands, weapon racks and copper pipes
+function gearMesh(rad,mat){const g=new THREE.Group();g.add(mesh(new THREE.CylinderGeometry(rad*0.8,rad*0.8,0.18,24),mat,0,0,0,false,false));const n=Math.max(8,Math.round(rad*10));
+  for(let i=0;i<n;i++){const a=i/n*Math.PI*2,t=mesh(new THREE.BoxGeometry(rad*0.28,0.18,rad*0.3),mat,Math.cos(a)*rad*0.92,0,Math.sin(a)*rad*0.92,false,false);t.rotation.y=-a;g.add(t);}
+  g.add(mesh(new THREE.CylinderGeometry(rad*0.2,rad*0.2,0.3,12),M.dark,0,0,0,false,false));g.rotation.x=Math.PI/2;return g;}
+function mzArmory(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',brass=lam({color:0xb08a3a,emissive:0x1a1004}),iron=lam({color:0x5a5e66}),copper=lam({color:0xb8683a});MZ.mats.push(brass,iron,copper);
+  for(let k=1;k<back.length;k+=4){const x=bx(back[k]),rad=rnd(0.8,1.3),y=rnd(2.0,3.0),gr=gearMesh(rad,k%8===1?brass:iron);gr.position.set(x,y,bz+0.15);G.add(gr);(MZ.spin=MZ.spin||[]).push([gr,(k%8===1?1:-1)*0.012/rad]);
+    const g2=gearMesh(rad*0.55,brass);g2.position.set(x+rad*1.4,y-rad*0.55,bz+0.12);G.add(g2);MZ.spin.push([g2,-(k%8===1?1:-1)*0.012/(rad*0.55)]);}
+  if(back.length>1){const x0=bx(back[0]),x1=bx(back[back.length-1]);const pp=mesh(new THREE.CylinderGeometry(0.11,0.11,x1-x0+2,10),copper,(x0+x1)/2,WALL_H-0.6,bz+0.2,false,false);pp.rotation.z=Math.PI/2;G.add(pp);}
+  for(let k=2;k+1<back.length;k+=4){const x=bx(back[k])+1,z=bz+0.4;const rk=new THREE.Group();rk.position.set(x,0,z);rk.add(mesh(new THREE.BoxGeometry(1.8,0.12,0.3),M.wood,0,1.6,0));rk.add(mesh(new THREE.BoxGeometry(1.8,0.12,0.3),M.wood,0,0.3,0));
+    for(let j=0;j<4;j++){const sw=mesh(new THREE.BoxGeometry(0.08,1.5,0.03),iron,-0.6+j*0.4,1.0,0.12);sw.rotation.z=0.08;rk.add(sw);rk.add(mesh(new THREE.BoxGeometry(0.3,0.05,0.06),brass,-0.6+j*0.4,1.62,0.14,false,false));}G.add(rk);col(x,z,0.95,0.3);}
+  for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.3:0.3),pz=z*TS+TS/2+0.4,st=new THREE.Group();st.position.set(px,0,pz);st.rotation.y=x===r.x0?0.5:-0.5;
+    st.add(mesh(new THREE.CylinderGeometry(0.06,0.06,1.6,6),M.wood,0,0.8,0));st.add(mesh(new THREE.CylinderGeometry(0.3,0.22,0.7,10),iron,0,1.25,0));st.add(mesh(new THREE.SphereGeometry(0.2,10,8),iron,0,1.8,0));
+    for(const sx of [-1,1])st.add(mesh(new THREE.SphereGeometry(0.15,8,6),brass,sx*0.34,1.52,0));st.add(mesh(new THREE.CylinderGeometry(0.32,0.38,0.08,12),M.dark,0,0.04,0));G.add(st);col(px,pz,0.45,0.45);
+    if(big){const fg=gearMesh(0.9,brass);fg.rotation.set(0,0,0);fg.position.set(px+(x===r.x0?1.4:-1.4),0.1,pz+0.6);G.add(fg);MZ.spin.push([fg,0.01,'y']);col(fg.position.x,fg.position.z,0.9,0.9);}}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2165,6 +2196,8 @@ function mzDecor(fi,theme){
       for(let k=0;k<10;k++)G.add(mesh(new THREE.SphereGeometry(0.07,6,5),new THREE.MeshBasicMaterial({color:0x7af0d0}),rnd(r.x0*TS,(r.x1+1)*TS),0.05,rnd(r.z0*TS,(r.z1+1)*TS),false,false));}
     if(theme==='ice')mzIce(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='forge')mzForge(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='library')mzLibrary(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='armory')mzArmory(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
       if(r.kind==='piece'||r.kind==='boss'){const [cx,cz]=mzCenter(r);const rg=mesh(new THREE.TorusGeometry(2.2,0.06,6,48),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg.rotation.x=-Math.PI/2;G.add(rg);const rg2=mesh(new THREE.TorusGeometry(1.5,0.04,6,6),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg2.rotation.x=-Math.PI/2;G.add(rg2);glowSpr(cx,0.3,cz,0x9dff8a,4);}}
@@ -2257,6 +2290,8 @@ function updMaze(){
       if(on&&tr.cd<=0&&H.y<0.5){tr.cd=150;sfx('door');floatText(H.x,2.3,H.z,'Click!','#ffcf8a',16);
         schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+DEP()*3,life:40,dead:false});
           else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+DEP()*3,life:40,dead:false});}});}}}
+  if(MZ.spin)for(const [o,v,ax] of MZ.spin){if(ax==='y')o.rotation.y+=v;else o.rotation.y+=v;}
+  if(MZ.bob)for(const [o,y,ph] of MZ.bob)o.position.y=y+Math.sin(S.frame*0.03+ph)*0.08;
   if(MZ.lava)for(const m of MZ.lava){if(m.map)m.map.offset.y+=0.0006;if(m.emissiveMap)m.emissiveMap.offset.y+=0.0006;m.emissiveIntensity=1.4+Math.sin(S.frame*0.05)*0.25;}
   // torch flicker + nearest-torch light pool
   for(const tc of MZ.torches){const k=0.85+Math.sin(S.frame*0.25+tc.ph)*0.08;tc.f.scale.set((tc.sw||(tc.big?1:0.5))*k,(tc.sh||(tc.big?1.4:0.75))*(2-k),1);}
@@ -2386,6 +2421,10 @@ const FLOORS=[
   waves:[{x:8,list:['skeleton','skelArcher','skeleton']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['frostWraith','skeleton','skelArcher']}]},
  {sub:'',id:'forge',key:'Ember Key',piece:'the Slag Pit',name:'The Forge of the Damned',decor:'forge',blurb:'Rivers of lava and the hammer-song of the dead. The Molten Giant keeps the fires burning.',wall:0x6a4e46,floor:0x5a4a44,torch:0xff6a2a,mote:0xffa040,fog:new THREE.Fog(0x140604,11,36),hemi:[0x9a5a3a,0x180806],
   waves:[{x:8,list:['orc','imp','goblin']},{x:22,list:['orc','imp','skeleton','imp']},{x:37,list:['orc','imp','orc','skelArcher','imp']},{x:53,boss:true,list:['moltenGiant','imp','orc']}]},
+ {sub:'',id:'library',key:'Tome Key',piece:'the Forbidden Stacks',name:'The Bone Library',decor:'library',blurb:'Endless shelves of forbidden books, guarded by the dead. The Archivist writes down the name of everyone who enters.',wall:0xc8b088,floor:0x9a7a5a,torch:0xffd08a,mote:0xfff0c0,fog:new THREE.Fog(0x0c0a06,11,36),hemi:[0x8a7a5a,0x14100a],
+  waves:[{x:8,list:['skeleton','skelArcher','imp']},{x:22,list:['skelArcher','skeleton','imp','skeleton']},{x:37,list:['skeleton','skelArcher','orc','imp','skelArcher']},{x:53,boss:true,list:['archivist','skeleton','skelArcher']}]},
+ {sub:'',id:'armory',key:'Cog Key',piece:'the Gear Vault',name:'The Clockwork Armory',decor:'armory',blurb:'Gears grind in the dark. The Iron Colossus still guards the old king\'s war machines.',wall:0x9aa0a8,floor:0x7a7468,torch:0xffc070,mote:0xffd9a0,fog:new THREE.Fog(0x080a0c,11,36),hemi:[0x6a7a8a,0x0c1014],
+  waves:[{x:8,list:['orc','goblin','skeleton']},{x:22,list:['orc','skelArcher','goblin','orc']},{x:37,list:['orc','skeleton','orc','skelArcher','goblin']},{x:53,boss:true,list:['ironColossus','orc','goblin']}]},
  {sub:'',id:'throne',key:'Crown Key',piece:'the Royal Ossuary',rider:1,name:"The Bone King's Throne",decor:'crypt',blurb:'The Bone King rules here from a throne of skulls. Only the Lich Queen lies deeper.',wall:0xd8c0a0,floor:0xb8a088,torch:0xffb060,mote:0xffd9a0,fog:new THREE.Fog(0x0c0806,11,36),hemi:[0x8a6a4a,0x140c08],
   waves:[{x:8,list:['skeleton','skelArcher','orc']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','skeleton','imp']},{x:53,boss:true,list:['boneKing','skeleton','skelArcher']}]},
  {sub:'Floor 4',id:'sanctum',key:'Rune Key',piece:'the Ritual Hall',rider:1,name:"The Lich Queen's Sanctum",decor:'sanctum',blurb:'The bottom of the world. The Lich Queen waits on her throne of the dead.',wall:0xa888b8,floor:0x9a80a8,torch:0xffa860,mote:0xffd9a0,fog:new THREE.Fog(0x08030c,11,36),hemi:[0x6a4a8a,0x100818],
@@ -2855,6 +2894,10 @@ function bossThink(e,dist){
     for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#ff7a2a',3.4,0.01,30));
     schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');for(let k=0;k<26;k++){const a=k/26*Math.PI*2;addPart({x:gx+Math.cos(a)*1.2,y:0.3,z:gz+Math.sin(a)*1.2,vx:Math.cos(a)*0.12,vz:Math.sin(a)*0.12,vy:0.08,g:0.004,life:30,size:rnd(0.12,0.22),color:k%2?'#ff7a2a':'#ffd060'});}
       ring(gx,gz,'#ffb050',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='ironColossus'&&e.sp%600===0&&n<7)summon(['goblin','orc'],'Repair crew!');
+  if(e.type==='ironColossus'&&e.sp%330===180&&e.state!=='dead'&&H.state!=='down'){const gx=e.x,gz=e.z,dm=e.def.dmg*1.3*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4.2,e.z,'CLANG!','#dfe6f0',24);e.state='wind';e.t=40;
+    for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#c8d0dc',3.4,0.01,30));
+    schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');sparks(gx,0.4,gz,18,'#ffd060');ring(gx,gz,'#e8eef8',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
   if(e.type==='frostWraith'&&e.sp%300===150&&e.state!=='dead'&&H.state!=='down'){const tx=H.x,tz=H.z,dm=e.def.dmg*1.4*(1+0.12*DEP())*rkM('dmg');floatText(e.x,3.9,e.z,'Freeze!','#bfe6ff',22);for(let k=0;k<3;k++)schedule(k*12,()=>ring(tx,tz,'#9fe3ff',1.5,0.02,30));
     schedule(42,()=>{if(S.level!=='dungeon')return;iceSpikes(tx,tz);if(H.state!=='down'&&Math.hypot(H.x-tx,H.z-tz)<1.4&&H.y<1){hurtHero(dm,H.x-tx,H.z-tz,true);chillHero(160);}});}
   if((e.type==='troll'||e.type==='deathRider'||e.type==='riderBoss')&&e.sp%(e.type==='troll'?400:220)===0&&e.state==='walk'){e.state='chargeWind';e.t=50;e.cdx=(H.x-e.x)/(dist||1);e.cdz=(H.z-e.z)/(dist||1);floatText(e.x,3.9,e.z,e.type==='troll'?'RAAAH!':'CHARGE!','#ffcf8a',22);if(e.type!=='troll')voPlay('b_rider');}
@@ -2918,7 +2961,7 @@ const KEYM={st:'none',g:{}},KEY_ICON={};
 function loadKeys(){if(KEYM.st!=='none'||!THREE.GLTFLoader)return;KEYM.st='loading';loadModelData('keys').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh){KEYM.g[o.name]=o.geometry;KEYM.mat=o.material;}});KEYM.st=KEYM.g.Key_A?'ready':'fail';}).catch(()=>{KEYM.st='fail';});}
 // [shape, tint over the pack's own painted metal, glow]
 const KEY_LOOK={rusty:['Key_A','#e8b090'],'Jailer’s Key':['Key_C','#ffffff'],'Crypt Key':['Key_D','#ffffff'],'Root Key':['Key_B','#d8f0c0','#1a3008'],
-  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
+  'Frost Key':['Key_E','#d0e8ff','#1a4a7a'],'Ember Key':['Key_D','#ffc090','#8a2a00'],'Tome Key':['Key_B','#f0e0b0','#2a2008'],'Cog Key':['Key_C','#ffd9a0','#2a1a00'],'Crown Key':['Key_E','#fff0c0','#3a2600'],'Rune Key':['Key_C','#e4d4ff','#3a1a7a']};
 function keyMesh(name){if(KEYM.st!=='ready'){loadKeys();return null;}const L=KEY_LOOK[name]||KEY_LOOK['Crown Key'];
   const mat=KEYM.mat.clone();mat.color=new THREE.Color(L[1]);mat.metalness=0.3;mat.roughness=0.45;mat.emissive=new THREE.Color(L[2]||'#000000');const m=new THREE.Mesh(KEYM.g[L[0]],mat);m.castShadow=true;return m;}
 function keyIcon(name){if(KEY_ICON[name])return KEY_ICON[name];const m=keyMesh(name);if(!m)return null;const c=studio('key'+name,p=>p.add(m),{rz:-0.7,ry:0.3});if(c)KEY_ICON[name]=c;return c||null;}
@@ -3965,6 +4008,8 @@ const JOBS=[
  {id:'troll',fl:'fungal',kind:'boss',t:['troll'],what:'Mossback the Troll',gold:[380]},
  {id:'eye',fl:'fungal',kind:'relic',name:'the Eye of Ulvareth',icon:'eye',gold:[320],ask:'The Eye of Ulvareth lies in the Fungal Deep. Get it!',thanks:'The Eye of Ulvareth! Now I can watch the whole castle.'},
  {id:'giant',fl:'forge',kind:'boss',t:['moltenGiant'],what:'the Molten Giant',gold:[380]},
+ {id:'archv',fl:'library',kind:'boss',t:['archivist'],what:'the Archivist',gold:[360]},
+ {id:'colos',fl:'armory',kind:'boss',t:['ironColossus'],what:'the Iron Colossus',gold:[400]},
  {id:'wraith',fl:'ice',kind:'boss',t:['frostWraith'],what:'the Frost Wraith',gold:[340]},
  {id:'imp',fl:'sanctum',kind:'slay',t:['imp'],n:[10,16,24],what:'imps',gold:[180,280,400]},
 ];
