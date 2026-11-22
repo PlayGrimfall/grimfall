@@ -2025,6 +2025,7 @@ function buildMaze(fi){
   for(let z=0;z<H2;z++)for(let x=0;x<W;x++){const i=I(x,z),x0=x*TS,x1=x0+TS,z0=z*TS,z1=z0+TS;
     if(t[i]){fb.quad([x0,0,z1],[x1,0,z1],[x1,0,z0],[x0,0,z0],[0,1,0],[x0/4,-z1/4,x1/4,-z1/4,x1/4,-z0/4,x0/4,-z0/4]);continue;}
     const hh=h[i];if(!hh)continue;
+    fb.quad([x0,0,z1],[x1,0,z1],[x1,0,z0],[x0,0,z0],[0,1,0],[x0/4,-z1/4,x1/4,-z1/4,x1/4,-z0/4,x0/4,-z0/4]); // floor under the wall too, so a see-through window shows ground, not a black hole
     const nh=(a,b)=>(a<0||b<0||a>=W||b>=H2)?0:(t[I(a,b)]?0:h[I(a,b)]);
     let y0=nh(x,z+1);if(y0<hh)wb.quad([x0,y0,z1],[x1,y0,z1],[x1,hh,z1],[x0,hh,z1],[0,0,1],[x0/U,y0/V,x1/U,y0/V,x1/U,hh/V,x0/U,hh/V]);
     y0=nh(x,z-1);if(y0<hh)wb.quad([x1,y0,z0],[x0,y0,z0],[x0,hh,z0],[x1,hh,z0],[0,0,-1],[x1/U,y0/V,x0/U,y0/V,x0/U,hh/V,x1/U,hh/V]);
@@ -2032,6 +2033,7 @@ function buildMaze(fi){
     y0=nh(x-1,z);if(y0<hh)wb.quad([x0,y0,z0],[x0,y0,z1],[x0,hh,z1],[x0,hh,z0],[-1,0,0],[z0/U,y0/V,z1/U,y0/V,z1/U,hh/V,z0/U,hh/V]);
     (hh<2?clb:chb).quad([x0,hh,z1],[x1,hh,z1],[x1,hh,z0],[x0,hh,z0],[0,1,0],[x0/3,-z1/3,x1/3,-z1/3,x1/3,-z0/3,x0/3,-z0/3]);}
   const add=(geo,mat,cast,recv)=>{const m=new THREE.Mesh(geo,mat);m.castShadow=!!cast;m.receiveShadow=recv!==false;G.add(m);return m;};
+  seeThru(wallM);seeThru(capHi);seeThru(capLo);
   add(fb.build(),floorM,false,true);add(wb.build(),wallM,true,true);add(chb.build(),capHi);add(clb.build(),capLo);
   // rubble on top of the low walls, so they read as broken-down walls
   const lows=[];for(let z=0;z<H2;z++)for(let x=0;x<W;x++){const hh=h[I(x,z)];if(hh>0&&hh<2)lows.push([x,z,hh]);}
@@ -2074,6 +2076,16 @@ function buildMaze(fi){
   mzRefreshBlk();
   return MZ;
 }
+// walls, wall tops and door arches between the camera and the hero dissolve in a soft round window, so you never lose sight of him or the monsters near him
+const SEE={uHero:{value:new THREE.Vector3()},uCam:{value:new THREE.Vector3()},uR:{value:2.3}};
+const SEEN=new WeakSet();function seeThru(m){if(!m||SEEN.has(m))return m;SEEN.add(m);const prev=m.onBeforeCompile;
+  m.onBeforeCompile=(sh,rd)=>{if(prev)prev(sh,rd);Object.assign(sh.uniforms,SEE);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vSeeP;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSeeP=(modelMatrix*vec4(transformed,1.0)).xyz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vSeeP;uniform vec3 uHero;uniform vec3 uCam;uniform float uR;').replace('#include <clipping_planes_fragment>',
+      `#include <clipping_planes_fragment>
+      {vec3 dv=uHero-uCam;float L=length(dv);vec3 dn=dv/max(L,0.001);float t=dot(vSeeP-uCam,dn);
+       if(t>0.0&&t<L-0.45&&vSeeP.y>uHero.y-0.35){float q=length(vSeeP-(uCam+dn*t))/uR;float k=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453);if(q<1.0&&k>smoothstep(0.55,1.0,q)*0.9)discard;}}`);};
+  m.customProgramCacheKey=()=>'see'+(m.type||'');m.needsUpdate=true;return m;}
 function buildDoor(d,theme,wallM,capHi){
   const G=new THREE.Group(),W=MZ.W,h=MZ.h;let cx,cz;
   if(d.axis==='z'){cx=(d.tx+1)*TS;cz=d.tz*TS+TS/2;}else{cx=d.tx*TS+TS/2;cz=(d.tz+1)*TS;G.rotation.y=Math.PI/2;}
@@ -2085,7 +2097,7 @@ function buildDoor(d,theme,wallM,capHi){
   const o={d,G,low,LH,leaves:[],gate:null,bars:null,lock:null,s,cx,cz,rootLock:theme==='fungal'};
   const stoneM=MZ.wallM;
   for(const sx of [-1,1])G.add(mesh(new THREE.BoxGeometry(0.5,LH+0.3,TS*0.95),stoneM,sx*2.15,(LH+0.3)/2,0));
-  if(!low){const tr=MZ.trimM||(MZ.trimM=(()=>{const m=MZ.wallM.clone();m.color=MZ.wallM.color.clone().multiplyScalar(0.7);MZ.mats.push(m);return m;})());G.add(mesh(new THREE.BoxGeometry(4.9,0.55,TS*1.0),tr,0,LH+0.3,0));G.add(mesh(new THREE.BoxGeometry(0.6,0.8,TS*1.05),tr,0,LH+0.35,0));for(const sx of [-1,1])G.add(mesh(new THREE.BoxGeometry(0.7,0.3,TS*1.0),tr,sx*2.15,0.15,0));}
+  if(!low){const tr=MZ.trimM||(MZ.trimM=(()=>{const m=seeThru(MZ.wallM.clone());m.color=MZ.wallM.color.clone().multiplyScalar(0.7);MZ.mats.push(m);return m;})());G.add(mesh(new THREE.BoxGeometry(4.9,0.55,TS*1.0),tr,0,LH+0.3,0));G.add(mesh(new THREE.BoxGeometry(0.6,0.8,TS*1.05),tr,0,LH+0.35,0));for(const sx of [-1,1])G.add(mesh(new THREE.BoxGeometry(0.7,0.3,TS*1.0),tr,sx*2.15,0.15,0));}
   if(theme==='castle'||theme==='sanctum'){for(const sx of [-1,1]){const pv=new THREE.Group();pv.position.set(sx*2,0,0);G.add(pv);
       const lf=mesh(new THREE.BoxGeometry(2,LH,0.16),M.wood,-sx*1,LH/2,0);pv.add(lf);
       for(const y of low?[0.35,0.95]:[0.6,LH-0.6])pv.add(mesh(new THREE.BoxGeometry(1.95,0.12,0.2),MZ.ironM,-sx*1,y,0,false,false));
@@ -4636,6 +4648,7 @@ function camUpdate(snap){
   const cp=Math.cos(CAM.pitchC),sh=S.shake;
   camera.position.set(CAM.tx+Math.sin(CAM.yawC)*cp*CAM.distC+rnd(-sh,sh),CAM.ty+Math.sin(CAM.pitchC)*CAM.distC+rnd(-sh,sh),CAM.tz+Math.cos(CAM.yawC)*cp*CAM.distC);
   camera.lookAt(CAM.tx,CAM.ty,CAM.tz);
+  SEE.uCam.value.copy(camera.position);SEE.uHero.value.set(H.x,(H.y||0)+1.0,H.z);
 }
 
 // ================= render =================
@@ -5425,7 +5438,7 @@ function poseRider(R,e,dt){const rd=R.rider;if(!rd)return;const st=e.state;
   for(const k of ['LeftLeg','RightLeg']){const b=rd.bones[k];if(!b)continue;const d=new THREE.Quaternion().setFromAxisAngle(_rx,1.25);d.premultiply(_rq3).multiply(_rq3.clone().invert());worldTurn(b,d);}}
 
 function disposeRealMon(R){scene.remove(R.root);R.mixer.stopAllAction();for(const m of R.mats)m.dispose();}
-function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=performance.now(),st=e.state,slid=Math.hypot(e.x-(R.px??e.x),e.z-(R.pz??e.z));R.px=e.x;R.pz=e.z;R.root.position.set(e.x,e.y+(R.info.float&&st!=='dead'?R.info.float+Math.sin(now/450)*0.15:0),e.z);
+function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=performance.now(),st=e.state,slid=Math.hypot(e.x-(R.px??e.x),e.z-(R.pz??e.z));R.px=e.x;R.pz=e.z;R.sv=(R.sv??0.04)*0.8+Math.min(slid,0.3)*0.2; /* legs keep pace with the real speed, so fast summoned skeletons don't skate */R.root.position.set(e.x,e.y+(R.info.float&&st!=='dead'?R.info.float+Math.sin(now/450)*0.15:0),e.z);
   let dd=Math.atan2(e.fx,e.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.2;R.root.rotation.y=R.yaw;
   const len=n=>R.act[n]?R.act[n].getClip().duration:1,once=(n,secs)=>{R.play(n,true,len(n)/secs);R.lock=now+secs*900;};
   if(st==='dead'){if(R.cur!=='death')once('death',1.0);const f=Math.min(1,e.t/20);for(const m of R.mats){if(m.transparent!==(f<1)){m.transparent=f<1;m.needsUpdate=true;}m.opacity=f;}}
@@ -5437,7 +5450,7 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira, the Bone King hip hop, Mossback a ground-shaking roar)
   else if(e.def.boss&&partyAllDown()&&R.act[(R.info&&R.info.dance)||'capo']){R.play((R.info&&R.info.dance)||'capo');}
   else if(now>R.lock){const bw=e.type==='skelArcher'&&R.act.bowRun;
-    if(e.moving||slid>0.03){const back=bw&&R.act.bowBack&&((e.x-R.qx)*e.fx+(e.z-R.qz)*e.fz)<-0.004;R.play(back?'bowBack':bw?'bowRun':'run',false,bw?0.9:0.75);}else R.play(bw&&R.act.bowIdle?'bowIdle':'idle');}
+    if(e.moving||slid>0.03){const back=bw&&R.act.bowBack&&((e.x-R.qx)*e.fx+(e.z-R.qz)*e.fz)<-0.004;R.play(back?'bowBack':bw?'bowRun':'run',false,Math.max(0.55,Math.min(2.3,R.sv*(bw?26:24))));}else R.play(bw&&R.act.bowIdle?'bowIdle':'idle');}
   R.qx=e.x;R.qz=e.z; // pushed or knocked along counts as moving, so nobody glides in an idle pose
   for(const m of R.mats)if(m.emissive)m.emissiveIntensity=e.flash>0?1.2:0.3;
   R.mixer.update(dt);if(R.rider)poseRider(R,e,dt);}
