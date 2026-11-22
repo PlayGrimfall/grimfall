@@ -801,9 +801,9 @@ function drawMap(c){
 
 // ================= settings =================
 const TP=window.TEXPACK||null,PHOTO_IMGS=[];
-const SET={cam:'diablo',shadows:true,glow:true,style:'real',speed:'auto',v:3};
+const SET={cam:'behind',shadows:true,glow:true,style:'real',speed:'auto',v:4};
 try{Object.assign(SET,JSON.parse(localStorage.getItem('hd3d-settings')||'{}'));}catch(e){}
-if(SET.v!==2&&SET.v!==3){SET.style='real';SET.v=2;}if(SET.v<3){SET.cam='diablo';SET.v=3;}
+if(SET.v!==2&&SET.v!==3){SET.style='real';SET.v=2;}if(SET.v<3){SET.cam='diablo';SET.v=3;}if(SET.v<4){SET.cam='behind';SET.v=4;} // the camera now follows behind the hero's head by default (C still switches)
 function saveSet(){try{localStorage.setItem('hd3d-settings',JSON.stringify(SET));}catch(e){}}
 
 // ================= sound =================
