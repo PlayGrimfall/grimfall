@@ -5336,13 +5336,13 @@ function setFx(R,h){const G=THREE,L=heroSetLook(h),id=CLASS_SET[h.cls],F=SET_FX[
 function poseReal(R,h,blink){
   const dt=Math.min(0.05,R.clock.getDelta());R.root.position.set(h.x,h.y,h.z);R.root.visible=!blink;setFx(R,h);
   let dd=Math.atan2(h.fx,h.fz)-R.yaw;dd=Math.atan2(Math.sin(dd),Math.cos(dd));R.yaw+=dd*0.3;R.root.rotation.y=R.yaw;R.root.scale.setScalar(h.rage>0?1.1:1);
-  const now=performance.now(),cls=h.cls,clipLen=n=>R.act[n]?R.act[n].getClip().duration:1;
+  const now=performance.now(),cls=h.cls,clipLen=n=>R.act[n]?R.act[n].getClip().duration:1,bow=cls==='archer'&&!h.melee; // archers move with the longbow pack: bow-ready idle and runs
   const once=(n,secs)=>{R.play(n,true,clipLen(n)/secs);R.lock=now+secs*1000*0.92;};
   if(h.state==='down'||h.state==='kd'){if(R.cur!=='death')once('death',h.state==='down'?1.6:0.9);}
   else if(h.state==='hurt'){if(R.cur!=='hit')once('hit',0.55);}
   else if(h.castT>0&&R.cur!=='area'&&R.cur!=='cast'&&R.cur!=='flip'){if(cls==='barbarian'&&h.spN===2&&R.act.flip)once('flip',1.7);else once(cls==='barbarian'?'area':'cast',cls==='barbarian'?1.1:0.9);}
   else if(h.swing>0&&h.swing===h.swingMax-1){const n=cls==='barbarian'?(h.combo%2?'chop':'slash'):cls==='elf'?'sss':cls==='archer'?(h.melee?'sss':'aim'):'magic';once(n,cls==='archer'&&!h.melee?0.45:0.7);}
-  else if(now>R.lock){if(h.y>0.05&&!h.onShip)R.play('jump',false,1.6);else if(h.moving&&h.strafe&&R.act.strafeL)R.play(h.strafe<0?'strafeL':'strafeR',false,h.sprint?1.7:1.15);else if(h.moving)R.play('run',false,h.sprint?1.6:1.1);else if(h.onShip&&!h.shipMoved)R.play('idle');else if(h.dance&&R.act.samba)R.play(h.dance===1?'samba':'gangnam');else R.play('idle');}
+  else if(now>R.lock){if(h.y>0.05&&!h.onShip)R.play('jump',false,1.6);else if(h.moving&&h.strafe&&bow&&R.act.bowL)R.play(h.strafe<0?'bowL':'bowR',false,h.sprint?1.5:1.05);else if(h.moving&&h.strafe&&R.act.strafeL)R.play(h.strafe<0?'strafeL':'strafeR',false,h.sprint?1.7:1.15);else if(h.moving)R.play(bow&&R.act.bowRun?'bowRun':'run',false,h.sprint?1.6:1.1);else if(h.onShip&&!h.shipMoved)R.play('idle');else if(h.dance&&R.act.samba)R.play(h.dance===1?'samba':'gangnam');else R.play(bow&&R.act.bowIdle?'bowIdle':'idle');}
   if(R.knife)R.knife.visible=!!(h.melee&&(R.cur==='sss'));
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
@@ -5436,7 +5436,9 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   else if(st==='wind'||st==='chargeWind'){const n=e.def.boss||Math.random()<0.5?'chop':'slash';if(R.cur!=='chop'&&R.cur!=='slash')once(n,(e.def.wind+16)/60);}
   // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira, the Bone King hip hop, Mossback a ground-shaking roar)
   else if(e.def.boss&&partyAllDown()&&R.act[(R.info&&R.info.dance)||'capo']){R.play((R.info&&R.info.dance)||'capo');}
-  else if(now>R.lock){if(e.moving||slid>0.03)R.play('run',false,0.75);else R.play('idle');} // pushed or knocked along counts as moving, so nobody glides in an idle pose
+  else if(now>R.lock){const bw=e.type==='skelArcher'&&R.act.bowRun;
+    if(e.moving||slid>0.03){const back=bw&&R.act.bowBack&&((e.x-R.qx)*e.fx+(e.z-R.qz)*e.fz)<-0.004;R.play(back?'bowBack':bw?'bowRun':'run',false,bw?0.9:0.75);}else R.play(bw&&R.act.bowIdle?'bowIdle':'idle');}
+  R.qx=e.x;R.qz=e.z; // pushed or knocked along counts as moving, so nobody glides in an idle pose
   for(const m of R.mats)if(m.emissive)m.emissiveIntensity=e.flash>0?1.2:0.3;
   R.mixer.update(dt);if(R.rider)poseRider(R,e,dt);}
 // ================= online co-op (step 1: rooms + see each other in town) =================
