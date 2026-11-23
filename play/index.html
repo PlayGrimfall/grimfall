@@ -2337,16 +2337,19 @@ function mzInteract(L){
     L.push({x:o.cx,z:o.cz+0.6,r:2.6,y:2.6,label:S.keys.rusty>0?'Unlock the cell with a Rusty Key':'Locked cell: needs a Rusty Key',act:()=>{
       if(S.keys.rusty<=0){toast('This cell is locked. Rusty keys drop when you clear some rooms.');return;}S.keys.rusty--;c.open=true;mzRefreshBlk();sfx('chest');floatText(o.cx,2.4,o.cz,'Unlocked!','#ffd35c',20);}});}
 }
+// barrels, pots and chests never land inside shelves, mushrooms, pillars, trees, pools or each other
+function mzFree(x,z,r=0.5){for(const c of MZ.cols)if(x>c[0]-r&&x<c[1]+r&&z>c[2]-r&&z<c[3]+r)return false;for(const p of S.props)if(Math.hypot(p.x-x,p.z-z)<r+0.7)return false;return true;}
+function mzFreeNear(x,z,r=0.6){if(mzFree(x,z,r))return [x,z];const rm=mzRoomOf(x,z);for(let rad=0.6;rad<5;rad+=0.5)for(let a=0;a<6.28;a+=0.5){let nx=x+Math.cos(a)*rad,nz=z+Math.sin(a)*rad;if(rm){nx=clamp(nx,rm.x0*TS+0.9,(rm.x1+1)*TS-0.9);nz=clamp(nz,rm.z0*TS+0.9,(rm.z1+1)*TS-0.9);}if(mzFree(nx,nz,r))return [nx,nz];}return [x,z];}
 function mzPlaceProps(){
   const G=MZ.grp,fi=MZ.fi;
   for(const r of MZ.rooms){if(r.kind==='boss')continue;
     const spots=[];for(let x=r.x0;x<=r.x1;x++)for(const z of [r.z0,r.z1])spots.push([x,z]);for(let z=r.z0+1;z<r.z1;z++)for(const x of [r.x0,r.x1])spots.push([x,z]);
     const okS=spots.filter(([x,z])=>{for(const d of MZ.doors)for(const [dx,dz] of mzDoorTiles(d))if(Math.abs(dx-x)<=2&&Math.abs(dz-z)<=2)return false;return true;}).sort(()=>Math.random()-0.5);
     const n=r.kind==='closet'?2:r.kind==='start'?2:ri(2,4);
-    for(let k=0;k<n&&k<okS.length;k++){const [x,z]=okS[k];S.props.push(makeProp(Math.random()<0.65?'barrel':'pot',x*TS+TS/2+rnd(-0.3,0.3),z*TS+TS/2+rnd(-0.3,0.3),G));}
-    if(r.kind==='closet'){const [cx,cz]=mzCenter(r);S.props.push(makeProp('chest',cx,cz,G,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.5));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});dropPickup('goods',p.x,p.z,0,randGoods(0.6));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);}}));}
-    else if(r.kind==='normal'&&okS.length>n&&Math.random()<0.35){const [x,z]=okS[n];S.props.push(makeProp('chest',x*TS+TS/2,z*TS+TS/2,G));}}
-  for(const c of MZ.cells)if(c.kind==='locked'){const o=MZ.cellObjs[c.k];S.props.push(makeProp('chest',o.cx,o.back+1.4,G,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.6));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});for(let i=0;i<10;i++)dropPickup('gold',p.x,p.z,10);}}));}
+    let placed=0,used=0;for(;used<okS.length&&placed<n;used++){const [x,z]=okS[used],px=x*TS+TS/2+rnd(-0.3,0.3),pz=z*TS+TS/2+rnd(-0.3,0.3);if(!mzFree(px,pz,0.45))continue;S.props.push(makeProp(Math.random()<0.65?'barrel':'pot',px,pz,G));placed++;}
+    if(r.kind==='closet'){const [cx,cz]=mzFreeNear(...mzCenter(r));S.props.push(makeProp('chest',cx,cz,G,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.5));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});dropPickup('goods',p.x,p.z,0,randGoods(0.6));for(let i=0;i<8;i++)dropPickup('gold',p.x,p.z,10);}}));}
+    else if(r.kind==='normal'&&Math.random()<0.35){for(;used<okS.length;used++){const [x,z]=okS[used],px=x*TS+TS/2,pz=z*TS+TS/2;if(mzFree(px,pz,0.6)){S.props.push(makeProp('chest',px,pz,G));break;}}}}
+  for(const c of MZ.cells)if(c.kind==='locked'){const o=MZ.cellObjs[c.k],[qx,qz]=mzFreeNear(o.cx,o.back+1.4,0.6);S.props.push(makeProp('chest',qx,qz,G,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.6));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});for(let i=0;i<10;i++)dropPickup('gold',p.x,p.z,10);}}));}
 }
 function drawMaze(g){
   const W=MZ.W,{t,seen,rid}=MZ,htx=H.x/TS,htz=H.z/TS;
@@ -3288,7 +3291,7 @@ function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon')fogPuff(H.x,H
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
   mzPlaceProps();prisSpawn(fi);gilSpawn();if(S.openDoors)openAllDoors();relicSpawn(fi);
-  if(INV.map){INV.map=false;const nr=MZ.rooms.filter(r=>r.kind==='normal'),tr=nr[ri(0,nr.length-1)],[tx,tz]=mzRoomSpot(-99,-99,0,tr);S.props.push(makeProp('chest',tx,tz,dunGroup,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.6));dropPickup('gear',p.x,p.z,0,gearFor(0.4));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));for(let i=0;i<10;i++)dropPickup('gold',p.x,p.z,12);}}));
+  if(INV.map){INV.map=false;const nr=MZ.rooms.filter(r=>r.kind==='normal'),tr=nr[ri(0,nr.length-1)],[tx,tz]=mzFreeNear(...mzRoomSpot(-99,-99,0,tr),0.6);S.props.push(makeProp('chest',tx,tz,dunGroup,{fancy:true,loot:p=>{dropPickup('gear',p.x,p.z,0,gearFor(0.6));dropPickup('gear',p.x,p.z,0,gearFor(0.4));dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:2});dropPickup('goods',p.x,p.z,0,goodsNamed('Golden Idol'));for(let i=0;i<10;i++)dropPickup('gold',p.x,p.z,12);}}));
     schedule(120,()=>toast('Your treasure map leads to a golden chest somewhere on this floor!'));}
   portal.visible=false;portal.userData.pl.intensity=0;
   if(SET.cam==='free')CAM.yaw=0.5;
