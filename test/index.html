@@ -2262,6 +2262,19 @@ let WFX=null;function wfx(){if(WFX)return WFX;const mk=(w,h,f)=>{const c=documen
     glow:mk(64,64,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,255,255,0.9)');gr.addColorStop(0.35,'rgba(255,255,255,0.35)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);})};return WFX;}
 const DPOT={st:'none',m:null,q:[]};function loadDP(){if(DPOT.st!=='none')return;DPOT.st='loading';loadModelData('dpot').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o){DPOT.st='fail';return;}DPOT.m=o;DPOT.st='ready';const q=DPOT.q;DPOT.q=[];q.forEach(f=>f());}).catch(()=>{DPOT.st='fail';});}
 function potMesh(g){const put=()=>{const m=new THREE.Mesh(DPOT.m.geometry,DPOT.m.material);m.userData.shared=true;m.scale.setScalar(0.8);m.rotation.y=Math.random()*6.28;m.castShadow=true;g.add(m);};if(DPOT.st==='ready')put();else if(DPOT.st!=='fail'){loadDP();DPOT.q.push(put);}}
+const DCH={st:'none',q:[],seam:0.6};function loadDC(){if(DCH.st!=='none')return;DCH.st='loading';loadModelData('dchest').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o){DCH.st='fail';return;}
+    /* split the one-piece chest into a base and a lid that can swing open */
+    const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.computeBoundingBox();const bb=g.boundingBox,sy=bb.min.y+(bb.max.y-bb.min.y)*DCH.seam,zb=bb.min.z;
+    const A=Object.keys(g.attributes),P=g.attributes.position,lo={},hi={};A.forEach(k=>{lo[k]=[];hi[k]=[];});
+    for(let i=0;i<P.count;i+=3){const cy=(P.getY(i)+P.getY(i+1)+P.getY(i+2))/3,T=cy>sy?hi:lo;A.forEach(k=>{const a=g.attributes[k],n=a.itemSize;for(let j=0;j<3;j++)for(let c=0;c<n;c++)T[k].push(a.array[(i+j)*n+c]);});}
+    const mk=T=>{const q=new THREE.BufferGeometry();A.forEach(k=>q.setAttribute(k,new THREE.Float32BufferAttribute(T[k],g.attributes[k].itemSize)));return q;};
+    const mat=o.material;mat.side=THREE.DoubleSide;DCH.mat=mat;DCH.base=mk(lo);DCH.lid=mk(hi);DCH.lid.translate(0,-sy,-zb);DCH.sy=sy;DCH.zb=zb;DCH.w=bb.max.x-bb.min.x;DCH.d=bb.max.z-bb.min.z;
+    DCH.st='ready';const q=DCH.q;DCH.q=[];q.forEach(f=>f());}).catch(()=>{DCH.st='fail';});}
+function chestMesh(g,lid,fancy){const put=()=>{const k=fancy?1.12:1,sh=m=>{m.userData.shared=true;m.castShadow=true;return m;};
+    const b=sh(new THREE.Mesh(DCH.base,DCH.mat));b.scale.setScalar(k);g.add(b);
+    const ins=new THREE.Mesh(new THREE.PlaneGeometry(DCH.w*0.84*k,DCH.d*0.74*k),new THREE.MeshBasicMaterial({color:fancy?0x2a1c04:0x040302}));ins.rotation.x=-Math.PI/2;ins.position.y=DCH.sy*k-0.03;g.add(ins);
+    lid.position.set(0,DCH.sy*k,DCH.zb*k);const l=sh(new THREE.Mesh(DCH.lid,DCH.mat));l.scale.setScalar(k);lid.add(l);};
+  if(DCH.st==='ready')put();else if(DCH.st!=='fail'){loadDC();DCH.q.push(put);}}
 function loadHB(){if(HB.st!=='none')return;HB.st='loading';loadModelData('hbraz').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});const g=o.geometry,uv=g.attributes.uv,ix=g.index;
     // drop the painted flame card (its black background showed as a dark shape); our own coloured fire burns in its place
     const keep=[];for(let i=0;i<ix.count;i+=3){let fl=0;for(let k=0;k<3;k++){const v=ix.getX(i+k);if(uv.getX(v)<0.56&&uv.getY(v)>0.44)fl++;}if(fl<3)keep.push(ix.getX(i),ix.getX(i+1),ix.getX(i+2));}
@@ -3216,8 +3229,7 @@ function makeProp(kind,x,z,grp,extra={}){
   const g=new THREE.Group();g.position.set(x,0,z);if(extra.ry)g.rotation.y=extra.ry;
   if(kind==='barrel'){const BM=barrelMats();g.add(mesh(new THREE.LatheGeometry([[0.33,0],[0.37,0.1],[0.41,0.3],[0.43,0.53],[0.41,0.76],[0.37,0.96],[0.33,1.06]].map(v=>new THREE.Vector2(v[0],v[1])),18),BM.wood,0,0,0));g.add(mesh(new THREE.CylinderGeometry(0.33,0.33,0.05,18),BM.top,0,1.0,0));g.add(mesh(new THREE.CylinderGeometry(0.33,0.33,0.04,18),BM.top,0,0.02,0));for(const [y,r] of [[0.08,0.37],[0.31,0.42],[0.75,0.42],[0.98,0.37]])g.add(mesh(new THREE.CylinderGeometry(r+0.014,r+0.014,0.065,18),BM.iron,0,y,0));g.rotation.y+=Math.random()*6.28;}
   else if(kind==='pot'){potMesh(g);}
-  else{const fancy=!!extra.fancy;const CM=chestMats(),band=fancy?M.gold:CM.iron;g.add(mesh(new THREE.BoxGeometry(1.2,0.62,0.78),CM.wood,0,0.31,0));for(const x2 of [-0.45,0.45])g.add(mesh(new THREE.BoxGeometry(0.1,0.64,0.8),band,x2,0.32,0));g.add(mesh(new THREE.BoxGeometry(1.24,0.07,0.82),band,0,0.035,0));for(const x2 of [-0.58,0.58])g.add(mesh(new THREE.BoxGeometry(0.06,0.66,0.82),band,x2,0.33,0));
-    const lid=new THREE.Group();lid.position.set(0,0.62,-0.39);const lm=mesh(new THREE.CylinderGeometry(0.39,0.39,1.2,12,1,false,0,Math.PI),CM.wood,0,0,0.39);lm.rotation.z=Math.PI/2;lm.rotation.x=Math.PI/2;lid.add(lm);for(const x2 of [-0.45,0.45]){const st=mesh(new THREE.CylinderGeometry(0.41,0.41,0.1,12,1,true,0,Math.PI),band,x2,0,0.39);st.rotation.z=Math.PI/2;st.rotation.x=Math.PI/2;st.material.side=THREE.DoubleSide;lid.add(st);}lid.add(mesh(new THREE.BoxGeometry(0.2,0.24,0.08),CM.brass,0,0,0.79));g.add(lid);g.userData.lid=lid;
+  else{const fancy=!!extra.fancy;const lid=new THREE.Group();g.add(lid);g.userData.lid=lid;chestMesh(g,lid,fancy);
     if(extra.open)lid.rotation.x=-1.9;}
   grp.add(g);return Object.assign({kind,x,z,hp:kind==='barrel'?2:1,open:!!extra.open,dead:false,obj:g,grp,pop:0},extra);
 }
@@ -3405,7 +3417,7 @@ function goTown(spot){for(const ms of [80,450])setTimeout(()=>{if(H&&S.level==='
 }
 function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon'&&!S.demo)fogPuff(H.x,H.z,1,0xd8d0ff);},60);
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();loadKeys();loadMush();loadHB();loadDP();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();loadMush();loadHB();loadDP();loadDC();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
