@@ -5360,20 +5360,32 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skel2',tall:1.8},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skelss',tall:1.8,ss:1,wpn:['sword-07',1.0,0.12],shield:1},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';const hips=[];REAL.gltf.scene.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)for(const b of o.skeleton.bones)if(/Hips(_\d+)?$/.test(b.name)&&b.name.length<30)hips.push(b.name);});
   {const hn=hips.find(n=>/Hips$/.test(n))||hips[0];if(hn){const m=/^(.*)Hips(_\d+)?$/.exec(hn);pre=m[1];suf=m[2]||'';}} // skinned bones decide; a plain Hips wins (files with copied skeletons are rebound to it), else the only one there is, like a skeleton's Hips_2
   // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
   REAL.clips=pre==='mixamorig'&&!suf?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig([^.]*)\./,(x,b)=>pre+b+suf+'.');});return n;});
   // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
   const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
-  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});return REAL.clips;}
+  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});
+  {let hb=null;REAL.gltf.scene.traverse(o=>{if(!hb&&o.isBone&&/Hips(_\d+)?$/.test(o.name))hb=o;});const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
+   if(hb&&ht){let a=0;for(let i=1;i<ht.values.length;i+=3)a+=ht.values[i];a/=ht.values.length/3;const k=hb.position.y/a;
+     if(k>0&&(k<0.2||k>5))REAL.clips=REAL.clips.map(c=>{const n=c.clone();for(const t of n.tracks)if(/Hips[^.]*\.position$/.test(t.name)){t.values=Float32Array.from(t.values,v=>v*k);}return n;});}}
+  return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
-function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
+function rmInfo(e){return REALMON[e.type];} // every skeleton is now the Creation Station sword-and-shield skeleton
 // a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)
 function bossWpn(R,name,len,grip){if(WPN_ST!=='ready'){loadWpn();setTimeout(()=>bossWpn(R,name,len,grip),800);return;}const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/RightHand(_\d+)?$/.test(o.name))b=o;});if(!b)return;
   const w=wpnMesh('barbarian',2,R.mats||(R.mats=[]),name,len).children[0],bb=w.geometry.boundingBox,sc=w.scale.x;w.position.z=-(bb.min.z+(bb.max.z-bb.min.z)*grip)*sc;
   const ws=new G.Vector3();b.getWorldScale(ws);const c=new G.Group();c.applyMatrix4(HAND_R);c.scale.multiplyScalar(1/ws.x);c.add(w);b.add(c);R.bossW=c;}
+// the skeletons' skull shield (made in the Creation Station): bone-coloured skull on a dark iron-rimmed plate, strapped to the left forearm
+let SHLD=null;function skShield(R){if(!SHLD){SHLD={st:'loading'};loadModelData('skshield').then(gl=>{let g=null;gl.scene.traverse(o=>{if(o.isMesh&&!g)g=o.geometry;});g.computeBoundingBox();const b=g.boundingBox,P=g.attributes.position,col=new Float32Array(P.count*3),bone=new THREE.Color(0xcfc2a0),plate=new THREE.Color(0x2a2420);
+    for(let i=0;i<P.count;i++){const c=P.getZ(i)>b.min.z+(b.max.z-b.min.z)*0.5?bone:plate;col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;}g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    g.translate(-(b.min.x+b.max.x)/2,-(b.min.y+b.max.y)/2,-b.min.z);SHLD={st:'ready',g,m:new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,metalness:0.25})};}).catch(()=>{SHLD={st:'fail'};});}
+  if(SHLD.st==='loading'){setTimeout(()=>skShield(R),700);return;}if(SHLD.st!=='ready')return;
+  let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/LeftForeArm(_\d+)?$/.test(o.name))b=o;});if(!b)return;R.model.updateMatrixWorld(true);
+  const ws=new THREE.Vector3();b.getWorldScale(ws);const c=new THREE.Group();c.scale.setScalar(0.62/ws.x);const m=new THREE.Mesh(SHLD.g,SHLD.m);m.castShadow=true;m.userData.shared=true;
+  m.rotation.set(Math.PI/2,0,0);m.position.set(0.0,0.14/0.62,-0.05/0.62);c.add(m);b.add(c);R.shield=c;}
 // a second spellbook for the Archivist's free hand, with a glowing rune on its cover
 function bossBook(R){const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBone&&/LeftHand(_\d+)?$/.test(o.name))b=o;});if(!b)return;
   const m=(c,em)=>{const x=new G.MeshStandardMaterial({color:c,roughness:0.8,emissive:em||0x000000});(R.mats||(R.mats=[])).push(x);return x;},c=new G.Group();
@@ -5384,7 +5396,8 @@ function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.Skele
   const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);o.material.skinning=!!o.isSkinnedMesh;o.userData.tr0=o.material.transparent;
     if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.3;}}});
   const R={root,model,mats,info,yaw:Math.atan2(e.fx,e.fz),cur:null,lock:0,clock:new G.Clock(),mixer:new G.AnimationMixer(model),act:{}};for(const cl of (info.quad?REAL.gltf.animations:clipsFor(REAL)))R.act[cl.name]=R.mixer.clipAction(cl);
-  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);if(info.book)bossBook(R);
+  if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);if(info.book)bossBook(R);if(info.shield)skShield(R);
+  if(info.ss){const A=R.act;for(const [a,b] of [['idle','ssIdle'],['run','ssRun'],['slash','ssSlash'],['chop','ssSlash2'],['hit','ssHit'],['death','ssDeath']])if(A[b])A[a]=A[b];} // the Creation Station skeleton fights with its own sword-and-shield moves
   if(info.crossbow){let hb=null,hd=null;model.traverse(o=>{if(o.isBone&&!hb&&/RightHand$/.test(o.name))hb=o;if(o.isBone&&!hd&&/Head$/.test(o.name))hd=o;});model.updateMatrixWorld(true);
     const ws=new G.Vector3();const mm=(c,m)=>new G.MeshStandardMaterial({color:c,roughness:0.6,metalness:m||0});
     if(hb){hb.getWorldScale(ws);const cb=new G.Group();cb.applyMatrix4(HAND_R);cb.scale.multiplyScalar(1/ws.x);const inner=new G.Group();inner.rotation.x=-0.35;cb.add(inner);
