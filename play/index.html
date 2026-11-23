@@ -2784,7 +2784,7 @@ function minionsUpd(){const L=S.minions;if(!L||!L.length)return;
     if(tg){const dx=tg.x-m.x,dz=tg.z-m.z,d=Math.hypot(dx,dz)||1;m.fx=dx/d;m.fz=dz/d;
       if(d>1.0+eRad(tg)){m.x+=m.fx*0.07;m.z+=m.fz*0.07;m.moving=true;prog(d);}else{m.stuck=0;if(m.cd<=0){m.state='wind';m.t=16;m.cd=46;m.tg=tg;}}}
     else{const a=Math.atan2(-H.fz,-H.fx)+(i-1)*1.0,gx=H.x+Math.cos(a)*1.9,gz=H.z+Math.sin(a)*1.9,dx=gx-m.x,dz=gz-m.z,d=Math.hypot(dx,dz);
-      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);m.stuck=0;}else if(d>0.5){const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;if(d>2.5)prog(d);else m.stuck=0;}else{m.fx=H.fx;m.fz=H.fz;m.stuck=0;}}
+      if(d>22){m.x=gx;m.z=gz;poof(m.x,0,m.z,0.7);m.stuck=0;}else if(d>(m.fol?0.45:1.4)){m.fol=1;const sp=d>6?0.13:0.075;m.fx=dx/d;m.fz=dz/d;m.x+=m.fx*sp;m.z+=m.fz*sp;m.moving=true;if(d>2.5)prog(d);else m.stuck=0;}else{m.fol=0;m.stuck=0;} /* only set off again once the Necromancer has moved a bit away, and don't spin to copy his every turn */}
     for(const o of L){if(o===m||o.state==='dead')continue;const ox=m.x-o.x,oz=m.z-o.z,od=Math.hypot(ox,oz);if(od<0.75&&od>0.001){m.x+=ox/od*(0.75-od)*0.2;m.z+=oz/od*(0.75-od)*0.2;}}
     clampPos(m);});
   for(const m of L)if(m.remove)minionDrop(m);S.minions=L.filter(m=>!m.remove);}
@@ -5344,7 +5344,7 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   else if(st==='wind'||st==='chargeWind'){const n=e.def.boss||Math.random()<0.5?'chop':'slash';if(R.cur!=='chop'&&R.cur!=='slash')once(n,(e.def.wind+16)/60);}
   // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira, the Bone King hip hop, Mossback a ground-shaking roar)
   else if(e.def.boss&&partyAllDown()&&R.act[(R.info&&R.info.dance)||'capo']){R.play((R.info&&R.info.dance)||'capo');}
-  else if(now>R.lock){if(e.moving||slid>0.03)R.play('run',false,Math.max(0.55,Math.min(2.3,R.sv*24)));else R.play('idle');} // pushed or knocked along counts as moving, so nobody glides in an idle pose
+  else if(now>R.lock){R.mvT=(e.moving||slid>0.03)?8:(R.mvT||0)-1;if(R.mvT>0)R.play('run',false,Math.max(0.55,Math.min(2.3,R.sv*24)));else R.play('idle');} // pushed or knocked along counts as moving, so nobody glides in an idle pose
   for(const m of R.mats)if(m.emissive)m.emissiveIntensity=e.flash>0?1.2:0.3;
   R.mixer.update(dt);if(R.rider)poseRider(R,e,dt);}
 // ================= online co-op (step 1: rooms + see each other in town) =================
