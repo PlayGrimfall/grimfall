@@ -123,7 +123,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 .row.left{justify-content:flex-start}
 .purses{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;font-size:15px;color:var(--dim)}
 .purses b{color:var(--gold);font-variant-numeric:tabular-nums}
-.coin{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;background:radial-gradient(circle at 35% 35%,#fff3b8,var(--gold) 45%,#b07a18);border:1.5px solid #4a2c08;margin-right:4px}
+.coin{display:inline-block;width:16px;height:16px;vertical-align:-3px;background:url(fx/coin.png) center/contain no-repeat;margin-right:4px}
 .shopgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;align-items:start}
 .scard{background:linear-gradient(180deg,var(--stone2),var(--stone));border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .scard h3{margin:0;font-family:var(--display);font-size:23px;line-height:1}
@@ -2273,7 +2273,7 @@ const DCH={st:'none',q:[],seam:0.6};function loadDC(){if(DCH.st!=='none')return;
 function chestMesh(g,lid,fancy){const put=()=>{const k=fancy?1.12:1,sh=m=>{m.userData.shared=true;m.castShadow=true;return m;};
     const b=sh(new THREE.Mesh(DCH.base,DCH.mat));b.scale.setScalar(k);g.add(b);
     const ins=new THREE.Mesh(new THREE.PlaneGeometry(DCH.w*0.84*k,DCH.d*0.74*k),new THREE.MeshBasicMaterial({color:fancy?0x2a1c04:0x040302}));ins.rotation.x=-Math.PI/2;ins.position.y=DCH.sy*k-0.03;g.add(ins);
-    lid.position.set(0,DCH.sy*k,DCH.zb*k);const l=sh(new THREE.Mesh(DCH.lid,DCH.mat));l.scale.setScalar(k);lid.add(l);};
+    whenCoin(()=>{const n=fancy?11:6;for(let i=0;i<n;i++){const c=coin1(false,0.8*k);c.position.set((Math.random()-0.5)*DCH.w*0.6*k,DCH.sy*k-0.025+i*0.006,(Math.random()-0.5)*DCH.d*0.5*k);c.rotation.y=Math.random()*6.28;g.add(c);}});lid.position.set(0,DCH.sy*k,DCH.zb*k);const l=sh(new THREE.Mesh(DCH.lid,DCH.mat));l.scale.setScalar(k);lid.add(l);};
   if(DCH.st==='ready')put();else if(DCH.st!=='fail'){loadDC();DCH.q.push(put);}}
 function loadHB(){if(HB.st!=='none')return;HB.st='loading';loadModelData('hbraz').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});const g=o.geometry,uv=g.attributes.uv,ix=g.index;
     // drop the painted flame card (its black background showed as a dark shape); our own coloured fire burns in its place
@@ -3092,9 +3092,11 @@ function gemMesh(t){{const cm=gemCutMesh(t);if(cm){cm.scale.setScalar(0.55);cm.r
 // ================= real loot: painted glass potion bottles and metal gold coins instead of flat neon pictures =================
 const POT={st:'none',m:{},icon:{}};
 function loadPotions(){if(POT.st!=='none'||!THREE.GLTFLoader)return;POT.st='loading';loadModelData('potions').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)POT.m[o.name]=o;});POT.st=POT.m.pot_hp&&POT.m.pot_mp?'ready':'fail';}).catch(()=>{POT.st='fail';});}
-const COIN={g:null,mat:null};
-function coinMesh(){if(!COIN.g){COIN.g=new THREE.CylinderGeometry(0.1,0.1,0.022,20);COIN.mat=new THREE.MeshStandardMaterial({color:0xb8892a,metalness:0.75,roughness:0.32,emissive:0x2a1a04});}
-  const g=new THREE.Group();[[0,0,0,0],[0.05,0.024,0.03,0.25],[-0.04,0.048,-0.02,-0.2]].forEach(([x,y,z,r])=>{const c=new THREE.Mesh(COIN.g,COIN.mat);c.position.set(x,y,z);c.rotation.set(r,0,r*0.6);c.castShadow=true;g.add(c);});return g;}
+const COIN={st:'none',m:null,q:[]};function loadCoin(){if(COIN.st!=='none')return;COIN.st='loading';loadModelData('dcoin').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh&&!COIN.m)COIN.m=o;});COIN.st=COIN.m?'ready':'fail';const q=COIN.q;COIN.q=[];if(COIN.m)q.forEach(f=>f());}).catch(()=>{COIN.st='fail';});}
+/* one coin from the user's coin model: up=standing on its edge, else lying flat face-up, centred on (x,z) */
+function coin1(up,k){const m=new THREE.Mesh(COIN.m.geometry,COIN.m.material);m.userData.shared=true;m.castShadow=true;m.scale.setScalar(k);if(!up){m.rotation.x=-Math.PI/2;m.position.set(0,0.03*k,0.12*k);}const g=new THREE.Group();g.add(m);return g;}
+function whenCoin(f){if(COIN.st==='ready')f();else if(COIN.st!=='fail'){loadCoin();COIN.q.push(f);}}
+function coinMesh(){const g=new THREE.Group();whenCoin(()=>{const a=coin1(true,1);a.position.y=0.035;g.add(a);[[0.07,0,0.05,0.4],[-0.06,0.03,-0.03,1.9]].forEach(([x,y,z,r])=>{const c=coin1(false,0.85);c.position.set(x,y,z);c.rotation.y=r;g.add(c);});});return g;}
 // the leather coin purse: every bag in the game (loot on the dungeon floor, the pouch icon, Rafi's counter)
 const COINBAG={st:'none',m:null};
 function loadCoinBag(){if(COINBAG.st!=='none'||!THREE.GLTFLoader)return;COINBAG.st='loading';loadModelData('coinbag').then(gl=>{gl.scene.traverse(o=>{if(o.isMesh)COINBAG.m=o;});COINBAG.st=COINBAG.m?'ready':'fail';}).catch(()=>{COINBAG.st='fail';});}
@@ -3417,7 +3419,7 @@ function goTown(spot){for(const ms of [80,450])setTimeout(()=>{if(H&&S.level==='
 }
 function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon'&&!S.demo)fogPuff(H.x,H.z,1,0xd8d0ff);},60);
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();loadKeys();loadMush();loadHB();loadDP();loadDC();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();loadMush();loadHB();loadDP();loadDC();loadCoin();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
