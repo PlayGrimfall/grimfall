@@ -5266,10 +5266,16 @@ function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf=
   // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
   const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
   REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});
-  // some models hold TWO copies of the Mixamo skeleton (the loader names the second one with _1/_2): drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body
+  // some models hold TWO copies of the Mixamo skeleton (the loader names the second one with _1/_2): the bones of one drive the skin, the other carries rigid pieces (a skeleton archer's leg bones, crossbows).
+  // Drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body.
   const hipN=new Map();REAL.gltf.scene.traverse(o=>{const m=/^(.*)Hips(_\d+)?$/.exec(o.name||'');if(m&&m[1]===pre&&o.name.length<30)hipN.set(m[2]||'',o);});
-  if(hipN.size>1){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
-    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}return REAL.clips;}
+  if(hipN.size>1&&hipN.size<=4){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
+    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}
+  // hip movement is in the units of the rig the clip was made on: rescale it for each copy whose hips sit at a very different height (a rig built in metres)
+  {const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
+   if(ht){let a=0;for(let i=1;i<ht.values.length;i+=3)a+=ht.values[i];a/=ht.values.length/3;const K={};for(const [sx,hv] of hipN){const k=hv.position.y/a;if(k>0&&(k<0.2||k>5))K[pre+'Hips'+sx]=k;}
+     if(Object.keys(K).length)REAL.clips=REAL.clips.map(c=>{const n=c.clone();for(const t of n.tracks){const k=K[t.name.split('.')[0]];if(k&&/\.position$/.test(t.name))t.values=Float32Array.from(t.values,v=>v*k);}return n;});}}
+  return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
 // a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)

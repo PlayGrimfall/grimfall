@@ -5411,7 +5411,7 @@ function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf=
   // some models hold TWO copies of the Mixamo skeleton (the loader names the second one with _1/_2): the bones of one drive the skin, the other carries rigid pieces (a skeleton archer's leg bones, crossbows).
   // Drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body.
   const hipN=new Map();REAL.gltf.scene.traverse(o=>{const m=/^(.*)Hips(_\d+)?$/.exec(o.name||'');if(m&&m[1]===pre&&o.name.length<30)hipN.set(m[2]||'',o);});
-  if(hipN.size>1){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
+  if(hipN.size>1&&hipN.size<=4){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
     REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}
   // hip movement is in the units of the rig the clip was made on: rescale it for each copy whose hips sit at a very different height (a rig built in metres)
   {const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
