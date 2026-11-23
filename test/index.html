@@ -2254,6 +2254,23 @@ function mzGarden(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'
   for(const [x,z] of corners){if(z===r.z1)continue;const px=x*TS+TS/2+(x===r.x0?-0.2:0.2),pz=z*TS+TS/2+0.3;deadTree(G,px,pz,rnd(2.6,3.6)*(big?1.2:1),bark);col(px,pz,0.4,0.4);}
   for(let i=0;i<(big?5:2);i++){const x=rnd(r.x0*TS+2,(r.x1+1)*TS-2),z=rnd(r.z0*TS+2.5,(r.z1+1)*TS-2);const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rnd(-0.3,0.3);g.add(mesh(new THREE.BoxGeometry(0.9,1.0,0.22),grave,0,0.5,0));const top=mesh(new THREE.CylinderGeometry(0.45,0.45,0.22,14,1,false,-Math.PI/2,Math.PI),grave,0,1.0,0);top.rotation.x=Math.PI/2;g.add(top);G.add(g);col(x,z,0.4,0.2);}
   for(let i=0;i<(big?3:1);i++){const x=rnd(r.x0*TS+2,(r.x1+1)*TS-2),z=rnd(r.z0*TS+2.5,(r.z1+1)*TS-2);G.add(mesh(new THREE.CylinderGeometry(0.05,0.05,1.4,6),bark,x,0.7,z));G.add(mesh(new THREE.SphereGeometry(0.14,8,6),lam({color:0xd8c0ff,emissive:0x8a5aff}),x,1.45,z,false,false));glowSpr(x,1.45,z,0xb08aff,1.4);col(x,z,0.15,0.15);}}
+// hanging fire baskets (made in the Creation Station) on chains along the back wall; the fire burns in each floor's own torch colour
+const HB={st:'none'};
+// white flame and glow, so they can take any floor's colour (the usual fire texture is already orange)
+let WFX=null;function wfx(){if(WFX)return WFX;const mk=(w,h,f)=>{const c=document.createElement('canvas');c.width=w;c.height=h;f(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;};
+  WFX={flame:mk(64,128,(g,w,h)=>{for(const [r,a] of [[1,0.35],[0.7,0.6],[0.42,1]]){const gr=g.createRadialGradient(w/2,h*0.72,1,w/2,h*0.72,w*0.5*r);gr.addColorStop(0,`rgba(255,255,255,${a})`);gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.moveTo(w/2,h*0.04);g.bezierCurveTo(w*(0.5+0.45*r),h*0.45,w*(0.5+0.5*r),h*0.95,w/2,h*0.97);g.bezierCurveTo(w*(0.5-0.5*r),h*0.95,w*(0.5-0.45*r),h*0.45,w/2,h*0.04);g.fill();}}),
+    glow:mk(64,64,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,255,255,0.9)');gr.addColorStop(0.35,'rgba(255,255,255,0.35)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);})};return WFX;}
+function loadHB(){if(HB.st!=='none')return;HB.st='loading';loadModelData('hbraz').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});const g=o.geometry,uv=g.attributes.uv,ix=g.index;
+    // drop the painted flame card (its black background showed as a dark shape); our own coloured fire burns in its place
+    const keep=[];for(let i=0;i<ix.count;i+=3){let fl=0;for(let k=0;k<3;k++){const v=ix.getX(i+k);if(uv.getX(v)<0.56&&uv.getY(v)>0.44)fl++;}if(fl<3)keep.push(ix.getX(i),ix.getX(i+1),ix.getX(i+2));}
+    g.setIndex(keep);g.computeBoundingBox();const b=g.boundingBox;g.translate(-(b.min.x+b.max.x)/2,-b.max.y,-(b.min.z+b.max.z)/2);
+    HB.g=g;HB.m=o.material;HB.h=b.max.y-b.min.y;HB.st='ready';if(MZ&&MZ.hbQ){for(const f of MZ.hbQ)f();MZ.hbQ=null;}}).catch(()=>{HB.st='fail';});}
+function mzHang(G,r,back,bx,bz,col){const big=r.kind==='piece'||r.kind==='boss',spots=big?[Math.floor(back.length/3),Math.floor(back.length*2/3)]:[Math.floor(back.length/2)];
+  for(const k of spots){const x=bx(back[k]),z=bz+1.25,top=WALL_H+0.35;
+    const put=()=>{const s=2.1/HB.h,m=new THREE.Mesh(HB.g,HB.m);m.scale.setScalar(s);m.position.set(x,top,z);m.castShadow=true;m.userData.shared=true;G.add(m);
+      const fy=top-2.1*0.7,fm=new THREE.SpriteMaterial({map:wfx().flame,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});MZ.mats.push(fm);const fl=new THREE.Sprite(fm);fl.scale.set(0.75,1.05,1);fl.position.set(x,fy,z);G.add(fl);
+      const gm=new THREE.SpriteMaterial({map:wfx().glow,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.8});MZ.mats.push(gm);const gl=new THREE.Sprite(gm);gl.scale.set(3.2,3.2,1);gl.position.set(x,fy,z);G.add(gl);(MZ.hfl=MZ.hfl||[]).push([fl,gl,Math.random()*6]);};
+    if(HB.st==='ready')put();else{loadHB();(MZ.hbQ=MZ.hbQ||[]).push(put);}}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2280,6 +2297,7 @@ function mzDecor(fi,theme){
     if(theme==='cistern')mzCistern(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='garden')mzGarden(G,r,back,corners,bx,bz,col,glowSpr);
     mzFog(G,r,FLOORS[fi]?FLOORS[fi].mote:0xffffff);
+    if(r.kind!=='start'&&back.length>2)mzHang(G,r,back,bx,bz,FLOORS[fi]?FLOORS[fi].torch:0xffa040);
     if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
       if(r.kind==='piece'||r.kind==='boss'){const [cx,cz]=mzCenter(r);const rg=mesh(new THREE.TorusGeometry(2.2,0.06,6,48),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg.rotation.x=-Math.PI/2;G.add(rg);const rg2=mesh(new THREE.TorusGeometry(1.5,0.04,6,6),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg2.rotation.x=-Math.PI/2;G.add(rg2);glowSpr(cx,0.3,cz,0x9dff8a,4);}}
@@ -2374,6 +2392,7 @@ function updMaze(){
         schedule(14,()=>{sfx('shoot');for(let k=-1;k<=1;k++){if(tr.dir==='s')S.eproj.push({kind:'cbolt',x:H.x+k*0.7,z:z0+0.05,y:1.0,vx:0,vz:0.24,dmg:6+DEP()*3,life:40,dead:false});
           else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+DEP()*3,life:40,dead:false});}});}}}
   if(MZ.spin)for(const [o,v,ax] of MZ.spin){if(ax==='y')o.rotation.y+=v;else o.rotation.y+=v;}
+  if(MZ.hfl)for(const [fl,gl,ph] of MZ.hfl){const k=S.frame*0.21+ph,f=0.9+Math.sin(k)*0.06+Math.sin(k*2.7)*0.04;fl.scale.set(0.75*f,1.05*(2-f),1);gl.material.opacity=0.65+Math.sin(k*1.3)*0.12;}
   if(MZ.rips)for(const [rp,ph] of MZ.rips){const k=(S.frame*0.008+ph)%1;rp.scale.setScalar(0.4+k*1.6);}
   if(MZ.drips&&S.frame%14===0){const d=MZ.drips[ri(0,MZ.drips.length-1)];addPart({x:d[0]+rnd(-0.1,0.1),y:2.0,z:d[1],vy:-0.02,g:0.004,life:30,size:0.05,color:'#bfefff'});}
   if(MZ.fogs)for(const [f,x0,ph,m] of MZ.fogs){const k=S.frame*0.004+ph;f.position.x=x0+Math.sin(k)*1.2;m.opacity=0.22+Math.sin(k*1.7)*0.08;}
@@ -3385,7 +3404,7 @@ function goTown(spot){for(const ms of [80,450])setTimeout(()=>{if(H&&S.level==='
 }
 function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon'&&!S.demo)fogPuff(H.x,H.z,1,0xd8d0ff);},60);
   if(INV.rack)INV.rack=null;if(INV.arack)INV.arack=null; // the smith and the armory restock while you're away
-  clearLevel();loadKeys();loadMush();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
+  clearLevel();loadKeys();loadMush();loadHB();loadWpn();loadArm();Object.assign(NET,{gh:{},gdead:{},linked:false,bars:false});S.floor=fi;buildMaze(fi);dunGroup=MZ.grp;portal=MZ.portal;motesD=MZ.motes;setLevel('dungeon');H.fairyUsed=false;
   const sr=MZ.rooms.find(r=>r.kind==='start'),[sx,sz]=mzCenter(sr);
   Object.assign(H,{x:sx,z:sz,y:0,vy:0,fx:1,fz:0,hp:H.maxHp,mp:H.maxMp,state:'ok',swing:0,castT:0,dash:0,rage:0,inv:60});
   S.waves=[];S.wave=0;S.wallX=1e9;S.aRoom=null;S.keys={rusty:0,great:0};S.mapOn=false;mzRevealRoom(sr);sr.seen=true;
