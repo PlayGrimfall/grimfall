@@ -1502,6 +1502,9 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
     if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||loadReal(null,'hero_f')!=='ready'||loadReal(null,'arm_pal_f')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
+  /* two red-armoured knights stand watch on either side of the road in front of the gate, beside Captain Jordan */
+  if(!GATE.red&&inTown&&GATE.guards.length&&loadReal(null,'rguard')==='ready'&&animState==='ready'){GATE.red=[-0.3,3.3].map(z=>{const e={x:83.6,y:0,z,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'rguard',tall:1.95});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});return {R,e};});}
+  if(GATE.red)for(const c of GATE.red){c.R.root.visible=inTown;if(inTown){const e=c.e,d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<5){e.fx+=((H.x-e.x)/d-e.fx)*0.08;e.fz+=((H.z-e.z)/d-e.fz)*0.08;}else{e.fx+=(-1-e.fx)*0.05;e.fz+=(0-e.fz)*0.05;}poseRealMon(c.R,e);}}
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
@@ -3970,6 +3973,8 @@ function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS
     const f=new G.Sprite(M.flame);f.scale.set(0.6,0.85,1);f.position.set(0,1.62,0);b.add(f);FLAMES.push({f,L:new G.PointLight(0,0,1),base:0,ph:Math.random()*9});
     const ban=mesh(new G.PlaneGeometry(0.7,2.2),banM,sx*0.45,0,-1.5,true,false);ban.position.set(sx*2.4,DAIS.h+1.6,-1.45);g.add(ban);
     g.add(mesh(new G.CylinderGeometry(0.04,0.04,2.6,6),dark,sx*2.4,DAIS.h+1.4,-1.5));g.add(mesh(new G.BoxGeometry(0.9,0.05,0.05),gold,sx*2.4,DAIS.h+2.72,-1.48));}
+  /* the King and Queen's black-armoured personal guards, one at each end of the dais */
+  loadModelData('dknight').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o)return;[-1,1].forEach(sd=>{const m=new G.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(sd*2.35,DAIS.h,-0.45);m.rotation.y=sd*-0.25;g.add(m);});}).catch(()=>{});
   occluder(g,DAIS.x-3,DAIS.x+3,DAIS.z-1.8,DAIS.z+1.8,false,'town');}
 function showLetter(){const nm=esc(H.name||HEROES[H.cls].name);
   openDlg(`<h1 class="logo sm"><small>Sent by the King and Queen</small>A letter from Kemet</h1>
