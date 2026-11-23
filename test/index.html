@@ -5374,9 +5374,15 @@ function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf=
   // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
   const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
   REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});
-  {let hb=null;REAL.gltf.scene.traverse(o=>{if(!hb&&o.isBone&&/Hips(_\d+)?$/.test(o.name))hb=o;});const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
-   if(hb&&ht){let a=0;for(let i=1;i<ht.values.length;i+=3)a+=ht.values[i];a/=ht.values.length/3;const k=hb.position.y/a;
-     if(k>0&&(k<0.2||k>5))REAL.clips=REAL.clips.map(c=>{const n=c.clone();for(const t of n.tracks)if(/Hips[^.]*\.position$/.test(t.name)){t.values=Float32Array.from(t.values,v=>v*k);}return n;});}}
+  // some models hold TWO copies of the Mixamo skeleton (the loader names the second one with _1/_2): the bones of one drive the skin, the other carries rigid pieces (a skeleton archer's leg bones, crossbows).
+  // Drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body.
+  const hipN=new Map();REAL.gltf.scene.traverse(o=>{const m=/^(.*)Hips(_\d+)?$/.exec(o.name||'');if(m&&m[1]===pre&&o.name.length<30)hipN.set(m[2]||'',o);});
+  if(hipN.size>1){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
+    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}
+  // hip movement is in the units of the rig the clip was made on: rescale it for each copy whose hips sit at a very different height (a rig built in metres)
+  {const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
+   if(ht){let a=0;for(let i=1;i<ht.values.length;i+=3)a+=ht.values[i];a/=ht.values.length/3;const K={};for(const [sx,hv] of hipN){const k=hv.position.y/a;if(k>0&&(k<0.2||k>5))K[pre+'Hips'+sx]=k;}
+     if(Object.keys(K).length)REAL.clips=REAL.clips.map(c=>{const n=c.clone();for(const t of n.tracks){const k=K[t.name.split('.')[0]];if(k&&/\.position$/.test(t.name))t.values=Float32Array.from(t.values,v=>v*k);}return n;});}}
   return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){return REALMON[e.type];} // every skeleton is now the Creation Station sword-and-shield skeleton
@@ -5474,7 +5480,7 @@ function poseRealMon(R,e){const dt=Math.min(0.05,R.clock.getDelta()),now=perform
   else if(st==='wind'||st==='chargeWind'){const n=e.def.boss||Math.random()<0.5?'chop':'slash';if(R.cur!=='chop'&&R.cur!=='slash')once(n,(e.def.wind+16)/60);}
   // a boss who has beaten every hero celebrates (Grimtusk breaks into capoeira, the Bone King hip hop, Mossback a ground-shaking roar)
   else if(e.def.boss&&partyAllDown()&&R.act[(R.info&&R.info.dance)||'capo']){R.play((R.info&&R.info.dance)||'capo');}
-  else if(now>R.lock){const bw=e.type==='skelArcher'&&R.act.bowRun;
+  else if(now>R.lock){const bw=false; /* the longbow moves were made on a different body and bend the skeleton archers' arms out sideways, so they keep their own idle and run */
     R.mvT=(e.moving||slid>0.03)?8:(R.mvT||0)-1; // keep running a few frames after stopping, so start-stop jitter doesn't flick between run and idle
     if(R.mvT>0){const back=bw&&R.act.bowBack&&((e.x-R.qx)*e.fx+(e.z-R.qz)*e.fz)<-0.004;R.play(back?'bowBack':bw?'bowRun':'run',false,Math.max(0.55,Math.min(2.3,R.sv*(bw?26:24))));}else R.play(bw&&R.act.bowIdle?'bowIdle':'idle');}
   R.qx=e.x;R.qz=e.z; // pushed or knocked along counts as moving, so nobody glides in an idle pose

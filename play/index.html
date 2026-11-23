@@ -5265,7 +5265,11 @@ function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf=
   REAL.clips=pre==='mixamorig'&&!suf?ANIMS:ANIMS.map(c=>{const n=c.clone();n.tracks.forEach(t=>{t.name=t.name.replace(/^mixamorig([^.]*)\./,(x,b)=>pre+b+suf+'.');});return n;});
   // drop tracks for bones this rig lacks (a rig without fingers): three.js would otherwise aim them at the model root and spin the whole body
   const has=new Set();REAL.gltf.scene.traverse(o=>{if(o.name){has.add(o.name);has.add(o.name.replace(/_\d+$/,''));}}); // some rigs carry a _2 suffix that is stripped when they are built
-  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});return REAL.clips;}
+  REAL.clips=REAL.clips.map(c=>{if(c.tracks.every(t=>has.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>has.has(t.name.split('.')[0]));return n;});
+  // some models hold TWO copies of the Mixamo skeleton (the loader names the second one with _1/_2): drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body
+  const hipN=new Map();REAL.gltf.scene.traverse(o=>{const m=/^(.*)Hips(_\d+)?$/.exec(o.name||'');if(m&&m[1]===pre&&o.name.length<30)hipN.set(m[2]||'',o);});
+  if(hipN.size>1){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
+    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}return REAL.clips;}
 const SKELW={f:'skelw',tall:1.85}; // armored Skeleton Warrior look
 function rmInfo(e){const r=REALMON[e.type];if(r&&e.type==='skeleton'){if(e.skw===undefined)e.skw=Math.random()<Math.min(0.7,0.2+0.1*(S.floor||1));if(e.skw)return SKELW;}return r;}
 // a weapon from the 3DRT pack in a boss's right hand (Grimtusk carries the big red-and-gold war axe)
