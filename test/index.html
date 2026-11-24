@@ -1504,9 +1504,9 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
     if(b.t>=1){b.live=false;b.m.visible=false;const s=b.s;if(s&&s.e.state!=='dead'&&!s.hidden){if(Math.random()<0.6){s.e.state='dead';s.e.t=60;s.e.moving=false;}else s.e.flash=8;}}}}
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||loadReal(null,'hero_f')!=='ready'||loadReal(null,'arm_pal_f')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
-  /* two red-armoured knights stand watch on either side of the road in front of the gate, beside Captain Jordan */
-  if(!GATE.red&&inTown&&GATE.guards.length&&loadReal(null,'rguard')==='ready'&&animState==='ready'){GATE.red=[-0.3,3.3].map(z=>{const e={x:83.6,y:0,z,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'rguard',tall:1.95,ss:1});pinBackSword(R);skSword(R);skShield(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});return {R,e};});}
-  if(GATE.red)for(const c of GATE.red){c.R.root.visible=inTown;if(inTown){const e=c.e,d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<5){e.fx+=((H.x-e.x)/d-e.fx)*0.08;e.fz+=((H.z-e.z)/d-e.fz)*0.08;}else{e.fx+=(-1-e.fx)*0.05;e.fz+=(0-e.fz)*0.05;}poseRealMon(c.R,e);}}
+  /* two black knights stand watch on either side of the road in front of the gate, beside Captain Jordan */
+  if(!GATE.red&&inTown&&GATE.guards.length){GATE.red=[];loadModelData('dknight').then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)return;for(const z of [-0.3,3.3]){const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(83.6,0,z);m.rotation.y=-Math.PI/2;scene.add(m);GATE.red.push(m);}}).catch(()=>{});}
+  if(GATE.red)for(const m of GATE.red)m.visible=inTown;
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
       if(!GATE.called&&d<18){GATE.called=1;floatText(e.x,2.6,e.z,'Stranger! Over here!','#ffcf8a',20);}
@@ -2621,7 +2621,7 @@ function readInput(){
   const k=c=>!!keys[c];
   const r={mx:(k('KeyD')||k('ArrowRight')?1:0)-(k('KeyA')||k('ArrowLeft')?1:0),my:(k('KeyS')||k('ArrowDown')?1:0)-(k('KeyW')||k('ArrowUp')?1:0),
     attack:k('KeyJ')||k('Comma')||k('Space'),jump:k('KeyK')||k('Period'),sp1:k('KeyL')||k('Slash'),sp2:k('KeyI')||k('Semicolon'),rot:(k('KeyE')?1:0)-(k('KeyQ')?1:0),run:k('ShiftLeft')||k('ShiftRight'),sx:(k('KeyD')?1:0)-(k('KeyA')?1:0),tn:(k('ArrowRight')?1:0)-(k('ArrowLeft')?1:0)};
-  if(touch.mx||touch.my){r.mx=touch.mx;r.my=touch.my;}r.attack=r.attack||touch.attack;r.jump=r.jump||touch.jump;r.run=r.run||!!touch.run;r.sp1=r.sp1||touch.sp1;r.sp2=r.sp2||touch.sp2;
+  if(touch.mx||touch.my){r.mx=touch.mx;r.my=touch.my;if(camMode()==='behind'&&!PREV&&!r.tn)r.tn=touch.tx||touch.mx;} /* behind the hero: stick left/right turns, up/down walks */r.attack=r.attack||touch.attack;r.jump=r.jump||touch.jump;r.run=r.run||!!touch.run;r.sp1=r.sp1||touch.sp1;r.sp2=r.sp2||touch.sp2;
   try{const gp=navigator.getGamepads&&navigator.getGamepads()[0];if(gp){const ax=gp.axes[0]||0,ay=gp.axes[1]||0,b=i=>!!(gp.buttons[i]&&gp.buttons[i].pressed);
     if(Math.abs(ax)>0.35)r.mx=sgn(ax);if(Math.abs(ay)>0.35)r.my=sgn(ay);r.attack=r.attack||b(2);r.jump=r.jump||b(0);r.sp1=r.sp1||b(1);r.sp2=r.sp2||b(3);r.run=r.run||b(10);
     const rx=gp.axes[2]||0;if(Math.abs(rx)>0.3)r.rot=rx;if(b(4))r.rot=-1;if(b(5))r.rot=1;}}catch(e){}
@@ -6148,9 +6148,9 @@ function updateTouch(){touchIcons();powUI();document.getElementById('touch').hid
 (function(){
   const stick=document.getElementById('stick'),nub=document.getElementById('nub');let id=null,ox=0,oy=0;
   stick.addEventListener('pointerdown',e=>{id=e.pointerId;const r=stick.getBoundingClientRect();ox=r.left+r.width/2;oy=r.top+r.height/2;try{stick.setPointerCapture(id);}catch(_){}mv(e);});
-  const mv=e=>{if(e.pointerId!==id)return;let dx=e.clientX-ox,dy=e.clientY-oy;const m=Math.hypot(dx,dy),lim=40;if(m>lim){dx*=lim/m;dy*=lim/m;}nub.style.transform=`translate(${dx}px,${dy}px)`;touch.mx=dx>14?1:dx<-14?-1:0;touch.my=dy>14?1:dy<-14?-1:0;};
+  const mv=e=>{if(e.pointerId!==id)return;let dx=e.clientX-ox,dy=e.clientY-oy;const m=Math.hypot(dx,dy),lim=40;if(m>lim){dx*=lim/m;dy*=lim/m;}nub.style.transform=`translate(${dx}px,${dy}px)`;touch.mx=dx>14?1:dx<-14?-1:0;touch.my=dy>14?1:dy<-14?-1:0;touch.tx=Math.abs(dx)>10?dx/lim:0;};
   {const rb=document.getElementById('runBtn');rb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();touch.run=!touch.run;rb.classList.toggle('on',touch.run);rb.setAttribute('aria-pressed',String(touch.run));});}
-  stick.addEventListener('pointermove',mv);const end=e=>{if(e.pointerId!==id)return;id=null;touch.mx=touch.my=0;nub.style.transform='';};
+  stick.addEventListener('pointermove',mv);const end=e=>{if(e.pointerId!==id)return;id=null;touch.mx=touch.my=touch.tx=0;nub.style.transform='';};
   stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
   document.querySelectorAll('#touch [data-m]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(S.state!=='play')return;const m=b.dataset.m;
     if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set')openSettings();else drinkPotion(m);}));
