@@ -1426,7 +1426,7 @@ function buildShip(){
 
 // ================= town =================
 const TOWN={minX:-39.4,maxX:51.3,minZ:-18.4,maxZ:19.8}, ROOM={minX:-5.6,maxX:5.6,minZ:-3.9,maxZ:4.1};
-const GATE_SPOT={x:90,z:1.5,fx:-1,fz:0,yaw:-1.57};
+const GATE_SPOT={x:90,z:1.5,fx:-1,fz:0,yaw:-1.57},NEST_SPOT={x:116,z:-30,fx:-1,fz:0,yaw:1.57};
 const TOWN_COL=[],TOWN_JUMP=[];
 const DOORS=[{id:'harbor',name:'Harbor',x:-33,z:-8.6},{id:'magic',name:'Runes & Magic',x:-22,z:-8.6},{id:'gems',name:'Crystals & Jewels',x:-10,z:-8.6},
   {id:'smith',name:'Blacksmith',x:12,z:-8.6},{id:'armory',name:'Armory',x:24,z:-8.6},{id:'gate',name:'the castle',x:93.8,z:1.5},{id:'ship',name:'the ship',x:-52,z:2.2}];
@@ -1854,11 +1854,21 @@ TX.bannerP=canvasTex(64,160,(g,w,h)=>{g.fillStyle='#5a2a7a';g.beginPath();g.move
 const fogTown=new THREE.Fog(0x5a3f6e,45,170);
 // ================= forest, mountains, day and night =================
 const DN={t:0.3,len:8*60*60,lamps:[],glows:[],winMats:[]};
+function buildNestPath(T){const dirt=lam({color:0x2a2016}),rock=lam({map:TX.stone,color:0x4a4040}),dark=new THREE.MeshBasicMaterial({color:0x050305});
+  const pa=mesh(new THREE.PlaneGeometry(3.6,31.5),dirt,70,0.03,-15.4,false,true);pa.rotation.x=-Math.PI/2;T.add(pa);const pb=mesh(new THREE.PlaneGeometry(52,3.6),dirt,94.5,0.031,-30,false,true);pb.rotation.x=-Math.PI/2;T.add(pb);
+  // the cave mouth: piled rock around a black opening, draped in webs
+  const cx=121.6,cz=-30,mo=new THREE.Mesh(new THREE.PlaneGeometry(4.2,3.6),dark);mo.position.set(cx,1.8,cz);mo.rotation.y=-Math.PI/2;T.add(mo);
+  for(const [dz,h,sc] of [[-2.9,1.6,1.6],[-2.6,3.4,1.3],[2.9,1.6,1.6],[2.6,3.4,1.3],[-1.4,4.2,1.4],[0.2,4.5,1.5],[1.6,4.2,1.4],[-3.8,0.9,1.9],[3.8,0.9,1.9]]){const m=mesh(new THREE.DodecahedronGeometry(sc,0),rock,cx+0.4,h,cz+dz);m.scale.set(1.15,0.8,0.95);m.rotation.set(dz,dz*2,0);T.add(m);}
+  for(const [dz,y,w,ry] of [[-1.6,2.8,2.6,0.4],[1.7,3.0,2.4,-0.5],[0,0.9,3.4,0.1]]){const p=new THREE.Mesh(new THREE.PlaneGeometry(w,w),webMat(ri(0,6),0.75));p.position.set(cx-0.5,y,cz+dz);p.rotation.set(0,-Math.PI/2+ry,rnd(-0.4,0.4));T.add(p);}
+  smesh('eggsac',T,cx-1.4,2.4,cz-2.2,1.1,0.4);{const c=new THREE.Mesh(new THREE.SphereGeometry(0.18,10,8),new THREE.MeshBasicMaterial({color:0xff9a3a}));c.position.set(cx-1.4,2.85,cz-2.2);T.add(c);const gm=new THREE.SpriteMaterial({map:TX.glow,color:0xff8a2a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.7});const gl=new THREE.Sprite(gm);gl.scale.set(2.6,2.6,1);gl.position.set(cx-1.4,2.9,cz-2.2);T.add(gl);}
+  {const post=mesh(new THREE.CylinderGeometry(0.1,0.12,2.6,6),lam({color:0x3a2a1c}),cx-3.2,1.3,cz+2.6);T.add(post);const t=new THREE.TextureLoader().load('fx/spideremblem.png');t.encoding=THREE.sRGBEncoding;const em=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,side:THREE.DoubleSide}));em.position.set(cx-3.25,2.5,cz+2.6);em.rotation.y=-Math.PI/2;T.add(em);}
+  // until the hero has found the Nest, a thick web closes the path where it leaves the road
+  const bw=new THREE.Group();for(let k=0;k<2;k++){const p=new THREE.Mesh(new THREE.PlaneGeometry(4.2,4.2),webMat(k*3+1,0.85));p.position.set(70,1.9,-1.6-k*0.3);p.rotation.z=k*0.6;bw.add(p);}T.add(bw);DKFX.nestWeb=bw;TOWN_COL.push([66.5,73.5,-2.1,-1.2]);DKFX.nestWebCol=TOWN_COL[TOWN_COL.length-1];}
 function buildWilds(T){
   const r=rng(4242),inTown=(x,z)=>x>-44&&x<56&&z>-21&&z<23,inCastle=(x,z)=>(x>22&&x<62&&z>-44&&z<-6)||(x>84&&x<138&&z>-16&&z<20);
   // pine forest: painted needle cards (3 crossed planes per tree), instanced
   const pos=[];for(let k=0;k<3200&&pos.length<1500;k++){const east=r()<0.55;const x=east?56+r()*120:-40+r()*96,z=east?-110+r()*220:(r()<0.5?-110+r()*86:24+r()*86);
-    if(inTown(x,z)||inCastle(x,z)||x<-39)continue;if(Math.abs(z-1.5)<7.5&&x>50&&x<90)continue;pos.push([x,z,0.85+r()*1.2]);}
+    if(inTown(x,z)||inCastle(x,z)||x<-39)continue;if((x>64&&x<76&&z<2&&z>-36)||(z>-36&&z<-24&&x>64&&x<130))continue; /* keep the Spider Nest path and its cave clear */if(Math.abs(z-1.5)<7.5&&x>50&&x<90)continue;pos.push([x,z,0.85+r()*1.2]);}
   const pineTex=v=>canvasTex(256,512,(g,w,h)=>{const pr=rng(500+v*17);g.clearRect(0,0,w,h);
     g.fillStyle='#3a2a1c';g.fillRect(w/2-5,h*0.55,10,h*0.45);g.fillStyle='#24180f';g.fillRect(w/2-2,h*0.55,3,h*0.45);
     const tiers=11+v*2;for(let t=0;t<tiers;t++){const f=t/(tiers-1),y=h*(0.04+f*0.82),half=w*(0.06+f*0.42)*(0.9+pr()*0.2);
@@ -1901,6 +1911,7 @@ function buildWilds(T){
     g.setAttribute('color',new THREE.Float32BufferAttribute(cl,3));g.computeVertexNormals();const m=new THREE.Mesh(g,rockMat);m.position.set(x,H/2-2,z);m.rotation.y=rr()*6.3;T.add(m);};
   const mr=rng(77);for(let i=0;i<30;i++){const a=-1.45+i/29*2.9,R=230+mr()*80;mt(Math.cos(a)*R+40,Math.sin(a)*R-10,45+mr()*35,55+mr()*55,i*31+5);}
   for(let i=0;i<5;i++)mt(42+(i-2)*60,-280-(i%2)*30,60,62+i*5,900+i);
+  buildNestPath(T);
 }
 function updDayNight(){if(!DN.sky)return;DN.t=(DN.t+1/DN.len)%1;if(FW.party>0&&S.level==='town'){let d=0.74-DN.t;d=d-Math.round(d);DN.t=(DN.t+d*0.015+1)%1;} // night falls for the victory party
   const ang=DN.t*Math.PI*2,el=Math.sin(ang),day=clamp(el*1.8+0.12,0,1),dusk=clamp(1-Math.abs(el-0.05)*3.5,0,1);
@@ -2290,7 +2301,7 @@ let WFX=null;function wfx(){if(WFX)return WFX;const mk=(w,h,f)=>{const c=documen
     glow:mk(64,64,(g,w,h)=>{const gr=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);gr.addColorStop(0,'rgba(255,255,255,0.9)');gr.addColorStop(0.35,'rgba(255,255,255,0.35)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);})};return WFX;}
 const DPOT={st:'none',m:null,q:[]};function loadDP(){if(DPOT.st!=='none')return;DPOT.st='loading';loadModelData('dpot').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o){DPOT.st='fail';return;}DPOT.m=o;DPOT.st='ready';const q=DPOT.q;DPOT.q=[];q.forEach(f=>f());}).catch(()=>{DPOT.st='fail';});}
 function potMesh(g){const put=()=>{const m=new THREE.Mesh(DPOT.m.geometry,DPOT.m.material);m.userData.shared=true;m.scale.setScalar(0.8);m.rotation.y=Math.random()*6.28;m.castShadow=true;g.add(m);};if(DPOT.st==='ready')put();else if(DPOT.st!=='fail'){loadDP();DPOT.q.push(put);}}
-const DCH={st:'none',q:[],seam:0.6};function loadDC(){if(DCH.st!=='none')return;DCH.st='loading';loadModelData('dchest').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o){DCH.st='fail';return;}
+const DCHS={};function loadDC(nm='dchest'){const DCH=DCHS[nm]||(DCHS[nm]={st:'none',q:[],seam:0.6});if(DCH.st!=='none')return;DCH.st='loading';loadModelData(nm).then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});if(!o){DCH.st='fail';return;}
     /* split the one-piece chest into a base and a lid that can swing open */
     const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.computeBoundingBox();const bb=g.boundingBox,sy=bb.min.y+(bb.max.y-bb.min.y)*DCH.seam,zb=bb.min.z;
     const A=Object.keys(g.attributes),P=g.attributes.position,lo={},hi={};A.forEach(k=>{lo[k]=[];hi[k]=[];});
@@ -2298,11 +2309,11 @@ const DCH={st:'none',q:[],seam:0.6};function loadDC(){if(DCH.st!=='none')return;
     const mk=T=>{const q=new THREE.BufferGeometry();A.forEach(k=>q.setAttribute(k,new THREE.Float32BufferAttribute(T[k],g.attributes[k].itemSize)));return q;};
     const mat=o.material;mat.side=THREE.DoubleSide;DCH.mat=mat;DCH.base=mk(lo);DCH.lid=mk(hi);DCH.lid.translate(0,-sy,-zb);DCH.sy=sy;DCH.zb=zb;DCH.w=bb.max.x-bb.min.x;DCH.d=bb.max.z-bb.min.z;
     DCH.st='ready';const q=DCH.q;DCH.q=[];q.forEach(f=>f());}).catch(()=>{DCH.st='fail';});}
-function chestMesh(g,lid,fancy){const put=()=>{const k=fancy?1.12:1,sh=m=>{m.userData.shared=true;m.castShadow=true;return m;};
+function chestMesh(g,lid,fancy){const nm=S.level==='dungeon'&&FLOORS[S.floor]&&FLOORS[S.floor].decor==='nest'?'wchest':'dchest';loadDC(nm);const DCH=DCHS[nm]; /* the Spider Nest's chests are webbed over */const put=()=>{const k=fancy?1.12:1,sh=m=>{m.userData.shared=true;m.castShadow=true;return m;};
     const b=sh(new THREE.Mesh(DCH.base,DCH.mat));b.scale.setScalar(k);g.add(b);
     const ins=new THREE.Mesh(new THREE.PlaneGeometry(DCH.w*0.84*k,DCH.d*0.74*k),new THREE.MeshBasicMaterial({color:fancy?0x2a1c04:0x040302}));ins.rotation.x=-Math.PI/2;ins.position.y=DCH.sy*k-0.03;g.add(ins);
     whenCoin(()=>{const n=fancy?11:6;for(let i=0;i<n;i++){const c=coin1(false,0.8*k);c.position.set((Math.random()-0.5)*DCH.w*0.6*k,DCH.sy*k-0.025+i*0.006,(Math.random()-0.5)*DCH.d*0.5*k);c.rotation.y=Math.random()*6.28;g.add(c);}});lid.position.set(0,DCH.sy*k,DCH.zb*k);const l=sh(new THREE.Mesh(DCH.lid,DCH.mat));l.scale.setScalar(k);lid.add(l);};
-  if(DCH.st==='ready')put();else if(DCH.st!=='fail'){loadDC();DCH.q.push(put);}}
+  if(DCH.st==='ready')put();else if(DCH.st!=='fail')DCH.q.push(put);}
 function loadHB(){if(HB.st!=='none')return;HB.st='loading';loadModelData('hbraz').then(gl=>{let o=null;gl.scene.traverse(x=>{if(x.isMesh&&!o)o=x;});const g=o.geometry,uv=g.attributes.uv,ix=g.index;
     // drop the painted flame card (its black background showed as a dark shape); our own coloured fire burns in its place
     const keep=[];for(let i=0;i<ix.count;i+=3){let fl=0;for(let k=0;k<3;k++){const v=ix.getX(i+k);if(uv.getX(v)<0.56&&uv.getY(v)>0.44)fl++;}if(fl<3)keep.push(ix.getX(i),ix.getX(i+1),ix.getX(i+2));}
@@ -2314,6 +2325,31 @@ function mzHang(G,r,back,bx,bz,col){const big=r.kind==='piece'||r.kind==='boss',
       const fy=top-2.1*0.7,fm=new THREE.SpriteMaterial({map:wfx().flame,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});MZ.mats.push(fm);const fl=new THREE.Sprite(fm);fl.scale.set(0.75,1.05,1);fl.position.set(x,fy,z);G.add(fl);
       const gm=new THREE.SpriteMaterial({map:wfx().glow,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.8});MZ.mats.push(gm);const gl=new THREE.Sprite(gm);gl.scale.set(3.2,3.2,1);gl.position.set(x,fy,z);G.add(gl);(MZ.hfl=MZ.hfl||[]).push([fl,gl,Math.random()*6]);};
     if(HB.st==='ready')put();else{loadHB();(MZ.hbQ=MZ.hbQ||[]).push(put);}}}
+/* single-mesh props loaded once and shared (egg sacs, cocoons, webbed skeletons, the Widow's Crest) */
+const SMOD={};function smod(nm){return SMOD[nm]||(SMOD[nm]=loadModelData(nm).then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)throw new Error('no mesh '+nm);o.material.side=THREE.DoubleSide;return o;}));}
+function smesh(nm,G,x,y,z,s,ry,cb){smod(nm).then(o=>{const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,y,z);m.scale.setScalar(s);m.rotation.y=ry||0;G.add(m);if(cb)cb(m);}).catch(()=>{});}
+/* the user's seven spider webs, cut out of their black backgrounds */
+const WEBT=[];function webMat(i,op){if(!WEBT.length)for(let k=1;k<=7;k++){const t=new THREE.TextureLoader().load('fx/web'+k+'.png');t.encoding=THREE.sRGBEncoding;WEBT.push(t);}
+  const m=new THREE.MeshBasicMaterial({map:WEBT[i%7],color:0xe4e0ec,transparent:true,opacity:Math.min(1,(op||0.7)*1.25),depthWrite:false,side:THREE.DoubleSide});if(MZ)MZ.mats.push(m);return m;}
+// Spider Nest: webs over the walls and corners, glowing egg sacs hanging from silk, silk-wrapped skeletons, and the King and Queen cocooned in the lair
+function mzNest(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||r.kind==='boss',web=(i,w,x,y,z,ry,rz,op)=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,w),webMat(i,op));p.position.set(x,y,z);p.rotation.set(0,ry||0,rz||0);p.renderOrder=3;G.add(p);return p;};
+  for(let k=0;k<back.length;k+=3)web(ri(0,6),rnd(2.4,3.4),bx(back[k])+rnd(-0.4,0.4),rnd(1.8,2.8),bz+0.06,0,rnd(-0.5,0.5));
+  for(const [x,z] of corners){if(z!==r.z0)continue;const px=x*TS+(x===r.x0?0.9:TS-0.9),pz=z*TS+0.9;web(ri(0,6),3.2,px,2.7,pz,x===r.x0?-Math.PI/4:Math.PI/4,rnd(-0.3,0.3),0.8);}
+  for(let k=0;k<(big?3:2);k++){const p=web(ri(0,6),rnd(2.5,4),rnd(r.x0*TS+2,(r.x1+1)*TS-2),0.03,rnd(r.z0*TS+2,(r.z1+1)*TS-2),0,0,0.28);p.rotation.x=-Math.PI/2;p.rotation.z=rnd(0,6.3);}
+  // egg sacs: the nest's lanterns, glowing orange from inside
+  const sacs=big?[0.2,0.5,0.8]:[0.3,0.7];for(const f of sacs){const k=Math.floor(back.length*f);if(back[k]==null)continue;const x=bx(back[k])+rnd(-0.5,0.5),z=bz+rnd(1.2,1.8),y=rnd(2.0,2.5),s=rnd(0.95,1.2);
+    const th=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,WALL_H+1-y-0.85*s,4),webMat(0,0.6));th.position.set(x,y+0.85*s+(WALL_H+1-y-0.85*s)/2,z);G.add(th);
+    smesh('eggsac',G,x,y,z,s,rnd(0,6.3));const core=new THREE.Mesh(new THREE.SphereGeometry(0.17*s,10,8),new THREE.MeshBasicMaterial({color:0xff9a3a}));core.position.set(x,y+0.4*s,z);G.add(core);
+    const gm=new THREE.SpriteMaterial({map:TX.glow,color:0xff8a2a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.45});MZ.mats.push(gm);const gl=new THREE.Sprite(gm);gl.scale.set(1.5,1.5,1);gl.position.set(x,y+0.45*s,z);G.add(gl);(MZ.eggs=MZ.eggs||[]).push([gl,core,Math.random()*6]);}
+  // past victims wrapped in silk, leaning on the side walls or hanging from above
+  for(let i=0;i<(big?2:1);i++){const left=i%2===0,x=left?r.x0*TS+0.55:(r.x1+1)*TS-0.55,z=rnd(r.z0*TS+3,(r.z1+1)*TS-3),hang=Math.random()<0.4;
+    smesh('wskel',G,x,hang?rnd(0.6,1.0):0,z,rnd(0.92,1.08),left?Math.PI/2:-Math.PI/2,m=>{m.rotation.z=(left?1:-1)*rnd(0.05,0.16);});col(x,z,0.45,0.45);}
+  if(r.kind==='boss'){const [cx]=mzCenter(r),z=bz+1.9;MZ.cocoons=[];for(const [nm,dx] of [['ckng',-1.7],['cqn',1.7]]){const x=cx+dx;
+      const th=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,2.6,4),webMat(0,0.7));th.position.set(x,WALL_H-0.1,z);G.add(th);
+      smesh(nm,G,x,0.75,z,1,rnd(-0.3,0.3),m=>{MZ.cocoons.push(m);MZ.bob=MZ.bob||[];MZ.bob.push([m,0.75,Math.random()*6]);});col(x,z,0.6,0.6);}
+    MZ.cocoonAt={x:cx,z:z+1.4};
+    // the skull-backed spider over the lair
+    const t=new THREE.TextureLoader().load('fx/spideremblem.png');t.encoding=THREE.sRGBEncoding;const em=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.4),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));em.position.set(cx,3.0,bz+0.08);G.add(em);}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2339,8 +2375,9 @@ function mzDecor(fi,theme){
     if(theme==='armory')mzArmory(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='cistern')mzCistern(G,r,back,corners,bx,bz,col,glowSpr);
     if(theme==='garden')mzGarden(G,r,back,corners,bx,bz,col,glowSpr);
+    if(theme==='nest')mzNest(G,r,back,corners,bx,bz,col,glowSpr);
     mzFog(G,r,FLOORS[fi]?FLOORS[fi].mote:0xffffff);
-    if(r.kind!=='start'&&back.length>2)mzHang(G,r,back,bx,bz,FLOORS[fi]?FLOORS[fi].torch:0xffa040);
+    if(r.kind!=='start'&&back.length>2&&theme!=='nest')mzHang(G,r,back,bx,bz,FLOORS[fi]?FLOORS[fi].torch:0xffa040); /* the Nest is lit by its glowing egg sacs */
     if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
       if(r.kind==='piece'||r.kind==='boss'){const [cx,cz]=mzCenter(r);const rg=mesh(new THREE.TorusGeometry(2.2,0.06,6,48),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg.rotation.x=-Math.PI/2;G.add(rg);const rg2=mesh(new THREE.TorusGeometry(1.5,0.04,6,6),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg2.rotation.x=-Math.PI/2;G.add(rg2);glowSpr(cx,0.3,cz,0x9dff8a,4);}}
@@ -2438,7 +2475,7 @@ function updMaze(){
           else S.eproj.push({kind:'cbolt',x:x0+0.05,z:H.z+k*0.7,y:1.0,vx:0.24,vz:0,dmg:6+DEP()*3,life:40,dead:false});}});}}}
   if(MZ.spin)for(const [o,v,ax] of MZ.spin){if(ax==='y')o.rotation.y+=v;else o.rotation.y+=v;}
   if(MZ.hfl)for(const [fl,gl,ph] of MZ.hfl){const k=S.frame*0.21+ph,f=0.9+Math.sin(k)*0.06+Math.sin(k*2.7)*0.04;fl.scale.set(0.75*f,1.05*(2-f),1);gl.material.opacity=0.65+Math.sin(k*1.3)*0.12;}
-  if(MZ.rips)for(const [rp,ph] of MZ.rips){const k=(S.frame*0.008+ph)%1;rp.scale.setScalar(0.4+k*1.6);}
+  if(MZ.webPortal)MZ.webPortal.web.rotation.z+=0.004;if(MZ.roy)for(const R of MZ.roy){const dt=Math.min(0.05,R.clock.getDelta());R.root.rotation.y=Math.atan2(H.x-R.root.position.x,H.z-R.root.position.z);R.mixer.update(dt);}if(MZ.eggs)for(const [gl,core,ph] of MZ.eggs){const k=S.frame*0.05+ph;gl.material.opacity=0.38+Math.sin(k)*0.1+Math.sin(k*2.9)*0.04;core.scale.setScalar(0.92+Math.sin(k)*0.08);}if(MZ.rips)for(const [rp,ph] of MZ.rips){const k=(S.frame*0.008+ph)%1;rp.scale.setScalar(0.4+k*1.6);}
   if(MZ.drips&&S.frame%14===0){const d=MZ.drips[ri(0,MZ.drips.length-1)];addPart({x:d[0]+rnd(-0.1,0.1),y:2.0,z:d[1],vy:-0.02,g:0.004,life:30,size:0.05,color:'#bfefff'});}
   if(MZ.fogs)for(const [f,x0,ph,m] of MZ.fogs){const k=S.frame*0.004+ph;f.position.x=x0+Math.sin(k)*1.2;m.opacity=0.22+Math.sin(k*1.7)*0.08;}
   if(MZ.bob)for(const [o,y,ph] of MZ.bob)o.position.y=y+Math.sin(S.frame*0.03+ph)*0.08;
@@ -2551,6 +2588,9 @@ const EN={
  riderBoss:{look:'skeleton',hp:600,spd:1.7,dmg:16,reach:100,wind:28,cd:85,gold:[26,26],w:60,scale:1.7,boss:true,heavy:true,name:'The Death Rider'},
  deathRider:{look:'skeleton',hp:380,spd:1.7,dmg:14,reach:100,wind:28,cd:90,gold:[14,14],w:60,scale:1.7,elite:true,heavy:true,name:'The Death Rider'},
  troll:{look:'troll',hp:760,spd:1.05,dmg:17,reach:108,wind:40,cd:95,gold:[28,28],w:70,scale:1.9,boss:true,heavy:true,name:'Mossback the Troll'},
+ spiderling:{look:'slime',hp:20,spd:2.05,dmg:7,reach:40,wind:16,cd:60,gold:[1,3],w:34},
+ broodGuard:{look:'troll',hp:95,spd:1.15,dmg:14,reach:62,wind:30,cd:90,gold:[3,6],w:56,heavy:true},
+ spiderQueen:{look:'troll',hp:980,spd:1.25,dmg:17,reach:118,wind:30,cd:80,gold:[40,40],w:62,scale:2.0,boss:true,heavy:true,name:'The Spider Queen'},
  waterSerpent:{look:'troll',hp:840,spd:0.75,dmg:15,ranged:true,keep:220,wind:34,cd:90,gold:[30,30],w:80,scale:2.0,boss:true,heavy:true,name:'The Water Serpent'},
  reaper:{look:'lich',hp:880,spd:1.35,dmg:17,reach:115,wind:30,cd:80,gold:[36,36],w:60,scale:1.8,boss:true,heavy:true,fly:true,hover:14,name:'The Reaper'},
  archivist:{look:'lich',hp:700,spd:1.15,dmg:13,ranged:true,keep:240,wind:30,cd:90,gold:[30,30],w:56,scale:1.6,boss:true,heavy:true,name:'The Archivist'},
@@ -2586,6 +2626,8 @@ const FLOORS=[
   waves:[{x:8,list:['skeleton','imp','skeleton']},{x:22,list:['skelArcher','skeleton','imp','orc']},{x:37,list:['skeleton','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['reaper','skeleton','skelArcher']}]},
  {sub:'',id:'throne',key:'Crown Key',piece:'the Royal Ossuary',rider:1,name:"The Bone King's Throne",decor:'crypt',blurb:'The Bone King rules here from a throne of skulls. Only the Lich Queen lies deeper.',wall:0xd8c0a0,floor:0xb8a088,torch:0xffb060,mote:0xffd9a0,fog:new THREE.Fog(0x0c0806,11,36),hemi:[0x8a6a4a,0x140c08],
   waves:[{x:8,list:['skeleton','skelArcher','orc']},{x:22,list:['orc','skeleton','skelArcher','skeleton']},{x:37,list:['skeleton','orc','skelArcher','skeleton','imp']},{x:53,boss:true,list:['boneKing','skeleton','skelArcher']}]},
+ {sub:'',id:'nest',key:'Silk Key',piece:'the Brood Chamber',name:'The Spider Nest',decor:'nest',blurb:'A web-choked cave behind the castle. The Spider Queen keeps her captives here, and the Widow\'s Crest.',wall:0x9a8a96,floor:0x6e6070,torch:0xffa050,mote:0x8a70b0,fog:new THREE.Fog(0x070508,10,34),hemi:[0x6a4a7a,0x0c0810],
+  waves:[{x:8,list:['spiderling','spiderling','broodGuard']},{x:22,list:['spiderling','spiderling','spiderling','broodGuard']},{x:37,list:['broodGuard','spiderling','spiderling','broodGuard','spiderling']},{x:53,boss:true,list:['spiderQueen','spiderling','spiderling']}]},
  {sub:'Floor 4',id:'sanctum',key:'Rune Key',piece:'the Ritual Hall',rider:1,name:"The Lich Queen's Sanctum",decor:'sanctum',blurb:'The bottom of the world. The Lich Queen waits on her throne of the dead.',wall:0xa888b8,floor:0x9a80a8,torch:0xffa860,mote:0xffd9a0,fog:new THREE.Fog(0x08030c,11,36),hemi:[0x6a4a8a,0x100818],
   waves:[{x:8,list:['skeleton','imp','skeleton']},{x:22,list:['orc','skeleton','imp','skeleton']},{x:37,list:['imp','orc','skelArcher','imp','skeleton']},{x:53,boss:true,list:['lich','skeleton','imp']}]},
 ];
@@ -2593,7 +2635,10 @@ for(const F of FLOORS){F.fog.near=19;F.fog.far=48;}
 FLOORS.forEach((F,i)=>F.sub='Floor '+(i+1));
 // progress is kept by floor name, so new floors can slot in between old ones without losing anyone's place
 const lastF=()=>FLOORS.length-1,DEP=()=>(S.floor||0)*3/Math.max(1,FLOORS.length-1),flIdx=id=>Math.max(0,FLOORS.findIndex(f=>f.id===id));
-function floorReach(){if(!INV.fcl){INV.fcl={};const old=['castle','crypt','fungal','sanctum'];for(let i=0;i<Math.min(4,INV.deepest||0);i++)INV.fcl[old[i]]=1;}let i=0;while(i<FLOORS.length&&INV.fcl[FLOORS[i].id])i++;return i;}
+function floorReach(){if(!INV.fcl){INV.fcl={};const old=['castle','crypt','fungal','sanctum'];for(let i=0;i<Math.min(4,INV.deepest||0);i++)INV.fcl[old[i]]=1;}nestMig();let i=0;while(i<FLOORS.length&&INV.fcl[FLOORS[i].id])i++;return i;}
+/* the Spider Nest slots in between the Bone King and the Lich Queen: anyone who already won keeps the Crest and the royals; anyone past the King finds the woods path open */
+function nestMig(){const f=INV.fcl;if(!f)return;if(f.sanctum&&!f.nest){f.nest=1;INV.crest=1;INV.royals=1;INV.nestFound=1;}if(f.throne&&!INV.nestFound)INV.nestFound=1;}
+const royalsHome=()=>won()||!!INV.royals;
 // ---- test page only: jump straight to any floor's boss (Shift+1 to Shift+9, Shift+0 for 10, or the Bosses panel) ----
 const TESTPG=/\/test\//.test(location.pathname);
 // shortcut: clear the way and stand at the boss door
@@ -2664,6 +2709,9 @@ const endDrag=e=>{if(drag&&drag.id===e.pointerId){if(drag.mouse&&e.type==='point
 glc.addEventListener('pointerup',endDrag);glc.addEventListener('pointercancel',endDrag);
 // ================= mouse: click to move / attack, right-click special =================
 const MOUSE_PLAY=false; // clicking to move/attack caused stray runs, so it is switched off
+/* the woods path to the Spider Nest: north off the castle road, then east behind the castle to the cave */
+function nestPathClamp(o){const inA=o.x>68.2&&o.x<71.8&&o.z<-0.5&&o.z>-32,inB=o.z<-27.6&&o.z>-32.2&&o.x>68.2&&o.x<121;if(!inA&&!inB)return false;
+  if(o.z>-28.4){o.x=clamp(o.x,68.6,71.4);o.z=Math.min(o.z,1);}else if(o.x<71.4){o.x=clamp(o.x,68.6,119.6);o.z=clamp(o.z,-31.4,1);}else{o.x=clamp(o.x,68.6,119.6);o.z=clamp(o.z,-31.4,-28.6);}return true;}
 const MS={down:false,sx:0,sy:0,tx:null,tz:null,foe:null,hold:false,inPlace:false,sp1:false,last:null,stuck:0,hov:0};
 const MRC=new THREE.Raycaster(),MV2=new THREE.Vector2(),MPL=new THREE.Plane(new THREE.Vector3(0,1,0),0),MP3=new THREE.Vector3(),MPV=new THREE.Vector3();
 function msGround(sx,sy){const r=glc.getBoundingClientRect();MV2.set((sx-r.left)/r.width*2-1,-((sy-r.top)/r.height)*2+1);MRC.setFromCamera(MV2,camera);return MRC.ray.intersectPlane(MPL,MP3)?[MP3.x,MP3.z]:null;}
@@ -2727,14 +2775,17 @@ const SETS={
  graveyard:{cls:'necromancer',n:'Graveyard',names:{helm:'Graveyard Hood',armor:'Graveyard Robe',hands:'Graveyard Grips',feet:'Graveyard Treads'},b2:'+15% max mana',b4:'+20% damage, and your skeletons hit 30% harder'},
  bloodbear:{cls:'barbarian',n:'Bloodbear',names:{helm:'Bloodbear Helm',armor:'Bloodbear Plate',hands:'Bloodbear Gauntlets',feet:'Bloodbear Boots'},b2:'+15% max health',b4:'+20% damage, and take 10% less damage'},
  windrunner:{cls:'archer',n:'Windrunner',names:{helm:'Windrunner Hood',armor:'Windrunner Jerkin',hands:'Windrunner Bracers',feet:'Windrunner Boots'},b2:'+6% crit chance',b4:'+20% damage, and 8% faster on your feet'},
- dawnlight:{cls:'healer',n:'Dawnlight',names:{helm:'Dawnlight Circlet',armor:'Dawnlight Vestments',hands:'Dawnlight Gloves',feet:'Dawnlight Sandals'},b2:'+15% max mana',b4:'+20% damage, and Life Drain heals 25% more'}};
+ dawnlight:{cls:'healer',n:'Dawnlight',names:{helm:'Dawnlight Circlet',armor:'Dawnlight Vestments',hands:'Dawnlight Gloves',feet:'Dawnlight Sandals'},b2:'+15% max mana',b4:'+20% damage, and Life Drain heals 25% more'},
+ widow:{cls:null,n:"Widow's",names:{helm:"Widow's Crown",armor:"Widow's Carapace",hands:"Widow's Fangs",feet:"Widow's Stride"},b2:'+15% max health and +10% damage',b4:'+30% damage, take 10% less damage, and 10% faster on your feet'}};
+/* the Widow's set: any hero can wear it; one piece is the Spider Queen's reward, the rest come in Widow packs */
+function widowN(h){let n=0;if(h)for(const k of ['helm','armor','hands','feet'])if(h[k]&&h[k].set==='widow')n++;return n;}
 const CLASS_SET={necromancer:'graveyard',barbarian:'bloodbear',archer:'windrunner',healer:'dawnlight'},SET_SLOTS=['helm','armor','hands','feet'],COLOR_BONUS={2:5,3:8,4:12};
 function setN(h){const id=h&&CLASS_SET[h.cls];if(!id)return 0;let n=0;for(const k of SET_SLOTS)if(h[k]&&h[k].set===id)n++;return n;}
 function colorGrade(h){let g=null;for(const k of SET_SLOTS){const it=h[k];if(!it)return 0;if(g===null)g=it.grade;else if(it.grade!==g)return 0;}return g>=2?g:0;}
-function setDmgMult(h){return (setN(h)>=4?1.2:1)*(1+(COLOR_BONUS[colorGrade(h)]||0)/100);}
-function setDR(h){return (h.cls==='barbarian'&&setN(h)>=4?0.1:0)+(COLOR_BONUS[colorGrade(h)]||0)/100;}
+function setDmgMult(h){return (widowN(h)>=4?1.3:widowN(h)>=2?1.1:1)*(setN(h)>=4?1.2:1)*(1+(COLOR_BONUS[colorGrade(h)]||0)/100);}
+function setDR(h){return (widowN(h)>=4?0.1:0)+(h.cls==='barbarian'&&setN(h)>=4?0.1:0)+(COLOR_BONUS[colorGrade(h)]||0)/100;}
 function setLines(it){const out=[],k=it.kind;if(!SET_SLOTS.includes(k))return '';
-  if(it.set&&SETS[it.set]){const S0=SETS[it.set],mine=S0.cls===H.cls,n=mine?setN(H):0;
+  if(it.set&&SETS[it.set]){const S0=SETS[it.set],mine=!S0.cls||S0.cls===H.cls,n=it.set==='widow'?widowN(H):mine?setN(H):0;
     out.push(`<span class="setl">${S0.n} set${mine?` (${n} of 4 worn)`:` · for the ${HEROES[S0.cls].name}`}</span>`,`<span class="setl ${n>=2?'':'off'}">2 pieces: ${S0.b2}</span>`,`<span class="setl ${n>=4?'':'off'}">4 pieces: ${S0.b4}</span>`);}
   if(it.grade>=2){const on=colorGrade(H)===it.grade,b=COLOR_BONUS[it.grade];out.push(`<span class="setl ${on?'':'off'}" style="color:${GRADES[it.grade].c}">All 4 armor pieces ${GRADES[it.grade].n}: +${b}% damage, ${b}% less damage taken</span>`);}
   return out.join('');}
@@ -2782,7 +2833,7 @@ function gemSum(h,t){let s=0;for(const it of allItems(h)){for(const g of (it.soc
 function itemOf(h,k){return (k==='weapon'||k==='armor'||EXTRA.includes(k))?h[k]:h.jewels[k];}
 function jp(h,id){const j=h.jewels[id];return j?j.tier+1:0;}
 function recalc(h){const d=HEROES[h.cls],b=BASE_ST[h.cls],sk=h.sk||{};
-  h.maxHp=Math.round((d.hp+h.vit*20+10*jp(h,'neck')+5*(stat(h,'vit')-b.vit)+affSum(h,'life')+4*((h.lvl||1)-1))*(1+0.08*(sk.tough||0))*(h.cls==='barbarian'&&setN(h)>=2?1.15:1));
+  h.maxHp=Math.round((d.hp+h.vit*20+10*jp(h,'neck')+5*(stat(h,'vit')-b.vit)+affSum(h,'life')+4*((h.lvl||1)-1))*(1+0.08*(sk.tough||0))*(h.cls==='barbarian'&&setN(h)>=2?1.15:1)*(widowN(h)>=2?1.15:1));
   h.maxMp=Math.round((d.mp+h.foc*15+8*jp(h,'ears')+3*(stat(h,'mag')-b.mag)+affSum(h,'mana'))*(1+0.1*(sk.wis||0))*((h.cls==='necromancer'||h.cls==='healer')&&setN(h)>=2?1.15:1));
   h.hp=Math.min(h.hp,h.maxHp);h.mp=Math.min(h.mp,h.maxMp);}
 function gainXP(n){if(!H||H.lvl>=LV_MAX)return;H.xp+=n;
@@ -2797,7 +2848,7 @@ function addGem(pu,t,lv,n=1){const k=t+lv;pu.gems[k]=(pu.gems[k]||0)+n;if(pu.gem
 function bounds(){return S.level==='town'?TOWN:S.level==='house'?ROOM:MZ?{minX:0.5,maxX:MZ.W*TS-0.5,minZ:0.5,maxZ:MZ.H*TS-0.5}:{minX:DUN.minX,maxX:Math.min(DUN.maxX,S.wallX),minZ:DUN.minZ,maxZ:DUN.maxZ};}
 function clampPos(o,r=0.3){if(o===H&&H.onShip)return;
   const b=bounds();
-  if(S.level==='town'){if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o===H&&!INV.gift&&GATE.cap)o.x=Math.min(o.x,78.6);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
+  if(S.level==='town'){if(INV.nestFound&&nestPathClamp(o)){pushOut(o,TOWN_COL,r);return;}if(o.x>b.maxX-0.2&&((o.z>-0.9&&o.z<3.9)||o.x>86)){o.x=Math.min(o.x,94.2);if(o===H&&!INV.gift&&GATE.cap)o.x=Math.min(o.x,78.6);if(o.x<86)o.z=clamp(o.z,-0.8,3.8);else o.z=clamp(o.z,-11,14);pushOut(o,TOWN_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);return;}o.z=clamp(o.z,b.minZ,b.maxZ);if(o.x<b.minX)dockClamp(o,r,b);o.x=Math.min(o.x,b.maxX);
     const dx=o.x-0,dz=o.z-1,d=Math.hypot(dx,dz),R=3.55+r;if(d<R&&d>0.001){o.x=dx/d*R;o.z=1+dz/d*R;}
     pushOut(o,TOWN_COL,r);pushOut(o,SHUT_COL,r);if(!(o.y>0.5))pushOut(o,TOWN_JUMP,r);}
   else if(S.level==='house'){o.x=clamp(o.x,b.minX,b.maxX);o.z=clamp(o.z,b.minZ,b.maxZ);pushOut(o,(houseGroups[S.house]||{}).cols||[],r);}
@@ -2828,7 +2879,7 @@ if(H.dance&&(inp.mx||inp.my||inp.mv||inp.attack||S.level!=='town'))H.dance=0;
     h.strafe=0;if(camMode()==='behind'&&!inp.mv){const tn=inp.tn||0,sx=inp.sx||0;if(tn&&h.swing<=0){const a=-tn*0.042,c=Math.cos(a),si=Math.sin(a),fx=h.fx*c+h.fz*si,fz=-h.fx*si+h.fz*c;h.fx=fx;h.fz=fz;}
       vx=-h.fx*my-h.fz*sx;vz=-h.fz*my+h.fx*sx;bk=my>0||!!sx;if(sx&&!my)h.strafe=sx;} // arrows turn, A/D side-step, W/S forward/back
     if(inp.mv){vx=inp.mv[0];vz=inp.mv[1];}else if(inp.face&&h.swing<=0){const fl=Math.hypot(inp.face[0],inp.face[1]);if(fl>0.01){h.fx=inp.face[0]/fl;h.fz=inp.face[1]/fl;}} const l=Math.hypot(vx,vz);
-    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(1+scrV('haste'))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*(h.chill>0?(h===H&&h.chill--,0.55):1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
+    const spd=d.spd*0.021*(h.rage>0?1.3:1)*(h.rune==='swift'?1.15:1)*(1+0.05*gemSum(h,'moonstone'))*(1+0.05*pr('swift'))*(h.cls==='archer'&&setN(h)>=4?1.08:1)*(widowN(h)>=4?1.1:1)*(1+0.02*(h.feet?h.feet.tier+1:0))*(buffOn('shark')?1.4:1)*(1+scrV('haste'))*(h.swing>0&&h.y<=0?0.35:1)*(h.castT>0?0.2:1)*(h.chill>0?(h===H&&h.chill--,0.55):1)*((h.sprint=!!(inp&&inp.run&&h.swing<=0&&!(h.castT>0)))?1.6:1); // Shift = sprint
     if(l>0.01){vx/=l;vz/=l;const sp2=bk?spd*0.6:spd;h.x+=vx*sp2;h.z+=vz*sp2;h.moving=true;if(h.swing<=0&&!bk){h.fx=vx;h.fz=vz;}
       if(h===H&&h.y<=0){h.stepD=(h.stepD||0)+spd;if(h.stepD>1.05){h.stepD=0;stepSnd();}}}
     if(inp.jump&&h.y<=0&&h.castT<=0){h.vy=0.24;sfx('jump');}
@@ -3053,6 +3104,11 @@ function bossThink(e,dist){
     for(let k=0;k<3;k++)schedule(k*12,()=>ring(gx,gz,'#ff7a2a',3.4,0.01,30));
     schedule(40,()=>{if(S.level!=='dungeon')return;S.shake=Math.max(S.shake||0,0.6);sfx('boss');for(let k=0;k<26;k++){const a=k/26*Math.PI*2;addPart({x:gx+Math.cos(a)*1.2,y:0.3,z:gz+Math.sin(a)*1.2,vx:Math.cos(a)*0.12,vz:Math.sin(a)*0.12,vy:0.08,g:0.004,life:30,size:rnd(0.12,0.22),color:k%2?'#ff7a2a':'#ffd060'});}
       ring(gx,gz,'#ffb050',0.6,0.14,26);if(H.state!=='down'&&Math.hypot(H.x-gx,H.z-gz)<3.4&&H.y<1)hurtHero(dm,H.x-gx,H.z-gz,true);});}
+  if(e.type==='spiderQueen'&&e.sp%540===260&&n<8)summon(['spiderling','spiderling','broodGuard'],'My children, feed!');
+  if(e.type==='spiderQueen'&&e.sp%280===110&&e.state!=='dead'&&H.state!=='down'){floatText(e.x,4.6,e.z,'Web!','#ece8f6',22);const a0=Math.atan2(H.z-e.z,H.x-e.x),dm=e.def.dmg*0.6*(1+0.12*DEP())*rkM('dmg');e.fx=Math.cos(a0);e.fz=Math.sin(a0);e.state='strike';e.t=18;
+    for(let k=-1;k<=1;k++)schedule(6+Math.abs(k)*4,()=>{const a=a0+k*0.16;S.eproj.push({kind:'web',x:e.x+Math.cos(a)*1.6,z:e.z+Math.sin(a)*1.6,y:1.4,vx:Math.cos(a)*0.15,vz:Math.sin(a)*0.15,dmg:dm,life:100,dead:false});});sfx('shoot');}
+  if(e.type==='spiderQueen'&&e.sp%400===330&&e.state==='walk'&&H.state!=='down'){const tx=H.x,tz=H.z,dm=e.def.dmg*1.3*(1+0.12*DEP())*rkM('dmg');floatText(e.x,4.6,e.z,'POUNCE!','#ff9a9a',24);e.state='wind';e.t=34;for(let k=0;k<3;k++)schedule(k*10,()=>ring(tx,tz,'#d8c8ff',2.4,0.01,26));
+    schedule(34,()=>{if(S.level!=='dungeon'||e.state==='dead')return;const c=mzRoomClamp(tx,tz);e.x=c[0];e.z=c[1];S.shake=Math.max(S.shake||0,0.5);sfx('boss');sparks(e.x,0.4,e.z,16,'#c8b0ff');ring(e.x,e.z,'#ece8f6',0.6,0.13,24);if(H.state!=='down'&&Math.hypot(H.x-e.x,H.z-e.z)<2.4&&H.y<1)hurtHero(dm,H.x-e.x,H.z-e.z,true);});}
   if(e.type==='waterSerpent'&&e.sp%600===0&&n<7)summon(['slime'],'Children of the deep!');
   if(e.type==='waterSerpent'&&e.sp%300===120&&!(e.subT>0)&&e.state!=='dead'&&H.state!=='down'){floatText(e.x,5,e.z,'Tidal spit!','#9fe8ff',22);const a0=Math.atan2(H.z-e.z,H.x-e.x),dm=e.def.dmg*0.8*(1+0.12*DEP())*rkM('dmg');e.fx=Math.cos(a0);e.fz=Math.sin(a0);e.state='strike';e.t=20;
     for(let k=-2;k<=2;k++)schedule(8+Math.abs(k)*3,()=>{const a=a0+k*0.2;S.eproj.push({kind:'water',x:e.x+Math.cos(a)*1.4,z:e.z+Math.sin(a)*1.4,y:2.2,vx:Math.cos(a)*0.16,vz:Math.sin(a)*0.16,dmg:dm,life:95,dead:false});});sfx('shoot');}
@@ -3077,12 +3133,12 @@ function bossThink(e,dist){
   if(e.tele>0)e.tele--;
   if((e.type==='lich'||e.type==='frostWraith')&&!(e.tele>0)&&dist<2.4&&e.state==='walk'){poof(e.x,e.y,e.z,1.5);{const p=mzRoomSpot(H.x,H.z,6);e.x=p[0];e.z=p[1];}poof(e.x,e.y,e.z,1.5);e.tele=200;e.cd=Math.min(e.cd,30);}
 }
-const PJC={lbolt:'#9dff8a',frost:'#9fe3ff',water:'#7fd8ff'};
+const PJC={lbolt:'#9dff8a',frost:'#9fe3ff',water:'#7fd8ff',web:'#ece8f6'};
 function chillHero(n){if(!H)return;if(!(H.chill>0))floatText(H.x,2.6,H.z,'Chilled!','#bfe6ff',16);H.chill=Math.max(H.chill||0,n);}
 function iceSpikes(x,z){const G=new THREE.Group(),m=lam({color:0xcfe8ff,emissive:0x2a5a80,transparent:true,opacity:0.88});for(let k=0;k<7;k++){const a=k/7*Math.PI*2+Math.random(),d=k?rnd(0.4,1.1):0,h=rnd(0.9,1.8),c=mesh(new THREE.ConeGeometry(rnd(0.14,0.26),h,6),m,x+Math.cos(a)*d,h/2-1.6,z+Math.sin(a)*d,true,false);c.rotation.set(rnd(-0.25,0.25),0,rnd(-0.25,0.25));G.add(c);}
   scene.add(G);sfx('hit');sparks(x,0.6,z,14,'#cfeeff');let t=0;const up=()=>{t++;G.position.y=Math.min(1.6,t*0.32);if(t<70)requestAnimationFrame(up);else{scene.remove(G);G.traverse(o=>{if(o.geometry)o.geometry.dispose();});m.dispose();}};up();}
 function updEProj(p){if(p.g){p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:PJC[p.kind]||'#ffb04a'});if(p.life<=0||mzHit(p.x,p.z))p.dead=true;return;}p.x+=p.vx;p.z+=p.vz;p.life--;if(S.frame%3===0&&p.kind!=='cbolt')addPart({x:p.x,y:p.y,z:p.z,g:0,life:12,size:rnd(.05,.09),color:PJC[p.kind]||'#ffb04a'});
-  if(H.state!=='down'&&Math.hypot(H.x-p.x,H.z-p.z)<0.5&&H.y<1.3){hurtHero(p.dmg,p.vx,p.vz,false);if(p.kind==='frost')chillHero(110);p.dead=true;sparks(p.x,p.y,p.z,6,PJC[p.kind]||'#ff9a4a');}
+  if(H.state!=='down'&&Math.hypot(H.x-p.x,H.z-p.z)<0.5&&H.y<1.3){hurtHero(p.dmg,p.vx,p.vz,false);if(p.kind==='frost')chillHero(110);if(p.kind==='web'){if(!(H.chill>0))floatText(H.x,2.6,H.z,'Webbed!','#ece8f6',16);H.chill=Math.max(H.chill||0,130);}p.dead=true;sparks(p.x,p.y,p.z,6,PJC[p.kind]||'#ff9a4a');}
   if(NET.on&&NET.host)netProjHit(p);
   if(p.life<=0||mzHit(p.x,p.z))p.dead=true;}
 // ================= projectiles, area, pickups, props =================
@@ -3460,6 +3516,7 @@ function goDungeon(fi=0){setTimeout(()=>{if(H&&S.level==='dungeon'&&!S.demo)fogP
   portal.visible=false;portal.userData.pl.intensity=0;
   if(SET.cam==='free')CAM.yaw=0.5;
   S.banner={top:FLOORS[fi].sub,text:FLOORS[fi].name,t:190};S.state='play';camUpdate(true);updateTouch();
+  if(FLOORS[fi].id==='sanctum'&&INV.crest&&!INV.crestUsed){INV.crestUsed=1;save();schedule(120,()=>toast('You press the Widow\'s Crest into the slot. The Sanctum door grinds open...'));}
   if(fi===0&&!INV.warned){INV.warned=1;save();schedule(95,()=>{S.banner={top:'A cold voice echoes through the halls',text:'Leave this place… or serve us for eternity.',t:320};sfx('boss');S.shake=Math.max(S.shake||0,0.25);});}
   schedule(200,()=>toast('Find '+PIECE_N[fi]+' and beat its guards to win the '+GKEY[fi]+', then open the boss door. Watch out for traps! Press M for the map.'));
 }
@@ -3472,12 +3529,31 @@ function bossDown(){
   S.exitOpen=true;S.queue=[];S.eproj=[];if(MZ)mzRoomDone();
   for(const e of S.enemies)if(e.state!=='dead'&&!e.def.boss){e.state='dead';e.t=20;e.vx=e.vz=0;}
   S.banner={top:'Floor cleared',text:(S.boss?S.boss.def.name.replace(/^The /,'')+' falls!':'Floor cleared!'),t:220};S.wave=S.waves.length;S.wallX=DUN.maxX;
-  floorDone(S.floor);if(S.floor>=lastF()){INV.cleared=true;const rk=curRank();if(rk>=2&&rk<4&&rankMax()<rk+1){INV.rankMax=rk+1;setTimeout(()=>toast(`Promoted! You can now play at ${RANKS[rk+1].n} rank.`),2500);}}save();
+  floorDone(S.floor);if(FLOORS[S.floor].id==='throne'&&!INV.crest)nestCall();if(FLOORS[S.floor].id==='nest')nestWin();if(S.floor>=lastF()){INV.cleared=true;const rk=curRank();if(rk>=2&&rk<4&&rankMax()<rk+1){INV.rankMax=rk+1;setTimeout(()=>toast(`Promoted! You can now play at ${RANKS[rk+1].n} rank.`),2500);}}save();
   portal.visible=true;portal.userData.pl.intensity=1.8;
   schedule(150,()=>toast('A glowing portal opened in the boss room. Walk up to it and press J.'));
   if(S.floor>=lastF())schedule(240,()=>{if(LT.g&&!LT.broken){if(freed().magic)lichBreak();else toast('Free Master Wren to break the last of the Lich Queen\'s spells.');}});
 }
 
+function nestCall(){schedule(230,()=>{if(S.level!=='dungeon')return;S.banner={top:'The Lich Queen speaks',text:'This is where you will meet your doom.',t:260};sfx('boss');S.shake=Math.max(S.shake||0,0.3);});
+  schedule(480,()=>{if(S.level!=='dungeon')return;S.banner={top:'The Lich Queen speaks',text:'I will suck your soul from your corpse!',t:260};sfx('boss');S.shake=Math.max(S.shake||0,0.45);});
+  schedule(720,()=>{if(S.level!=='dungeon')return;webPortal();toast('Her Sanctum is sealed. Its door has an empty slot shaped like a spider\'s crest... and a web has torn open in the wall!');});}
+function webPortal(){if(!MZ||MZ.webPortal)return;const BR=MZ.rooms.find(r=>r.kind==='boss');if(!BR)return;const [cx]=mzCenter(BR),x=Math.min(cx+4.2,(BR.x1+1)*TS-2.2),z=BR.z0*TS+0.25,g=new THREE.Group();g.position.set(x,0,z);
+  const w=new THREE.Mesh(new THREE.PlaneGeometry(3.6,3.6),webMat(6,0.95));w.position.y=2.0;g.add(w);
+  const d=new THREE.Mesh(new THREE.CircleGeometry(1.35,32),new THREE.MeshBasicMaterial({color:0x5a2a8a,transparent:true,opacity:0.55,depthWrite:false}));d.position.set(0,2.0,-0.02);g.add(d);
+  const gm=new THREE.SpriteMaterial({map:TX.glow,color:0xb070ff,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.85});MZ.mats.push(gm);const gl=new THREE.Sprite(gm);gl.scale.set(5,5,1);gl.position.set(0,2,0.2);g.add(gl);
+  const L=new THREE.PointLight(0xb070ff,1.4,9,1.6);L.position.set(0,2,1);g.add(L);MZ.grp.add(g);MZ.webPortal={x,z:z+1.6,web:w,disc:d};poof(x,2,z+0.6,2);sfx('magic');}
+function nestWin(){INV.crest=1;INV.royals=1;INV.nestFound=1;save();const b=S.boss||{x:H.x,z:H.z};
+  smesh('wcrest',MZ.grp,b.x,0.9,b.z,2.4,0,m=>{(MZ.spin=MZ.spin||[]).push([m,0.03,'y']);MZ.crestM=m;});sparks(b.x,1.4,b.z,20,'#ff4a5a');
+  schedule(160,()=>{floatText(b.x,3,b.z,"The Widow's Crest!",'#ff8a9a',26);toast('The Spider Queen dropped the Widow\'s Crest! It will open the Lich Queen\'s door. Now cut the King and Queen free!');});}
+function nestRescue(){if(!MZ||MZ.rescued)return;MZ.rescued=true;sfx('chop');S.shake=Math.max(S.shake||0,0.3);
+  for(const m of MZ.cocoons||[]){poof(m.position.x,1.6,m.position.z,1.6);for(let k=0;k<26;k++)addPart({x:m.position.x+rnd(-0.4,0.4),y:rnd(0.6,2.6),z:m.position.z+rnd(-0.3,0.3),vx:rnd(-0.06,0.06),vy:rnd(0.01,0.08),vz:rnd(-0.06,0.06),life:ri(30,60),size:rnd(0.06,0.14),color:'#ece8f6'});if(m.parent)m.parent.remove(m);}
+  MZ.bob=(MZ.bob||[]).filter(b=>!(MZ.cocoons||[]).includes(b[0]));schedule(30,nestRoyals);}
+function nestRoyals(){if(S.level!=='dungeon'||!MZ)return;const C=MZ.cocoons||[];const mk=(f,t,i)=>{if(loadReal(null,f)!=='ready'||animState!=='ready')return null;const c=C[i]||{position:{x:H.x+(i?1.5:-1.5),z:H.z-1.5}},o={x:c.position.x,z:c.position.z+0.6,tall:t};
+    const R=buildRealMon({x:o.x,z:o.z,fx:0,fz:1},{f,tall:t});R.root.position.set(o.x,0,o.z);MZ.grp.add(R.root);R.play('idle');(MZ.roy=MZ.roy||[]).push(R);poof(o.x,0.8,o.z,1.2);return o;};
+  if(!(MZ.roy&&MZ.roy.length)){const k=mk('king',1.97,0),q=mk('queen',1.86,1);if(!k||!q){if(MZ.roy)for(const R of MZ.roy)MZ.grp.remove(R.root);MZ.roy=[];schedule(30,nestRoyals);return;}
+    say(k,'Hero! Another moment and we were her supper!',3600);schedule(230,()=>say(q,'Thank you. Take the Widow\'s Crest to the Lich Queen\'s door, and end this.',4200));
+    schedule(480,()=>say(k,'We will go home to our thrones. Sumera will see its King and Queen again!',3800));schedule(700,()=>{if(!INV.widowPick)widowPick();});}}
 // ================= town folk =================
 function makeNpcs(){
   const cols=['#b85a4a','#4a7ab8','#8a6ab0','#c9a03a','#4a9a6a','#a87a4a','#6a6a8a','#c96a8a'];
@@ -3618,7 +3694,7 @@ function boardUp(){const g=new THREE.Group(),wd=lam({color:0x6a4a30,map:TX.plank
   const x1=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x1.rotation.z=0.62;g.add(x1);const x2=mesh(new THREE.BoxGeometry(3.4,0.26,0.08),wd,0,1.25,0.17);x2.rotation.z=-0.62;g.add(x2);
   const t=canvasTex(256,96,(c,w,h)=>{c.fillStyle='#d8c6a0';c.fillRect(0,0,w,h);c.strokeStyle='#5a3a20';c.lineWidth=6;c.strokeRect(4,4,w-8,h-8);c.fillStyle='#8a1a1a';c.font='700 50px Georgia';c.textAlign='center';c.textBaseline='middle';c.fillText('CLOSED',w/2,h/2+3);});
   const sg=mesh(new THREE.PlaneGeometry(1.3,0.5),lam({map:t}),0,2.45,0.24,false,false);sg.rotation.z=-0.06;g.add(sg);return g;}
-function shutTick(){SHUT_COL.length=0;gilTankTick();msgTick();if(DAIS.g){const w=won();DAIS.g.visible=w;if(w)SHUT_COL.push([DAIS.x-2.95,DAIS.x+2.95,DAIS.z-1.75,DAIS.z+1.75]);}
+function shutTick(){SHUT_COL.length=0;if(DKFX.nestWeb){DKFX.nestWeb.visible=!INV.nestFound;if(INV.nestFound&&DKFX.nestWebCol){DKFX.nestWebCol[2]=DKFX.nestWebCol[3]=999;}}gilTankTick();msgTick();if(DAIS.g){const w=royalsHome();DAIS.g.visible=w;if(w)SHUT_COL.push([DAIS.x-2.95,DAIS.x+2.95,DAIS.z-1.75,DAIS.z+1.75]);}
   for(const id of SHOP_IDS){const W=WALK.map[id],real=!!(W&&bldState==='ready');let B=SHOP_BOARDS[id];
     if(B&&B.userData.real!==real){townGroup.remove(B);B=SHOP_BOARDS[id]=null;}
     if(!B){const d=DOORS.find(q=>q.id===id);B=boardUp();B.userData.real=real;
@@ -3922,7 +3998,7 @@ function buildLichThrone(x,z){const G=THREE,g=new G.Group();g.position.set(x,0,z
 function lichBreak(){if(!LT.g||LT.broken)return;LT.broken=true;LT.t=0;S.shake=Math.max(S.shake,0.9);sfx('door');sfx('hit');
   toast('The Lich Queen\'s last spell breaks!');floatText(LT.x,4.6,LT.z,'CRACK!','#d8b0ff',30);
   for(let k=0;k<40;k++)addPart({x:LT.x+rnd(-1,1),y:rnd(0.2,4),z:LT.z+rnd(-0.6,0.8),vx:rnd(-0.08,0.08),vy:rnd(0.02,0.12),vz:rnd(-0.02,0.08),life:ri(30,60),size:rnd(0.08,0.22),color:k%3?'#3a3442':'#b070ff'});
-  schedule(70,lichRoyals);}
+  schedule(70,()=>{if(!INV.royals)lichRoyals();else schedule(60,()=>toast('Walk into the glowing portal and press J to go home.'));});}
 function lichTick(){if(!LT.g)return;if(LT.light)LT.light.intensity=LT.broken?Math.max(0,LT.light.intensity-0.01):1.0+Math.sin(S.frame*0.07)*0.3;
   if(LT.broken&&LT.t<60){LT.t++;const k=Math.min(1,LT.t/45),e=1-(1-k)*(1-k);LT.halves.forEach((h,i)=>{const sd=i?1:-1;h.position.set(sd*0.55*e,-0.08*e,0.1*e);h.rotation.set(0.12*e,sd*0.25*e,sd*0.42*e);});}
   for(const R of LT.royals){const dt=Math.min(0.05,R.clock.getDelta());R.root.rotation.y=Math.atan2(H.x-R.root.position.x,H.z-R.root.position.z);R.mixer.update(dt);}}
@@ -3971,6 +4047,7 @@ function lifeDrain(n){const R=5.5,amtMul=0.6*(1+0.15*(spRank(2)-1))*(setN(H)>=4?
   if(pick.id===null){H.hp=Math.min(H.maxHp,H.hp+heal);floatText(H.x,2.2,H.z,'+'+heal,'#9dffb0',18);ring(H.x,H.z,'#9dffb0',0.3,0.08,26);}
   else{scrNet({t:'heal',to:pick.id,amt:heal,x:+H.x.toFixed(2),z:+H.z.toFixed(2),fl:S.floor});floatText(pick.x,2.4,pick.z,'+'+heal,'#9dffb0',18);}}
 function royalTalk(){const k=DKFX.king,q=DKFX.queen;if(!k||S.royalT>performance.now())return;S.royalT=performance.now()+9000;
+  if(!won()){say(k,'You cut us out of that web just in time, hero. Now finish it. The Lich Queen waits in her Sanctum.',4600);schedule(150,()=>say(q,'The Widow\'s Crest will open her door. Be careful down there.',4200));return;}
   say(k,'You saved Sumera from the Fallen, hero. The whole kingdom owes you. The guest hut is yours now. You will always have a home here.',4600);
   schedule(150,()=>say(q,INV.letter?'Kemet needs you now. Captain Brin will sail when you are ready.':'A letter came for you from across the sea. Our messenger is bringing it.',4200));}
 function buildDais(T){const G=THREE,g=new G.Group();g.position.set(DAIS.x,0,DAIS.z);g.visible=false;T.add(g);
@@ -4173,14 +4250,15 @@ function interactables(){
     for(const d of DOORS){if(walkable(d.id))continue;if(d.id==='ship'&&(!(ship&&ship.visible)||(ship.userData.pearl&&!won())))continue;L.push({x:d.x,z:d.z,r:d.id==='gate'?2.8:2.2,y:d.id==='ship'?3:3.9,label:d.id==='gate'?'Enter the castle':d.id==='ship'?'Board the ship':d.id==='harbor'?'Harbor: see the world map':!shopOpen(d.id)?d.name+': boarded up':'Enter the '+d.name,act:()=>SHOP_IDS.includes(d.id)?(shopOpen(d.id)?goHouse(d.id):shutMsg(d.id)):openPlace(d.id)});}
     for(const id of SHOP_IDS){const B=SHOP_BOARDS[id];if(B&&B.visible&&walkable(id))L.push({x:B.userData.x,z:B.userData.z,r:2.4,y:3.1,label:KEEPER_OF[id].shop+': boarded up',act:()=>shutMsg(id)});}
     if(DKFX.msgr&&won()&&!H.onShip)L.push({x:DKFX.msgr.x,z:DKFX.msgr.z,r:2.4,y:2.8,label:INV.letter?'Read the letter from Kemet again':'Take the letter',act:()=>showLetter()});
-    if(DKFX.king&&won()&&!H.onShip&&FW.party<=0)L.push({x:6.6,z:-3.4,r:2.6,y:3.6,label:'Speak with the King and Queen',act:royalTalk});
+    if(DKFX.king&&royalsHome()&&!H.onShip&&FW.party<=0)L.push({x:6.6,z:-3.4,r:2.6,y:3.6,label:'Speak with the King and Queen',act:royalTalk});
     if(DKFX.spicer)L.push({x:SPICE_AT.x,z:SPICE_AT.z-2.3,r:2.6,y:3.2,label:'Shop with Rafi the spice merchant',act:()=>renderShop3('spice')});
+    if(INV.nestFound&&!H.onShip)L.push({x:119.4,z:-30,r:3,y:3.4,label:'Enter the Spider Nest',act:()=>goDungeon(flIdx('nest'))});
     if(DKFX.maren)L.push({x:DKFX.maren.x,z:DKFX.maren.z+0.9,r:2.3,y:2.8,label:'Shop with Old Maren',act:()=>{gemSel=null;renderShop3('maren');}});
     for(const hd of HOUSES.filter(h=>!h.shop))if(!walkable(hd.id))L.push({x:hd.x,z:12.5,r:2,y:3.9,label:'Enter '+hd.name,act:()=>goHouse(hd.id)});
     if(DKFX.gil&&DKFX.shop&&DKFX.shop.visible)L.push(freed().gil?{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:'Shop with Gil the fishmonger',act:()=>fishShop()}:{x:DKFX.gil.x,z:DKFX.gil.z-0.9,r:2.4,y:2.9,label:"Gil's fish boat: empty",act:()=>toast("Gil's fish boat is empty. Gil went into the castle to fight the Lich Queen and never came back.")});
     if((GATE.cap&&S.level==='town')||(!INV.gift&&GATE.guards.length)){const q=GATE.cap?GATE.cap.e:GATE.guards[0].e;L.push({x:q.x,z:q.z,r:GATE.cap?3:6,y:2.7,label:INV.gift?(jobsReady().length?'Collect your pay from Captain Jordan':'Ask Captain Jordan for work'):'Talk to Captain Jordan',act:guardGift});}
     walkInteract(L);
-  } else if(S.level==='dungeon'){if(MZ&&MZ.relic&&!MZ.relic.got)L.push({x:MZ.relic.x,z:MZ.relic.z,r:2.2,y:2.3,label:'Take '+MZ.relic.j.name,act:takeRelic});if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
+  } else if(S.level==='dungeon'){if(MZ&&MZ.relic&&!MZ.relic.got)L.push({x:MZ.relic.x,z:MZ.relic.z,r:2.2,y:2.3,label:'Take '+MZ.relic.j.name,act:takeRelic});if(MZ&&MZ.webPortal)L.push({x:MZ.webPortal.x,z:MZ.webPortal.z,r:2.6,y:4,label:'Step into the spider web',act:()=>{INV.nestFound=1;save();goDungeon(flIdx('nest'));}});if(MZ&&MZ.cocoonAt&&S.exitOpen&&!MZ.rescued&&FLOORS[S.floor].id==='nest')L.push({x:MZ.cocoonAt.x,z:MZ.cocoonAt.z,r:3.2,y:3.4,label:'Cut the King and Queen free',act:nestRescue});if(S.exitOpen)L.push({x:portal.position.x,z:portal.position.z,r:2.6,y:4.2,label:'Step into the portal',act:portalChoice});mzInteract(L);}
   else{const hd=HOUSES.find(h=>h.id===S.house);L.push({x:0,z:4.2,r:1.5,y:3,label:'Go outside',act:()=>goTown(hd.shop?{x:hd.x,z:-7.6,fx:0,fz:1,house:true}:{x:hd.x,z:11.9,fx:0,fz:-1,house:true})});
     for(const o of houseGroups[S.house].spots)L.push(o);
     if(S.house==='home')L.push({x:0,z:-2.6,r:2.6,y:2.6,label:'Cook at the fireplace',act:()=>cookDlg()});
@@ -4651,21 +4729,24 @@ function showCraft(){
       const r=RECIPES.find(x=>'craft-'+x.id===a);if(!r||r.ok()!==true)return;if(!Object.entries(r.need).every(([n,k])=>countGood(n)>=k))return;
       for(const [n,k] of Object.entries(r.need))takeGood(n,k);recalc(H);const msg=r.out();sfx('chest');toast(msg);showCraft();});
 }
+const gateOk=(i,max)=>{const f=FLOORS[i];if(f.id==='nest')return false;if(f.id==='sanctum'&&!INV.crest)return false;return i<=max||(f.id==='sanctum'&&INV.crest&&INV.fcl&&INV.fcl.nest);};
 function showGate(){
   INV.deepest=floorReach();const max=Math.min(INV.deepest||0,lastF());
   const rk=myRank(),lead=NET.on&&!NET.host;
   openDlg(`<h1 class="logo sm"><small>Castle Grimfall</small>Down into the dungeon</h1><p class="tag">Pick a floor. You can start at any floor you have reached.</p>
     <p class="tag">${lead?`You fight at your room leader's rank: <b>${RANKS[curRank()].n}</b>`:`Your rank: <b>${RANKS[rk].n}</b>. ${esc(RANKS[rk].d)}`}</p>
     ${lead?'':`<div class="rkrow">${RANKS.map((R,i)=>`<button class="rkb${i===rk?' on':''}" type="button" data-act="rk-${i}" ${i<=rankMax()?'':'disabled'} title="${i<=rankMax()?esc(R.d):'Beat the Lich Queen at '+RANKS[i-1].n+' rank to unlock'}">${i<=rankMax()?'':'🔒 '}${R.n}</button>`).join('')}</div>`}
-    <div class="floors">${FLOORS.map((f,i)=>`<button class="floor" type="button" data-act="f-${i}" ${i<=max?'':'disabled'}><b>${esc(f.name)}</b><span>${f.sub}${i<(INV.deepest||0)?' · cleared':i===max?' · next':''}</span><span>${i<=max?esc(f.blurb):'Locked. Beat the floor above first.'}</span></button>`).join('')}</div>
+    <div class="floors">${FLOORS.map((f,i)=>`<button class="floor" type="button" data-act="f-${i}" ${gateOk(i,max)?'':'disabled'}><b>${esc(f.name)}</b><span>${f.sub}${i<(INV.deepest||0)?' · cleared':i===max?' · next':''}</span><span>${f.id==='nest'?(INV.nestFound?'Reached through the woods behind the castle, not through this gate.':'Locked.'):f.id==='sanctum'&&!INV.crest&&i<=max?'Sealed. Its door needs the Widow\'s Crest.':i<=max?esc(f.blurb):'Locked. Beat the floor above first.'}</span></button>`).join('')}</div>
     <div class="row"><button class="btn alt" type="button" data-act="close">Stay in town</button></div>`,'gate',a=>{const [k,x]=a.split('-');if(k==='rk'&&+x<=rankMax()){INV.rank=+x;save();showGate();return;}if(k==='f'){dlgEl.hidden=true;dlgKind=null;goDungeon(+x);setTimeout(()=>toast(`Reporting for duty, ${RANKS[curRank()].n}!`),900);}});
 }
 function portalChoice(){
-  const last=S.floor>=lastF();
+  const last=S.floor>=lastF(),fid=FLOORS[S.floor].id;if(fid==='nest'&&!INV.widowPick){widowPick(portalChoice);return;}
+  /* the Nest is reached through the web (first time) or the woods, never by going deeper; the Sanctum only opens with the Widow's Crest */
+  let nx=S.floor+1;if(fid==='throne')nx=INV.crest?flIdx('sanctum'):-1;if(fid==='nest')nx=flIdx('sanctum');const sealed=fid==='throne'&&!INV.crest;
   openDlg(`<div class="panel endbox"><h1 class="logo sm"><small>${FLOORS[S.floor].sub} cleared</small>${last?'Sumera is saved!':esc(FLOORS[S.floor].name)+' falls'}</h1>
-    <p class="note">${last?'The Lich Queen is beaten! Captain Brin can get the ship ready for Kemet. That voyage comes in a later update.':'Go deeper now, or head back to Grimfall to sell, craft and rest. Your progress is saved either way.'}</p>
-    <div class="row">${last?'':`<button class="btn" type="button" data-act="deeper">Go deeper: ${esc(FLOORS[S.floor+1].name)}</button>`}<button class="btn ${last?'':'alt'}" type="button" data-act="town">Return to town</button></div></div>`,'portal',a=>{
-      dlgEl.hidden=true;dlgKind=null;if(a==='deeper')goDungeon(S.floor+1);else goTown(GATE_SPOT);},false);
+    <p class="note">${last?'The Lich Queen is beaten! Captain Brin can get the ship ready for Kemet. That voyage comes in a later update.':sealed?'The Lich Queen\'s Sanctum is sealed. Its door needs the Widow\'s Crest. Step into the spider web in this room to find it.':'Go deeper now, or head back to Grimfall to sell, craft and rest. Your progress is saved either way.'}</p>
+    <div class="row">${last||nx<0?'':`<button class="btn" type="button" data-act="deeper">Go deeper: ${esc(FLOORS[nx].name)}</button>`}<button class="btn ${last?'':'alt'}" type="button" data-act="town">Return to town</button></div></div>`,'portal',a=>{
+      dlgEl.hidden=true;dlgKind=null;if(a==='deeper')goDungeon(nx);else goTown(fid==='nest'?NEST_SPOT:GATE_SPOT);},false);
 }
 
 // ================= main step =================
@@ -5437,7 +5518,7 @@ function poseReal(R,h,blink){
   if(R.wRobj&&R.wBase!==undefined)R.wRobj.rotation.x=R.wBase;if(R.wLobj&&R.wBase!==undefined)R.wLobj.rotation.x=R.wBase;
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
-const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skelss',tall:1.8,ss:1,sword:1,shield:1},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skelss',tall:1.8,ss:1,sword:1,shield:1},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},spiderling:{f:'spiderl',tall:0.55,own:1},broodGuard:{f:'sbrood',tall:1.05,own:1},spiderQueen:{f:'squeen',tall:2.3,own:1},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
 /* the red knight's sword is part of his body mesh and the auto-rig tied it to his arms: pin those vertices to his upper back so it stays put */
 function pinBackSword(R){R.model.traverse(o=>{if(!o.isSkinnedMesh||o.geometry.userData.pinned)return;const g=o.geometry,P=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight,sp=o.skeleton.bones.findIndex(b=>/Spine2$/.test(b.name));if(sp<0||!si||!sw)return;
   const ax=-0.36,ay=1.8,bx=0.33,by=0.55,dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;
@@ -5491,7 +5572,8 @@ function bossBook(R){const G=THREE;let b=null;R.model.traverse(o=>{if(!b&&o.isBo
 function buildRealMon(e,info){const G=THREE,REAL=REALS[info.f],model=THREE.SkeletonUtils?THREE.SkeletonUtils.clone(REAL.gltf.scene):REAL.gltf.scene,root=new G.Group();root.add(model);model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(REAL.s0*info.tall/REAL.h0);
   const mats=[];model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();mats.push(o.material);o.material.skinning=!!o.isSkinnedMesh;o.userData.tr0=o.material.transparent;
     if(o.material.map){o.material.emissive=new G.Color(0xffffff);o.material.emissiveMap=o.material.map;o.material.emissiveIntensity=0.3;}}});
-  const R={root,model,mats,info,yaw:Math.atan2(e.fx,e.fz),cur:null,lock:0,clock:new G.Clock(),mixer:new G.AnimationMixer(model),act:{}};for(const cl of (info.quad?REAL.gltf.animations:clipsFor(REAL)))R.act[cl.name]=R.mixer.clipAction(cl);
+  const R={root,model,mats,info,yaw:Math.atan2(e.fx,e.fz),cur:null,lock:0,clock:new G.Clock(),mixer:new G.AnimationMixer(model),act:{}};for(const cl of (info.quad||info.own?REAL.gltf.animations:clipsFor(REAL)))R.act[cl.name]=R.mixer.clipAction(cl);
+  if(info.own){const A=R.act;A.idle=A.Idle;A.walk=A.Walk;A.run=A.Run||A.Walk;A.slash=A.chop=A.magic=A.aim=A.Attack;A.hit=A.Hit;A.death=A.Death;} /* the Creation Station's eight-legged creatures move with their own animations */
   if(info.quad){const A=R.act;A.run=A.gallop;A.chop=A.rear;A.slash=A.kick;A.hit=A.stomp;A.death=A.rundeath||A.death;A.magic=A.aim=A.kick;}if(info.rider)addRider(R,info.rider);if(info.regalia)addRegalia(R);if(info.wpn)bossWpn(R,...info.wpn);if(info.book)bossBook(R);if(info.shield)skShield(R);if(info.sword)skSword(R);
   if(info.ss){const A=R.act;for(const [a,b] of [['idle','ssIdle'],['run','ssRun'],['slash','ssSlash'],['chop','ssSlash2'],['hit','ssHit'],['death','ssDeath']])if(A[b])A[a]=A[b];} // the Creation Station skeleton fights with its own sword-and-shield moves
   if(info.crossbow){let hb=null,hd=null;model.traverse(o=>{if(o.isBone&&!hb&&/RightHand$/.test(o.name))hb=o;if(o.isBone&&!hd&&/Head$/.test(o.name))hd=o;});model.updateMatrixWorld(true);
@@ -5774,7 +5856,7 @@ function render3D(){
     else if((S.frame+e.anim)%2===0||e.flash>0||e.state!=='walk')paintSprite(e.spr,g=>drawEnemy(g,e),{rot,alpha,flash:e.flash>0});
     placeSprite(e.spr,e.x,e.y,e.z,0.45*e.scale,emis);if(e.mine||e.remote)minionAura(e);
   }
-  if(lv==='town')for(const n of S.npcs){if((n.gil&&!freed().gil)||(n.royal&&(!won()||H.onShip||FW.party>0))||(n.messenger&&!won())){n.spr.grp.visible=n.spr.blob.visible=false;if(n.spr.rfig)n.spr.rfig.root.visible=false;continue;}if((n.gil||n.messenger||n.royal)&&n.spr.rfig)n.spr.rfig.root.visible=true;if(n.messenger&&!n.rush&&!n.home&&Math.hypot(H.x-n.x,H.z-n.z)<6){n.fx=H.x-n.x;n.fz=H.z-n.z;}n.face=screenFace(n.fx,n.fz,n.face);
+  if(lv==='town')for(const n of S.npcs){if((n.gil&&!freed().gil)||(n.royal&&(!royalsHome()||H.onShip||FW.party>0))||(n.messenger&&!won())){n.spr.grp.visible=n.spr.blob.visible=false;if(n.spr.rfig)n.spr.rfig.root.visible=false;continue;}if((n.gil||n.messenger||n.royal)&&n.spr.rfig)n.spr.rfig.root.visible=true;if(n.messenger&&!n.rush&&!n.home&&Math.hypot(H.x-n.x,H.z-n.z)<6){n.fx=H.x-n.x;n.fz=H.z-n.z;}n.face=screenFace(n.fx,n.fz,n.face);
     if(realNpc(n,1.75)){}
     else if(syncFig(n.spr,()=>buildNpc(n))){poseNpc(n.spr.fig,n);n.spr.fig.root.visible=!(n.rm&&realWaiting(n.rm));}
     else if((S.frame+n.anim)%3===0)paintSprite(n.spr,g=>drawNpc(g,{pause:n.pause,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));
@@ -5890,7 +5972,7 @@ function drawHUD(){
   // GO
   if(S.level==='dungeon'&&!S.exitOpen&&S.goT>0&&Math.floor(S.frame/18)%2){g.textAlign='right';g.font=`800 38px ${DF}`;g.lineWidth=5;g.strokeStyle=OUT;g.strokeText('GO ▶',HW-24,HH*0.5);g.fillStyle='#ffd35c';g.fillText('GO ▶',HW-24,HH*0.5);}
   if(S.banner){const t=S.banner.t,a=Math.max(0,Math.min(1,t/30,(220-t)/20+0.2));g.globalAlpha=a;g.textAlign='center';g.font=`800 19px ${BF}`;g.fillStyle='#f6a63b';g.fillText(S.banner.top.toUpperCase(),HW/2,HH*0.33);
-    g.font=`800 54px ${DF}`;g.lineWidth=7;g.strokeStyle=OUT;g.strokeText(S.banner.text,HW/2,HH*0.33+54);g.fillStyle='#f2e7cf';g.fillText(S.banner.text,HW/2,HH*0.33+54);g.globalAlpha=1;}
+    {let fs=54;g.font=`800 54px ${DF}`;while(fs>24&&g.measureText(S.banner.text).width>HW*0.92){fs-=2;g.font=`800 ${fs}px ${DF}`;}}g.lineWidth=7;g.strokeStyle=OUT;g.strokeText(S.banner.text,HW/2,HH*0.33+54);g.fillStyle='#f2e7cf';g.fillText(S.banner.text,HW/2,HH*0.33+54);g.globalAlpha=1;}
 }
 
 // ================= UI =================
@@ -6018,6 +6100,15 @@ const PACKS={potions:{e:'Fills your potion belt with health and mana potions',gi
   gold_s:{e:'5,000 gold',give:()=>{INV.gold+=5000;}},gold_l:{e:'30,000 gold',give:()=>{INV.gold+=30000;}},
   crystals:{e:'5 random Flawless crystals',give:()=>{const ks=Object.keys(GEMS).filter(k=>k!=='amber');for(let i=0;i<5;i++){const k=ks[ri(0,ks.length-1)]+'3';INV.gems[k]=(INV.gems[k]||0)+1;}}},
   weapon:{e:'An Epic weapon one metal above yours, with 2 bonus stats and 3 crystal settings. Goes into your bag.',bag:true,give:()=>{const t=Math.min(5,H.weapon.tier+1),P=PRIM[H.cls]||'str',it={type:'gear',kind:'weapon',tier:t,grade:3,sockets:[null,null,null],aff:[{s:P,v:AFF[P].v(t)}]};it.aff.push(rollAff(it));addToBag(it);}}};
+const WIDOW_K=['helm','armor','hands','feet'];
+function widowItem(k){const it={type:'gear',kind:k,tier:4,grade:4,sockets:[null,null,null],aff:[],set:'widow'};return fillAff(it);}
+for(const k of WIDOW_K)PACKS['widow_'+k]={e:`The ${SETS.widow.names[k]}: Legendary, top metal, 3 crystal settings, part of the Widow's set. Goes into your bag.`,bag:true,give:()=>addToBag(widowItem(k))};
+/* after the Spider Queen falls: choose one Widow's piece to keep */
+function widowPick(then){if(INV.widowPick){if(then)then();return;}if(!INV.widowOffer)INV.widowOffer=WIDOW_K.map(widowItem); /* the four offers are rolled once, so what you see is what you get */
+  openDlg(`<h1 class="logo sm"><small>The Spider Queen's hoard</small>Choose your reward</h1><p class="tag">Take one piece of the Widow's set. Any hero can wear it. ${esc(SETS.widow.b2)} with 2 pieces, and ${esc(SETS.widow.b4)} with all 4.</p>
+    <div class="shopgrid">${WIDOW_K.map((k,i)=>{const it=INV.widowOffer[i];return `<button class="buy" type="button" data-act="wp-${k}"><span class="nm"><img src="${iconURL(it)}" alt=""><span><b>${esc(SETS.widow.names[k])}</b><small>Legendary · 3 crystal settings · ${esc(it.aff.map(affText).join(', '))}</small></span></span></button>`;}).join('')}</div>
+    <p class="note">The other Widow's pieces can be found in Widow packs in the Cash Store.</p>`,'widow',a=>{if(!a.startsWith('wp-'))return;const k=a.slice(3);if(!WIDOW_K.includes(k))return;
+      const it=INV.widowOffer[WIDOW_K.indexOf(k)]||widowItem(k);if(!addToBag(it))INV.bag.push(it);INV.widowOffer=null; /* a hard-won reward always fits */INV.widowPick=k;save();sfx('chest');closeDlg();toast(`The ${SETS.widow.names[k]} is in your bag. Double-tap it to put it on!`);if(then)setTimeout(then,400);},false);}
 const DIA_BUY=[['$0.99',100],['$4.99',550],['$9.99',1200],['$19.99',2500]];
 function showStore(){if(!H)return;const dia=n=>`${n.toLocaleString()} 💎`;let body;
   if(!ACCT.user)body=`<p class="tag">Sign in to use the Cash Store. Diamonds are kept safe on your account, not in this browser.</p><div class="row"><button class="btn" type="button" data-act="signin">Sign in or create account</button></div>`;
