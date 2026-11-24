@@ -3503,7 +3503,7 @@ function sheathSword(R){let sw=null,sp=null;R.model.traverse(o=>{if(o.isMesh&&/s
   const ring=new THREE.Mesh(new THREE.BoxGeometry(L*0.03,sy*1.15,sz2*1.15),trim);ring.position.set(s*L*0.27,cy,cz);hold.add(ring);
   const sp0=new THREE.Vector3();sp.getWorldPosition(sp0);const th0=s*(Math.PI/2-0.45);
   const W=new THREE.Matrix4().compose(new THREE.Vector3(sp0.x,sp0.y+0.02,sp0.z-0.16),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,th0)),new THREE.Vector3(1,1,1));
-  const Lm=new THREE.Matrix4().copy(sp.matrixWorld).invert().multiply(W);Lm.decompose(hold.position,hold.quaternion,hold.scale);sp.add(hold);
+  const Lm=new THREE.Matrix4().copy(sp.matrixWorld).invert().multiply(W);Lm.decompose(hold.position,hold.quaternion,hold.scale);hold.scale.multiplyScalar(0.62);sc.visible=tip.visible=ring.visible=false; /* her greatsword is huge: no plank-like scabbard, and a smaller blade across her back */sp.add(hold);
   addPants(R);
 }
 function addPants(R){
