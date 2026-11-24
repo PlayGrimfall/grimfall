@@ -382,7 +382,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
   <div id="stick"><div id="nub"></div></div>
   <button id="runBtn" type="button" aria-label="Run" aria-pressed="false">RUN</button>
   <div class="tm"><button data-m="map" type="button">MAP</button><button data-m="bag" type="button">BAG</button><button data-m="hero" type="button">HERO</button><button data-m="set" type="button" aria-label="Settings">⚙</button><button data-m="pause" type="button" aria-label="Pause">❚❚</button></div>
-  <div class="tp"><button data-m="hp" type="button" aria-label="Health potion">❤</button><button data-m="mp" type="button" aria-label="Mana potion">✦</button></div>
+  <div class="tp"><button data-m="hp" type="button" aria-label="Health potion">❤</button><button data-m="mp" type="button" aria-label="Mana potion">✦</button><button data-m="tps" type="button" aria-label="Town portal scroll">🌀</button></div>
   <div class="tb">
     <button data-b="sp2" type="button">BIG</button><button data-b="sp1" type="button">SPEC</button><button data-b="pow" type="button" hidden>POW</button>
     <button data-b="jump" type="button">JUMP</button><button data-b="attack" type="button">HIT</button>
@@ -2353,7 +2353,9 @@ function mzRoamTick(){if(!MZ||!MZ.flow||S.aRoom!=null||S.exitOpen||!H||H.state==
   floatText(H.x,2.5,H.z,'Something is coming…','#ff9a6a',16);}
 // T: open a portal back to town (a short cast; moving slows it, getting knocked down cancels it)
 function townPortal(){if(S.state!=='play'||!H)return;if(S.level==='town'){toast('You are already in town.');return;}if(S.level==='house'){toast('Walk out the door to leave the house.');return;}if(S.portT>0)return;
-  S.portT=90;H.castT=Math.max(H.castT||0,20);toast('Opening a portal to town…');sfx('magic');fogPuff(H.x,H.z,0.8,0xd8d0ff);}
+  /* every trip home uses a Town Portal Scroll (admins, like the game's owner, travel free) */
+  if(!ADMIN){if(!(INV.tps>0)){toast('You need a Town Portal Scroll. Buy them at Runes & Magic.');return;}INV.tps--;save();}
+  S.portT=90;H.castT=Math.max(H.castT||0,20);toast(ADMIN?'Opening a portal to town…':`Opening a portal to town… (${INV.tps} scroll${INV.tps===1?'':'s'} left)`);sfx('magic');fogPuff(H.x,H.z,0.8,0xd8d0ff);}
 function portTick(){if(!(S.portT>0))return;if(H.state==='down'){S.portT=0;toast('The portal fizzled out.');return;}
   const a=S.frame*0.25;for(let k=0;k<2;k++)addPart({x:H.x+Math.cos(a+k*3.14)*0.7,y:0.2+rnd(0,1.6),z:H.z+Math.sin(a+k*3.14)*0.7,vy:0.03,g:0,life:22,size:rnd(0.08,0.14),color:pcol().p[Math.random()<0.5?0:1]});
   if(S.portT===40)fogPuff(H.x,H.z,1.1,0xd8d0ff);
@@ -3244,7 +3246,7 @@ function hitProp(p){
     for(let i=0;i<10;i++)addPart({x:p.x,y:rnd(.2,.8),z:p.z,vx:rnd(-.08,.08),vy:rnd(.04,.1),vz:rnd(-.08,.08),life:ri(24,36),size:rnd(.08,.14),color:p.kind==='pot'?(i%2?'#7a2e22':'#4a2a1c'):(i%2?'#8a5a32':'#5a3a1e'),kind:'chip',g:.008});
     if(p.kind==='pot'){const r=Math.random();if(r<0.45)dropPickup('goods',p.x,p.z,0,randGoods(0));else if(r<0.6)dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:1});for(let i=0;i<ri(1,4);i++)dropPickup('gold',p.x,p.z,4);}
     else{const r=Math.random();if(r<0.3)dropPickup('hp',p.x,p.z);else if(r<0.55)dropPickup('mp',p.x,p.z);else if(r<0.65)dropPickup('goods',p.x,p.z,0,randGoods(0));for(let i=0;i<ri(1,3);i++)dropPickup('gold',p.x,p.z,5);}}
-  else if(!p.open){p.open=true;sfx('chest');floatText(p.x,1.4,p.z,'Treasure!','#ffd35c',20);p.obj.userData.lid.rotation.x=-1.9;if(p.key)INV.looted[p.key]=1;
+  else if(!p.open){p.open=true;sfx('chest');floatText(p.x,1.4,p.z,'Treasure!','#ffd35c',20);if(S.level==='dungeon'&&(INV.tps||0)<TPS_MAX&&Math.random()<(p.fancy?0.4:0.15)){INV.tps=(INV.tps||0)+1;floatText(p.x,2.1,p.z,'Town Portal Scroll!','#d8d0ff',16);}p.obj.userData.lid.rotation.x=-1.9;if(p.key)INV.looted[p.key]=1;
     for(let i=0;i<14;i++)addPart({x:p.x,y:.7,z:p.z,vx:rnd(-.04,.04),vy:rnd(.06,.12),vz:rnd(-.04,.04),life:ri(20,34),size:rnd(.04,.08),color:'#ffe58a',kind:'star'});
     if(S.level==='dungeon'&&Math.random()<(p.fancy?0.07:0.025)){dropPickup('goods',p.x,p.z,0,goodsNamed('Clockwork Fish'));floatText(p.x,2,p.z,'A Clockwork Fish!','#ffcf8a',20);}
     if(p.loot)p.loot(p);else{dropPickup('gear',p.x,p.z,0,gearFor(0.1));if(Math.random()<0.5)dropPickup('crystal',p.x,p.z,0,{t:randGem(),lv:1});dropPickup('goods',p.x,p.z,0,randGoods(0.2));for(let i=0;i<5;i++)dropPickup('gold',p.x,p.z,5);}}
@@ -3252,7 +3254,7 @@ function hitProp(p){
 
 // ================= inventory =================
 const BAG_MAX=30, STASH_MAX=60, BELT_MAX=6, STACK=20;
-const INV={gold:0,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{}};
+const INV={gold:0,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{},tps:3};
 const GOODS=[{n:'Redroot Herb',v:5,i:'herbR'},{n:'Moonpetal Herb',v:5,i:'herbB'},{n:'Iron Scrap',v:7,i:'scrap'},{n:'Leather Scrap',v:6,i:'leather'},{n:'Goblin Trinket',v:10,i:'trinket'},{n:'Orc Tooth',v:8,i:'tooth'},{n:'Bone Dice',v:12,i:'dice'},{n:'Brass Candlestick',v:15,i:'candle'},{n:'Spice Pouch',v:20,i:'pouch'},
   {n:'Silk Bolt',v:25,i:'silk'},{n:'Silver Goblet',v:30,i:'goblet'},{n:'Old Map Piece',v:35,i:'map'},{n:'Woven Tapestry',v:40,i:'silk2'},{n:'Pearl String',v:45,i:'pearl'},{n:'Golden Idol',v:70,i:'idol'}];
 function randGoods(rich=0){const i=clamp(Math.floor(Math.pow(Math.random(),1.5-rich)*GOODS.length),0,GOODS.length-1);return Object.assign({type:'goods',q:1},GOODS[i]);}
@@ -4297,7 +4299,7 @@ function socketsHtml(it,kind,clickable){return it.sockets.map((s,i)=>s?(clickabl
   :(clickable?`<button class="sock" type="button" data-act="sock-${kind}-${i}" title="Empty setting">${gemSel?'+':''}</button>`:'<span class="gem" style="--gc:rgba(255,255,255,.18)"></span>')).join(' ');}
 const SHOP_T={spice:["Rafi's Spices",'A pinch of spice makes your next meal last longer'],maren:['Old Maren','Basic potions for the road, and she buys what you find'],smith:['Blacksmith','Buy a new weapon, or forge and temper the one you have'],armory:['Armory','Stronger armor for your hero'],
   gems:['Crystals & Jewels','Real crystals with real powers. Set them in your weapon, armor and jewelry, or combine three into a better one'],magic:['Runes & Magic','Runes power up your specials, elixirs make you stronger for good, and potions fill your belt']};
-const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25};
+const COST={xbuy:70,xtier:t=>60+55*t,xgrade:g=>45+45*g,wtier:t=>100+90*t,wgrade:g=>70+70*g,atier:t=>90+80*t,agrade:g=>60+65*g,rune:160,gem:45,amber:140,jbuy:60,jup:t=>90+80*t,potion:25,tps:30};const TPS_MAX=10;
 // every shop price is 25% higher than the base numbers above
 const PRICE_UP=1.25,upP=v=>Math.round(v*PRICE_UP);for(const k in COST){const v=COST[k];COST[k]=typeof v==='function'?(...a)=>upP(v(...a)):upP(v);}
 const gemCost=t=>t==='amber'?COST.amber:COST.gem;
@@ -4333,7 +4335,7 @@ let gemQ=1;const gemPrice=(t,q)=>Math.round(gemCost(t)*[0,1,3.5,11][q]);
 function renderShop3(id){
   const [title,sub]=SHOP_T[id],w=H.weapon,a=H.armor,G0=INV.gold;let card='',extra='';
   if(id==='maren'){card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
-      +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
+      +buyBtn('tps-1','Town Portal Scroll',`Takes you home from the dungeon (press T or tap 🌀). You have ${INV.tps||0} of ${TPS_MAX}`,COST.tps,G0>=COST.tps&&(INV.tps||0)<TPS_MAX)+buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
       +(SHOP_IDS.some(i=>!shopOpen(i))?`<p class="note l">"The Lich Queen's dead dragged our shopkeepers into the castle. Free them and their shops will open again."</p>`:'');}
   else if(id==='spice'){card=spiceCard(G0);}
   else if(id==='smith'){const tc=w.tier<5?COST.wtier(w.tier):null,gc=w.grade<4?COST.wgrade(w.grade):null;
@@ -4352,7 +4354,7 @@ function renderShop3(id){
         +buyBtn('xgrade-'+k,it.grade<4?`Improve to ${GRADES[it.grade+1].n}`:'Legendary already','Adds a bonus stat',gc2,gc2!==null&&G0>=gc2);}).join('')+`</div>`;}
   else if(id==='magic'){
     card=`<p class="sub l">Potions for your belt (${INV.belt.hp} health, ${INV.belt.mp} mana, ${BELT_MAX} max each)</p>`
-      +buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
+      +buyBtn('tps-1','Town Portal Scroll',`Takes you home from the dungeon (press T or tap 🌀). You have ${INV.tps||0} of ${TPS_MAX}`,COST.tps,G0>=COST.tps&&(INV.tps||0)<TPS_MAX)+buyBtn('pot-hp','Health potion','Press 1 to drink. Heals 40%',COST.potion,G0>=COST.potion&&INV.belt.hp<BELT_MAX)+buyBtn('pot-mp','Mana potion','Press 2 to drink. Restores 50% mana',COST.potion,G0>=COST.potion&&INV.belt.mp<BELT_MAX)
       +`<p class="sub l">Rune: ${H.rune?esc(RUNES[H.rune].n):'none'}</p>`+Object.keys(RUNES).map(k=>buyBtn('rune-'+k,RUNES[k].n,RUNES[k].e,H.rune===k?null:COST.rune,H.rune!==k&&G0>=COST.rune)).join('')
       +`<p class="sub l">Elixirs</p>`+buyBtn('vit','Elixir of Vitality','+20 max health for good',upP(60+25*H.vit),G0>=upP(60+25*H.vit))+buyBtn('foc','Elixir of Focus','+15 max mana for good',upP(60+25*H.foc),G0>=upP(60+25*H.foc))
       +`<p class="sub l">Mystery scrolls</p>`+[0,1,2,3].map(t=>buyBtn('scr-'+t,`${SCR_TIER[t]} mystery scroll`,'A random scroll: summoning, healing, luck, gold, gems, weapons, armor or haste',SCR_PRICE[t],G0>=SCR_PRICE[t],scrURL(t)||null)).join('');}
@@ -4402,6 +4404,7 @@ function renderShop3(id){
     if(k==='xtier'&&H[x]&&H[x].tier<4&&pay(COST.xtier(H[x].tier)))H[x].tier++;
     if(k==='xgrade'&&H[x]&&H[x].grade<4&&pay(COST.xgrade(H[x].grade)))setGrade(H[x],H[x].grade+1);
     if(k==='pot'&&INV.belt[x]<BELT_MAX&&pay(COST.potion))INV.belt[x]++;
+    if(k==='tps'&&(INV.tps||0)<TPS_MAX&&pay(COST.tps))INV.tps=(INV.tps||0)+1;
   if(k==='spice'&&SPICES[x]&&(INV.spices=INV.spices||{},(INV.spices[x]||0)<SPICE_MAX)&&pay(upP(SPICES[x].p))){INV.spices[x]=(INV.spices[x]||0)+1;sfx('coin');}
     if(k==='scr'&&SCR_TIER[+x]&&pay(SCR_PRICE[+x])){const id=SCR_IDS[ri(0,SCR_IDS.length-1)];scrGive(id,+x);toast(`You got a ${scrName(id,+x)}: ${scrDesc(id,+x)}.`);}
     if(k==='rune'&&H.rune!==x&&pay(COST.rune))H.rune=x;
@@ -4472,7 +4475,7 @@ function openInv(){bagGlow(false);
       <div class="doll"><div class="dcol">${['helm','armor','hands','feet'].map(wslot).join('')}</div><div style="min-width:0">${heroPic(170)}</div><div class="dcol">${['weapon','off','cape'].map(wslot).join('')}</div></div>
       <div class="jrow">${JEWELS.map(J=>wslot(J.id)).join('')}</div>
       <div class="stats3" style="justify-content:center"><span>Health <b>${Math.round(H.hp)}/${H.maxHp}</b></span><span>Mana <b>${Math.round(H.mp)}/${H.maxMp}</b></span><span>Damage <b>×${dmgMult().toFixed(2)}</b></span><span>Protection <b>${armorPct()}%</b></span>${H.rune?`<span>Rune <b>${esc(RUNES[H.rune].n)}</b></span>`:''}</div>
-      <div class="stats3" style="justify-content:center"><span>1 · Health potions <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana potions <b>${INV.belt.mp}/${BELT_MAX}</b></span></div>
+      <div class="stats3" style="justify-content:center"><span>1 · Health potions <b>${INV.belt.hp}/${BELT_MAX}</b></span><span>2 · Mana potions <b>${INV.belt.mp}/${BELT_MAX}</b></span><span>T · Portal scrolls <b>${INV.tps||0}/${TPS_MAX}</b></span></div>
       <button class="btn alt" type="button" data-act="hero" style="font-size:18px">Hero sheet${H.pts||H.sp?` · ${H.pts+H.sp} points to spend`:''}</button>${ingrLine()}</div>
     <div class="scard" data-bagzone="1"><h3>Bag ${INV.bag.length}/${BAG_MAX}</h3><p class="note l">${isTouch?'Drag':'Drag'} an item onto your hero to wear it, or drag something you wear down into the bag to take it off. Tapping works too.</p><div class="bag">${cells.join('')}</div>${det}
       <p class="sub l">Crystal pouch</p>${owned.length?`<div class="chips">${owned.map(k=>{const t=k.slice(0,-1),lv=+k.slice(-1);return `<span class="chip" title="${esc(GEMS[t].e)}">${gemSpan(t)}${GEM_LV[lv]} ${GEMS[t].n} ×${INV.gems[k]}</span>`;}).join('')}</div><p class="note l">Set crystals at the Crystals &amp; Jewels shop in town.</p>`:'<p class="note l">No crystals yet.</p>'}
@@ -4590,7 +4593,7 @@ function loadGame(){const sv=readSave();if(!sv)return false;if(H)killSprite(H.sp
     off:sv.off||null,helm:sv.helm||null,hands:sv.hands||null,feet:sv.feet||null,cape:sv.cape||null,lvl:sv.lvl||1,xp:sv.xp||0,pts:sv.pts||0,sp:sv.sp||0,
     st:Object.assign({str:0,dex:0,vit:0,mag:0},sv.st||{}),sk:Object.assign({s1:1,s2:1},sv.sk||{}),look:sv.look||null,sex:sv.sex==='f'?'f':'m',name:sv.name||HEROES[sv.cls].name});
   for(const it of allGear(H))it.aff=it.aff||[];
-  Object.assign(INV,{gold:0,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{}},sv.inv||{});for(const it of INV.bag.concat(INV.stash))if(it.type==='gear')it.aff=it.aff||[];
+  Object.assign(INV,{gold:0,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{},tps:3},sv.inv||{});for(const it of INV.bag.concat(INV.stash))if(it.type==='gear')it.aff=it.aff||[];
   recalc(H);H.hp=H.maxHp;H.mp=H.maxMp;S.cls=sv.cls;return true;}
 function refreshContinue(){const sv=readSave();document.getElementById('contBtn').hidden=!sv;
   document.getElementById('saveNote').textContent=sv?`Saved hero: ${esc(sv.name||HEROES[sv.cls].name)}, level ${sv.lvl||1} ${HEROES[sv.cls].name}, with ${(sv.inv&&sv.inv.gold)||0} gold. Saves stay in this browser, and a new adventure replaces it.`:'Your progress saves in this browser automatically.';}
@@ -5889,7 +5892,7 @@ document.getElementById('joinCode').addEventListener('keydown',e=>{e.stopPropaga
 {const rq=new URLSearchParams(location.search).get('room');if(rq&&/^[A-Za-z]{4}$/.test(rq)){document.getElementById('joinCode').value=rq.toUpperCase();setTimeout(()=>netJoin(rq),600);}}
 document.getElementById('goBtn').addEventListener('click',()=>{
   if(H){killSprite(H.spr);}H=makeHero(S.cls);
-  Object.assign(INV,{gold:60,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{},ingr:{}});
+  Object.assign(INV,{gold:60,gems:{},bag:[],stash:[],belt:{hp:2,mp:2},looted:{},ingr:{},tps:3});
   document.getElementById('start').hidden=true;goTown();sfx('go');startIntro();
 });
 // ================= opening story: washed up on the dock =================
@@ -6154,7 +6157,7 @@ function updateTouch(){touchIcons();powUI();document.getElementById('touch').hid
   stick.addEventListener('pointermove',mv);const end=e=>{if(e.pointerId!==id)return;id=null;touch.mx=touch.my=touch.tx=0;nub.style.transform='';};
   stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
   document.querySelectorAll('#touch [data-m]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(S.state!=='play')return;const m=b.dataset.m;
-    if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set'||m==='pause')openSettings();else drinkPotion(m);}));
+    if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set'||m==='pause')openSettings();else if(m==='tps')townPortal();else drinkPotion(m);}));
   glc.addEventListener('pointerdown',e=>{if(S.state!=='play'||!JOBBOX)return;const r=glc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*HW,y=(e.clientY-r.top)/r.height*HH,b=JOBBOX;if(x>=b.x-6&&x<=b.x+b.w+6&&y>=b.y-6&&y<=b.y+b.h+6){SET.jobsHide=!b.show;try{saveSet();}catch(_){}e.stopImmediatePropagation();}},true);
   // tap the corner map to open or close the big map
   glc.addEventListener('pointerdown',e=>{if(!isTouch||S.state!=='play'||S.level!=='dungeon'||!MZ)return;const r=glc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*HW,y=(e.clientY-r.top)/r.height*HH;const mx=HW-44*4-14;if(S.mapOn||(x>=mx-10&&y>=64&&y<=74+32*4+10)){S.mapOn=!S.mapOn;}});
