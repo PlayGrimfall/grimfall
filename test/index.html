@@ -3453,8 +3453,8 @@ function bossDown(){
 // ================= town folk =================
 function makeNpcs(){
   const cols=['#b85a4a','#4a7ab8','#8a6ab0','#c9a03a','#4a9a6a','#a87a4a','#6a6a8a','#c96a8a'];
-  for(let i=0;i<9;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
-    n.rm=['girl','mage','smith','guard','hero_f','mage','smith','girl','guard'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94][i];
+  for(let i=0;i<10;i++){const n={x:rnd(-34,40),z:rnd(-6,8),tx:0,tz:0,vx:1,pause:0,anim:ri(0,99),col:cols[i%cols.length],hat:i%3,skin:['#f1c8a5','#d9a07a','#a8714e','#f6d5b8'][i%4],face:1,fx:1,fz:0,spr:makeSprite(512,512,256,472,2)};
+    n.rm=['girl','mage','smith','guard','hero_f','mage','smith','girl','guard','adventf'][i];n.tint=['#ffffff','#d9c4a6','#c4d4e6','#e6c4c0','#cfdcc0','#d6c8e6','#ffffff','#e0d0b0','#bcc8d0','#ffffff'][i];n.tall=[1.72,1.8,1.76,1.84,1.66,1.74,1.8,1.7,1.86,1.72][i];n.pace=[1,1.08,0.92,1.04,0.96,1.12,0.88,1.02,0.94,1][i];
     n.dancer=i%2===0;n.dclip=i%4===0?'samba':'gangnam';n.dspot=[Math.cos(i*0.75)*6.2,1+Math.sin(i*0.75)*6.2];
     clampPos(n);pickNpcTarget(n);S.npcs.push(n);}
   makeHarborFolk();makeRoyals();
