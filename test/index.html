@@ -1177,9 +1177,25 @@ function torch(x,y,z,grp,col=0xff9a40){
   const L=new THREE.PointLight(col,1.6,15,2);L.position.set(x,y+0.4,z+(z<0?0.8:-0.8));grp.add(L);
   FLAMES.push({f,L,base:1.6,ph:Math.random()*9});
 }
+/* ---- the user's oak: one shared copy of the 3D model; far-away oaks are the real oak painted onto 3 crossed cards ---- */
+const OAK={};
+function oakModel(){return OAK.p||(OAK.p=loadModelData('oak').then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)throw new Error('no oak');
+  const m=o.material;m.side=THREE.DoubleSide;m.metalness=0;m.roughness=0.9;m.needsUpdate=true;o.geometry.computeBoundingBox();return o;}));}
+function oakCards(o){if(OAK.cards)return OAK.cards;
+  const P=document.body.classList.contains('phone')?256:512,rt=new THREE.WebGLRenderTarget(P*4,P);rt.texture.encoding=THREE.sRGBEncoding;
+  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xfff4e0,0x3a4a2a,1.0));const dl=new THREE.DirectionalLight(0xffffff,0.9);dl.position.set(0.4,1,0.7);sc.add(dl);sc.add(new THREE.Mesh(o.geometry,o.material));
+  const bb=o.geometry.boundingBox,cy=(bb.min.y+bb.max.y)/2,half=Math.max(-bb.min.x,bb.max.x,-bb.min.z,bb.max.z,(bb.max.y-bb.min.y)/2)*1.03;
+  const cam=new THREE.OrthographicCamera(-half,half,half,-half,0.01,20);
+  const oRT=renderer.getRenderTarget(),oC=renderer.getClearColor(new THREE.Color()),oA=renderer.getClearAlpha(),oAuto=renderer.autoClear;
+  renderer.setClearColor(0x000000,0);renderer.autoClear=false;rt.scissorTest=true;
+  for(let k=0;k<3;k++){const a=k*Math.PI/3;cam.position.set(Math.sin(a)*5,cy,Math.cos(a)*5);cam.lookAt(0,cy,0);rt.viewport.set(k*P,0,P,P);rt.scissor.set(k*P,0,P,P);renderer.setRenderTarget(rt);renderer.clear();renderer.render(sc,cam);}
+  renderer.setRenderTarget(oRT);renderer.setClearColor(oC,oA);renderer.autoClear=oAuto;
+  const gs=[];for(let k=0;k<3;k++){const p=new THREE.PlaneGeometry(2*half,2*half);p.translate(0,cy,0);const uv=p.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,(k+uv.getX(i))/4);p.rotateY(k*Math.PI/3);gs.push(p);}
+  const g=mergeGeo(gs),Pp=g.attributes.position,N=g.attributes.normal;for(let i=0;i<Pp.count;i++){const v=new THREE.Vector3(Pp.getX(i),2.5,Pp.getZ(i)).normalize();N.setXYZ(i,v.x,v.y,v.z);}
+  return OAK.cards={geo:g,mat:new THREE.MeshLambertMaterial({map:rt.texture,alphaTest:0.45,side:THREE.DoubleSide}),depth:new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:rt.texture,alphaTest:0.45})};}
 function tree(x,z,grp0,s=1,front=false,oak=false){const grp=new THREE.Group();grp0.add(grp);
   /* broad leafy oak (the user's own tree model) */
-  if(oak){loadModelData('oak').then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)return;o.material.side=THREE.DoubleSide;const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,0,z);m.scale.setScalar(s*0.8);m.rotation.y=x*1.7+z;grp.add(m);}).catch(()=>{});if(front)occluder(grp,x-2.2*s,x+2.2*s,z-2.2*s,z+2.2*s,true,'town');return;}
+  if(oak){oakModel().then(o=>{const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,0,z);m.scale.setScalar(s*7);m.rotation.y=x*1.7+z;grp.add(m);}).catch(()=>{});if(front)occluder(grp,x-3*s,x+3*s,z-3*s,z+3*s,true,'town');return;}
   if(DN.cardG){const m=new THREE.Mesh(DN.cardG,DN.pineMats[(Math.abs(x*7+z*3)|0)%3].clone());m.position.set(x,0,z);m.scale.setScalar(s*0.62);m.rotation.y=x+z;m.castShadow=true;m.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:m.material.map,alphaTest:0.45});grp.add(m);if(front)occluder(grp,x-1.6*s,x+1.6*s,z-1.6*s,z+1.6*s,true,'town');return;}
   grp.add(mesh(new THREE.CylinderGeometry(0.18*s,0.25*s,1.6*s,7),M.wood,x,0.8*s,z));
   for(let i=0;i<3;i++)grp.add(mesh(new THREE.ConeGeometry((1.5-i*0.35)*s,1.6*s,8),lam({color:[0x2f5a3a,0x3a6a42,0x467a4a][i]}),x,(1.8+i*0.9)*s,z));
@@ -1617,7 +1633,7 @@ function buildTown(){
   {const gp=new THREE.Group(),L=Math.hypot(2.55,2.75),pl=mesh(new THREE.BoxGeometry(1.0,0.08,L),M.wood,0,0,0);gp.add(pl);for(const sx of [-0.52,0.52])gp.add(mesh(new THREE.BoxGeometry(0.05,0.5,L),M.wood,sx,0.25,0));
    gp.position.set(-52.2,1.42,1.75);gp.rotation.x=Math.atan2(2.75,2.55);gp.userData.gang=1;T.add(gp);DKFX.gang=gp;} // gangplank from the pier up to the deck
   dockDeco(T);
-  tree(-37.5,-8.6,T,0.9,false,true);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true,true);tree(-16,-19.5,T,1.3,false,true);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
+  tree(-37.5,-8.6,T,0.9,false,true);tree(46,-7.4,T,1,false,true);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true,true);tree(-16,-19.5,T,1.3,false,true);tree(18,-17.5,T,1.4,false,true);tree(-24,-17.6,T,1.2,false,true);tree(48.5,17,T,1.2,true);
   for(const [x,z] of [[-37.5,-8.6],[46,-7.4],[-38,10.5],[44,12],[-9,-17.5],[18,-17.5],[-24,-17.6],[48.5,17]])TOWN_COL.push([x-0.45,x+0.45,z-0.45,z+0.45]);
   // lights
   DN.hemi=new THREE.HemisphereLight(0xb8a0ff,0x6a4630,0.6);DN.amb=new THREE.AmbientLight(0x3a2a48,0.32);T.add(DN.hemi);T.add(DN.amb);
@@ -1855,9 +1871,11 @@ function buildWilds(T){
   const groups=[0,1,2].map(v=>{const tx=pineTex(v);tx.anisotropy=4;const mat=new THREE.MeshLambertMaterial({map:tx,alphaTest:0.45,side:THREE.DoubleSide});
     const im=new THREE.InstancedMesh(cardG,mat,pos.length);im.userData.n=0;im.castShadow=true;im.receiveShadow=true;
     im.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:tx,alphaTest:0.45});T.add(im);return im;});
-  pos.forEach(([x,z,s],i)=>{const im=groups[i%3];e.set(0,r()*6.3,(r()-0.5)*0.05);q.setFromEuler(e);m4.compose(new THREE.Vector3(x,0,z),q,new THREE.Vector3(s,s*(0.85+r()*0.4),s));const n=im.userData.n++;im.setMatrixAt(n,m4);
+  const oaks=[];pos.forEach(([x,z,s],i)=>{const isOak=((Math.sin(x*12.99+z*78.23)*43758.5)%1+1)%1<0.65;const im=groups[i%3];e.set(0,r()*6.3,(r()-0.5)*0.05);q.setFromEuler(e);m4.compose(new THREE.Vector3(x,0,z),q,new THREE.Vector3(s,s*(0.85+r()*0.4),s));if(isOak){const s2=s*8;m4.compose(new THREE.Vector3(x,0,z),q,new THREE.Vector3(s2,s2*(0.9+(i%7)*0.03),s2));oaks.push(m4.clone());r();r();r();return;}const n=im.userData.n++;im.setMatrixAt(n,m4);
     c.setHSL(0.27+r()*0.05,0.25+r()*0.25,0.55+r()*0.35);im.setColorAt(n,c);});
   groups.forEach(im=>{im.count=im.userData.n;im.instanceColor.needsUpdate=true;});
+  // the oaks appear as soon as the oak model has loaded
+  if(oaks.length)oakModel().then(o=>{const C=oakCards(o),im=new THREE.InstancedMesh(C.geo,C.mat,oaks.length);oaks.forEach((m,k)=>im.setMatrixAt(k,m));im.instanceMatrix.needsUpdate=true;im.castShadow=true;im.receiveShadow=true;im.customDepthMaterial=C.depth;im.name='Oaks';T.add(im);}).catch(()=>{});
   DN.cardG=cardG;DN.pineMats=groups.map(g=>g.material);
   // bushes and rocks along the forest edge
   const bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.9,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.95}),220);let nb=0;
