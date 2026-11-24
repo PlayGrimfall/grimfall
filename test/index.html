@@ -1177,7 +1177,9 @@ function torch(x,y,z,grp,col=0xff9a40){
   const L=new THREE.PointLight(col,1.6,15,2);L.position.set(x,y+0.4,z+(z<0?0.8:-0.8));grp.add(L);
   FLAMES.push({f,L,base:1.6,ph:Math.random()*9});
 }
-function tree(x,z,grp0,s=1,front=false){const grp=new THREE.Group();grp0.add(grp);
+function tree(x,z,grp0,s=1,front=false,oak=false){const grp=new THREE.Group();grp0.add(grp);
+  /* broad leafy oak (the user's own tree model) */
+  if(oak){loadModelData('oak').then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)return;o.material.side=THREE.DoubleSide;const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,0,z);m.scale.setScalar(s*0.8);m.rotation.y=x*1.7+z;grp.add(m);}).catch(()=>{});if(front)occluder(grp,x-2.2*s,x+2.2*s,z-2.2*s,z+2.2*s,true,'town');return;}
   if(DN.cardG){const m=new THREE.Mesh(DN.cardG,DN.pineMats[(Math.abs(x*7+z*3)|0)%3].clone());m.position.set(x,0,z);m.scale.setScalar(s*0.62);m.rotation.y=x+z;m.castShadow=true;m.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:m.material.map,alphaTest:0.45});grp.add(m);if(front)occluder(grp,x-1.6*s,x+1.6*s,z-1.6*s,z+1.6*s,true,'town');return;}
   grp.add(mesh(new THREE.CylinderGeometry(0.18*s,0.25*s,1.6*s,7),M.wood,x,0.8*s,z));
   for(let i=0;i<3;i++)grp.add(mesh(new THREE.ConeGeometry((1.5-i*0.35)*s,1.6*s,8),lam({color:[0x2f5a3a,0x3a6a42,0x467a4a][i]}),x,(1.8+i*0.9)*s,z));
@@ -1503,7 +1505,7 @@ function cyTick(){const town=S.level==='town'&&GATE.guards.length&&loadReal(null
 function gateGuards(){if(!GATE.g)return;const inTown=S.level==='town';
   if(!GATE.guards.length){if(!inTown||GATE.busy||loadReal(null,'guard')!=='ready'||loadReal(null,'erika')!=='ready'||loadReal(null,'hero_f')!=='ready'||loadReal(null,'arm_pal_f')!=='ready'||animState!=='ready')return;GATE.busy=1;makeGateGuards();return;}
   /* two red-armoured knights stand watch on either side of the road in front of the gate, beside Captain Jordan */
-  if(!GATE.red&&inTown&&GATE.guards.length&&loadReal(null,'rguard')==='ready'&&animState==='ready'){GATE.red=[-0.3,3.3].map(z=>{const e={x:83.6,y:0,z,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'rguard',tall:1.95});R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});return {R,e};});}
+  if(!GATE.red&&inTown&&GATE.guards.length&&loadReal(null,'rguard')==='ready'&&animState==='ready'){GATE.red=[-0.3,3.3].map(z=>{const e={x:83.6,y:0,z,fx:-1,fz:0,state:'idle',flash:0,moving:false,t:0,def:{}};const R=buildRealMon(e,{f:'rguard',tall:1.95,ss:1});pinBackSword(R);skSword(R);skShield(R);R.root.traverse(o=>{if(o.isMesh)o.castShadow=true;});return {R,e};});}
   if(GATE.red)for(const c of GATE.red){c.R.root.visible=inTown;if(inTown){const e=c.e,d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<5){e.fx+=((H.x-e.x)/d-e.fx)*0.08;e.fz+=((H.z-e.z)/d-e.fz)*0.08;}else{e.fx+=(-1-e.fx)*0.05;e.fz+=(0-e.fz)*0.05;}poseRealMon(c.R,e);}}
   if(GATE.cap){const c=GATE.cap,e=c.e;c.R.root.visible=inTown;if(inTown){if(INV.gift&&e.z<3.3){e.z=Math.min(3.3,e.z+0.03);e.moving=true;e.fx=0;e.fz=1;}else{e.moving=false;const d=H?Math.hypot(H.x-e.x,H.z-e.z):99;if(d<8){e.fx=H.x-e.x;e.fz=H.z-e.z;}else{e.fx=-1;e.fz=0;}}e.state='idle';poseRealMon(c.R,e);
     if(!INV.gift&&H){const d=Math.hypot(H.x-e.x,H.z-e.z);if(S.frame%90===0)floatText(e.x,3.2,e.z,'!','#ffd35c',34);
@@ -1615,7 +1617,7 @@ function buildTown(){
   {const gp=new THREE.Group(),L=Math.hypot(2.55,2.75),pl=mesh(new THREE.BoxGeometry(1.0,0.08,L),M.wood,0,0,0);gp.add(pl);for(const sx of [-0.52,0.52])gp.add(mesh(new THREE.BoxGeometry(0.05,0.5,L),M.wood,sx,0.25,0));
    gp.position.set(-52.2,1.42,1.75);gp.rotation.x=Math.atan2(2.75,2.55);gp.userData.gang=1;T.add(gp);DKFX.gang=gp;} // gangplank from the pier up to the deck
   dockDeco(T);
-  tree(-37.5,-8.6,T,0.9);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true);tree(-16,-19.5,T,1.3);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
+  tree(-37.5,-8.6,T,0.9,false,true);tree(46,-7.4,T,1);tree(-38,10.5,T,1.1,true);tree(44,12,T,0.9,true,true);tree(-16,-19.5,T,1.3,false,true);tree(18,-17.5,T,1.4);tree(-24,-17.6,T,1.2);tree(48.5,17,T,1.2,true);
   for(const [x,z] of [[-37.5,-8.6],[46,-7.4],[-38,10.5],[44,12],[-9,-17.5],[18,-17.5],[-24,-17.6],[48.5,17]])TOWN_COL.push([x-0.45,x+0.45,z-0.45,z+0.45]);
   // lights
   DN.hemi=new THREE.HemisphereLight(0xb8a0ff,0x6a4630,0.6);DN.amb=new THREE.AmbientLight(0x3a2a48,0.32);T.add(DN.hemi);T.add(DN.amb);
@@ -5406,6 +5408,11 @@ function poseReal(R,h,blink){
   R.mixer.update(dt);if(R.grip)for(const g of R.grip)g[0].rotateOnAxis(g[1],g[2]);
 }
 const REALMON={warden:{f:'grimtusk',tall:2.9,wpn:['axe-05',1.25,0.12]},goblin:{f:'goblin',tall:1.5},slime:{f:'slime',tall:1.65},skeleton:{f:'skelss',tall:1.8,ss:1,sword:1,shield:1},skelArcher:{f:'skela',tall:1.8,crossbow:true},orc:{f:'orc',tall:1.95},mushroom:{f:'mushroom',tall:1.75},imp:{f:'imp',tall:1.7},troll:{f:'mossb',tall:3.3,wpn:['axe-10',1.6,0.12],dance:'trollwin'},boneKing:{f:'bking',tall:3.2,wpn:['sword-07',1.6,0.12],dance:'hiphop'},lich:{f:'lichq',tall:2.7,float:0.7,wpn:['staff-03',1.5,0.3]},frostWraith:{f:'wraith',tall:2.6,float:0.6,dance:'wraithwin'},archivist:{f:'archivist',tall:2.5,dance:'soulspin',book:1},ironColossus:{f:'colossus',tall:3.6,wpn:['axe-11',1.9,0.12],dance:'breakdance'},moltenGiant:{f:'mgiant',tall:3.7,wpn:['axe-10',1.9,0.12],dance:'hiphop'},deathRider:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]},riderBoss:{f:'horse',tall:2.5,quad:true,rider:'drider',riderWpn:['sword-07',1.3,0.12]}};
+/* the red knight's sword is part of his body mesh and the auto-rig tied it to his arms: pin those vertices to his upper back so it stays put */
+function pinBackSword(R){R.model.traverse(o=>{if(!o.isSkinnedMesh||o.geometry.userData.pinned)return;const g=o.geometry,P=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight,sp=o.skeleton.bones.findIndex(b=>/Spine2$/.test(b.name));if(sp<0||!si||!sw)return;
+  const ax=-0.36,ay=1.8,bx=0.33,by=0.55,dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;
+  for(let i=0;i<P.count;i++){if(P.getZ(i)>-0.15)continue;const x=P.getX(i),y=P.getY(i),t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/L2)),ex=ax+dx*t-x,ey=ay+dy*t-y;if(ex*ex+ey*ey>0.07*0.07)continue;si.setXYZW(i,sp,0,0,0);sw.setXYZW(i,1,0,0,0);}
+  si.needsUpdate=sw.needsUpdate=true;g.userData.pinned=true;});}
 function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf='';const hips=[];REAL.gltf.scene.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)for(const b of o.skeleton.bones)if(/Hips(_\d+)?$/.test(b.name)&&b.name.length<30)hips.push(b.name);});
   {const hn=hips.find(n=>/Hips$/.test(n))||hips[0];if(hn){const m=/^(.*)Hips(_\d+)?$/.exec(hn);pre=m[1];suf=m[2]||'';}} // skinned bones decide; a plain Hips wins (files with copied skeletons are rebound to it), else the only one there is, like a skeleton's Hips_2
   // aim the shared Mixamo clips at this rig's bone names (some skeletons were exported with a prefix, or a _2 on every bone)
@@ -5417,7 +5424,9 @@ function clipsFor(REAL){if(REAL.clips)return REAL.clips;let pre='mixamorig',suf=
   // Drive every copy with the same moves, or the unanimated copy stays in a T-pose and its pieces float apart from the body.
   const hipN=new Map();REAL.gltf.scene.traverse(o=>{const m=/^(.*)Hips(_\d+)?$/.exec(o.name||'');if(m&&m[1]===pre&&o.name.length<30)hipN.set(m[2]||'',o);});
   if(hipN.size>1&&hipN.size<=4){const names=new Set();REAL.gltf.scene.traverse(o=>{if(o.name)names.add(o.name);});
-    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}
+    REAL.clips=REAL.clips.map(c=>{const n=c.clone(),extra=[];for(const t of n.tracks){const m=/^(.*?)(_\d+)?\.(.*)$/.exec(t.name);if(!m)continue;for(const sx of hipN.keys()){const nm=m[1]+sx;if(sx===(m[2]||'')||!names.has(nm))continue;if(/Hips$/.test(m[1])&&hipN.get(sx).parent&&hipN.get(sx).parent.isBone)continue; /* a copy nested inside the main hips already follows them: moving it again doubles the motion and throws its pieces into the air */const t2=t.clone();t2.name=nm+'.'+m[3];extra.push(t2);}}n.tracks=n.tracks.concat(extra);return n;});}
+  /* hips of a copy nested inside another hips bone already follow it: drop their own hip tracks or the motion doubles (skeleton archer legs and armor fly up over the head) */
+  {const nest=new Set();for(const [sx,hv] of hipN)if(hv.parent&&/Hips(_\d+)?$/.test(hv.parent.name||''))nest.add(hv.name);if(nest.size)REAL.clips=REAL.clips.map(c=>{if(!c.tracks.some(t=>nest.has(t.name.split('.')[0])))return c;const n=c.clone();n.tracks=n.tracks.filter(t=>!nest.has(t.name.split('.')[0]));return n;});}
   // hip movement is in the units of the rig the clip was made on: rescale it for each copy whose hips sit at a very different height (a rig built in metres)
   {const run=REAL.clips.find(c=>c.name==='run'),ht=run&&run.tracks.find(t=>/Hips[^.]*\.position$/.test(t.name));
    if(ht){let a=0;for(let i=1;i<ht.values.length;i+=3)a+=ht.values[i];a/=ht.values.length/3;const K={};for(const [sx,hv] of hipN){const k=hv.position.y/a;if(k>0&&(k<0.2||k>5))K[pre+'Hips'+sx]=k;}
