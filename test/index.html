@@ -382,7 +382,7 @@ body.phone .tm button[data-m="map"],body.phone .tm button[data-m="bag"],body.pho
 <div id="touch" hidden>
   <div id="stick"><div id="nub"></div></div>
   <button id="runBtn" type="button" aria-label="Run" aria-pressed="false">RUN</button>
-  <div class="tm"><button data-m="map" type="button">MAP</button><button data-m="bag" type="button">BAG</button><button data-m="hero" type="button">HERO</button><button data-m="set" type="button" aria-label="Settings">⚙</button></div>
+  <div class="tm"><button data-m="map" type="button">MAP</button><button data-m="bag" type="button">BAG</button><button data-m="hero" type="button">HERO</button><button data-m="set" type="button" aria-label="Settings">⚙</button><button data-m="pause" type="button" aria-label="Pause">❚❚</button></div>
   <div class="tp"><button data-m="hp" type="button" aria-label="Health potion">❤</button><button data-m="mp" type="button" aria-label="Mana potion">✦</button></div>
   <div class="tb">
     <button data-b="sp2" type="button">BIG</button><button data-b="sp1" type="button">SPEC</button><button data-b="pow" type="button" hidden>POW</button>
@@ -2305,7 +2305,7 @@ function mzDecor(fi,theme){
 }
     if(theme==='crypt'){for(let k=1;k+1<back.length&&r.kind!=='piece';k+=5){const x=bx(back[k])+1,z=bz+0.8;const sg=new THREE.Group();sg.position.set(x,0,z);sg.add(mesh(new THREE.BoxGeometry(2.3,0.9,1.1),M.stone,0,0.45,0));sg.add(mesh(new THREE.BoxGeometry(2.45,0.18,1.25),M.stone,0,0.98,0));
         sg.add(mesh(new THREE.BoxGeometry(0.16,0.06,0.7),lam({color:0xc9a03a}),0,1.1,0,false,false));sg.add(mesh(new THREE.BoxGeometry(0.6,0.06,0.16),lam({color:0xc9a03a}),0,1.1,-0.08,false,false));G.add(sg);col(x,z,1.25,0.65);glowSpr(x-0.9,1.45,z+0.3,0xffb070,0.9);}
-      for(let k=0;k<4;k++){const x=rnd(r.x0*TS+1,(r.x1+1)*TS-1),z=rnd(r.z0*TS+0.6,r.z0*TS+1.4);for(let j=0;j<3;j++)G.add(mesh(new THREE.SphereGeometry(0.13,8,6),lam({color:0xefe7d2}),x+j*0.22-0.2,0.12+(j===1?0.15:0),z,false,false));}}
+      }
     if(theme==='fungal'||(theme==='fungal'&&r.kind==='piece')){if(MCM.st==='ready')mzMush(G,r,back,bx,bz,col,glowSpr,nearDoor);else for(const [x,z] of corners){const big=r.kind==='piece'||r.kind==='boss',hh=big?rnd(2.4,3.4):rnd(1.2,2.4),cr=big?rnd(1.3,1.8):rnd(0.7,1.1),c=[0x5fe0c0,0x9f7ff0,0x7af0d0][ri(0,2)];
         const px=x*TS+TS/2+(x===r.x0?-0.2:0.2),pz=z*TS+TS/2+(z===r.z0?-0.2:0.2);if(z===r.z1&&hh>1.6)continue;
         {const mg=new THREE.Group();mg.add(mesh(new THREE.CylinderGeometry(0.18+cr*0.12,0.3+cr*0.15,hh,10),lam({color:0xd8f6ec}),px,hh/2,pz));const cap=mesh(new THREE.SphereGeometry(cr,16,10,0,Math.PI*2,0,Math.PI/2),lam({color:c,emissive:c,emissiveIntensity:0.18}),px,hh,pz);cap.scale.y=0.6;mg.add(cap);G.add(mg);}glowSpr(px,hh*0.7,pz,c,cr*1.6);col(px,pz,0.45,0.45);}
@@ -3196,8 +3196,8 @@ function dropPickup(kind,x,z,val=0,item=null){loadPotions();loadCoinBag();loadKe
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,alphaTest:0.2}));const sz=kind==='gold'?0.45:kind==='gear'?0.8:kind==='crystal'||kind==='scroll'?1.1:0.6;s.scale.set(sz,sz,1);scene.add(s);
   if(kind==='crystal'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:GEMS[item.t].c,transparent:true,opacity:0.8,depthWrite:false,blending:THREE.AdditiveBlending});const gm=gemMesh(item.t);gm.scale.z=sz;s.add(gm);}
   if(kind==='scroll'){s.material.dispose();s.material=new THREE.SpriteMaterial({map:TX.glow,color:SCR_COL[item.tier],transparent:true,opacity:0.7,depthWrite:false,blending:THREE.AdditiveBlending});
-    if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;sm.scale.set(k,k,k*sz);sm.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};s.add(sm);}else loadScroll();}
-  {const lm=lootMesh(kind,item);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:kind==='gear'?1.35:0.55,k=h/sz;lm.scale.set(k,k,k*sz);lm.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};s.add(lm);}}
+    if(SCRL.st==='ready'){const sm=scrollModel(item.tier),k=0.8/sz;const hd=new THREE.Group();hd.scale.set(1,1,sz);hd.userData.spin=sm;sm.scale.set(k,k,k);hd.position.y=-0.2/sz;sm.rotation.x=0.4;const ms=[];sm.traverse(o=>{if(o.isMesh)ms.push(o);});ms[0].onBeforeRender=()=>{sm.rotation.y+=0.02;};hd.add(sm);s.add(hd);}else loadScroll();}
+  {const lm=lootMesh(kind,item);if(lm){s.material.opacity=0;s.material.alphaTest=0;s.material.transparent=true;const h=kind==='gold'?1.1:kind==='goods'?0.5:kind==='rkey'||kind==='gkey'?1.0:kind==='gear'?1.2:0.55,k=h/sz;/* the sprite is scaled (sz,sz,1): a holder evens that out so the spinning item keeps its true shape (coins stay round) */const hd=new THREE.Group();hd.scale.set(1,1,sz);hd.userData.spin=lm;lm.scale.set(k,k,k);hd.position.y=kind==='gold'?-0.2/sz:-0.5;lm.onBeforeRender=()=>{lm.rotation.y+=0.02;};hd.add(lm);s.add(hd);}}
   S.pickups.push({kind,item,x:x+rnd(-.3,.3),z:z+rnd(-.3,.3),y:0.4,vy:rnd(.08,.13),vx:rnd(-.05,.05),vz:rnd(-.05,.05),val,age:0,dead:false,spr:s,sz});
 }
 let bagFullT=0;
@@ -3296,6 +3296,7 @@ function isDowngrade(it){return it.type==='gear'&&!!worn(it.kind)&&gearScore(it)
 function isUpgrade(it){return it.type==='gear'&&gearScore(it)>gearScore(worn(it.kind))+1e-6;}
 function pushStack(arr,it,max){if(it.type==='goods'){const s0=arr.find(o=>o.type==='goods'&&o.n===it.n&&(o.q||1)+(it.q||1)<=STACK);if(s0){s0.q=(s0.q||1)+(it.q||1);return true;}}if(arr.length>=max)return false;arr.push(it);return true;}
 function addToBag(it){return pushStack(INV.bag,it,BAG_MAX);}
+const TAP2={i:-1,t:0};
 function equipFromBag(i){const it=INV.bag[i];if(!it||it.type!=='gear')return;const k=it.kind,cur=H[k];H[k]={tier:it.tier,grade:it.grade,sockets:it.sockets,aff:it.aff||[],set:it.set,rb:it.rb,plus:it.plus,rs:it.rs,sum:it.sum};
   if(cur)INV.bag[i]={type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum};else{INV.bag.splice(i,1);invSel=null;}recalc(H);sfx('chest');}
 function unequip(k){if(!EXTRA.includes(k)||!H[k])return;if(INV.bag.length>=BAG_MAX){toast('Your bag is full.');return;}const cur=H[k];INV.bag.push({type:'gear',kind:k,tier:cur.tier,grade:cur.grade,sockets:cur.sockets,aff:cur.aff||[],set:cur.set,rb:cur.rb,plus:cur.plus,rs:cur.rs,sum:cur.sum});H[k]=null;recalc(H);sfx('door');}
@@ -4244,7 +4245,12 @@ function jobTalk(){if(GATE.talk)return;jobState();const lines=[],cb={},ready=job
     lines.push(fresh.length===1?'I have a new job for you.':`I have ${fresh.length} new jobs for you. Take them all!`);for(const j of fresh)if(j.kind==='relic')lines.push(j.ask);lines.push('Come back when they are done.');}
   else if(!ready.length&&!dTalk)lines.push(Object.keys(INV.jobs).length?'Your jobs are on your list. Come back when they are done.':'No work right now. Go deeper, then come see me.');
   GATE.talk={i:-1,t:0,lines,cb,vo:lines.map(t=>/^Good work/.test(t)?'c_good':/^Here is your pay/.test(t)?'c_pay':/new job/.test(t)?'c_new':voText(t))};}
-function drawJobs(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length){drawDaily(g,x,y);return;}const show=list.slice(0,7);
+let JOBBOX=null;
+/* Jordan's jobs box: an X folds it (and the bounties) into a small tab; tap the tab to open it again */
+function drawJobs(g,x,y){JOBBOX=null;if(!INV||!INV.jobs||!H)return;const D=INV.daily,any=JOBS.some(j=>INV.jobs[j.id])||(D&&D.taken&&D.day===dayKey()&&!(D.bonus&&D.list.every(b=>b.paid)));if(!any)return;
+  if(SET.jobsHide){g.save();g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,92,28,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.textAlign='left';g.fillText('Jobs  ▾',x+12,y+19);g.restore();JOBBOX={x,y,w:92,h:28,show:true};return;}
+  drawJobs0(g,x,y);g.save();const cx=x+262-15,cy=y+14;g.fillStyle='rgba(60,40,70,.95)';g.beginPath();g.arc(cx,cy,10,0,7);g.fill();g.strokeStyle='rgba(255,211,92,.8)';g.lineWidth=1.5;g.stroke();g.strokeStyle='#f2e7cf';g.lineWidth=2;g.beginPath();g.moveTo(cx-4,cy-4);g.lineTo(cx+4,cy+4);g.moveTo(cx+4,cy-4);g.lineTo(cx-4,cy+4);g.stroke();g.restore();JOBBOX={x:x+262-34,y,w:34,h:30,show:false};}
+function drawJobs0(g,x,y){if(!INV||!INV.jobs||!H)return;const list=JOBS.filter(j=>INV.jobs[j.id]);if(!list.length){drawDaily(g,x,y);return;}const show=list.slice(0,7);
   g.save();g.textAlign='left';const w=262,h=28+show.length*18+(list.length>7?16:0);g.fillStyle='rgba(16,12,28,.72)';rrp(g,x,y,w,h,8);g.fill();g.strokeStyle='rgba(255,211,92,.55)';g.lineWidth=1.5;g.stroke();
   {const si=scrollIcon();if(si)g.drawImage(si,25,45,110,70,x+4,y+2,44,28);g.font=`800 12px ${BF}`;g.fillStyle='#ffd35c';g.fillText("Jordan's jobs",x+(si?50:10),y+20);}
   show.forEach((j,i)=>{const d=jobDone(j);g.font=`${d?700:600} 12px ${BF}`;g.fillStyle=d?'#9dff8a':'rgba(242,231,207,.92)';g.fillText((d?'✓ ':'• ')+(d?(j.kind==='relic'?'Bring '+j.name+' to the captain':jobText(j).replace(/  \d+\/\d+$/,'')+': get paid'):jobText(j)),x+10,y+38+i*18,w-18);});
@@ -4478,7 +4484,7 @@ function openInv(){bagGlow(false);
       const [k,x]=act.split('-');
       if(k==='hero'){openHero('gear');return;}
       if(k==='read'){if(readScroll(x)){closeDlg();return;}}
-      if(k==='sel'){invSel=invSel===+x?null:+x;invWS=null;dropArm=false;}
+      if(k==='sel'){const now=performance.now(),it=INV.bag[+x];if(it&&it.type==='gear'&&TAP2.i===+x&&now-TAP2.t<450){TAP2.i=-1;equipFromBag(+x);invSel=null;invWS=null;dropArm=false;}else{TAP2.i=+x;TAP2.t=now;invSel=invSel===+x&&it&&it.type!=='gear'?null:+x;invWS=null;dropArm=false;}} /* double-tap a piece of gear to put it on */
       if(k==='ws'){invWS=invWS===x?null:x;invSel=null;dropArm=false;}
       if(k==='unwear'&&invWS){unequip(invWS);invWS=null;}
       if(k==='equip'&&invSel!==null){equipFromBag(invSel);}
@@ -4504,7 +4510,7 @@ function slotDetail(k){const isJ=!SLOT_N[k];const it=isJ?H.jewels[k]:H[k];
   return `<div class="detail"><h4 style="color:${GRADES[it.grade].c}">${GRADES[it.grade].n} ${esc(gearName({kind:k,tier:it.tier,set:it.set,sum:it.sum}))}</h4><span class="note l">${SLOT_N[k]}</span><div class="stats3">${gearLines(Object.assign({kind:k},it))}</div><div class="itemline">${socketsHtml(it,'',false)}</div>
     ${EXTRA.includes(k)?`<div class="row left"><button class="btn alt" type="button" data-act="unequip-${k}" style="font-size:17px">Take off</button></div>`:''}</div>`;}
 function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
-  const tabs=[['gear','Gear',0],['stats','Stats',H.pts],['skills','Skills',H.sp],['look','Look',0]].map(([id,n,dot])=>`<button class="tab ${heroTab===id?'sel':''}" type="button" data-act="tab-${id}">${n}${dot?`<span class="dot">${dot}</span>`:''}</button>`).join('');
+  const tabs=[['gear','Gear',0],['stats','Stats',H.pts],['skills','Skills',H.sp],['look','Name',0]].map(([id,n,dot])=>`<button class="tab ${heroTab===id?'sel':''}" type="button" data-act="tab-${id}">${n}${dot?`<span class="dot">${dot}</span>`:''}</button>`).join('');
   const need=xpNeed(H.lvl),lv=`<div class="lvl"><div class="stats3" style="justify-content:space-between"><span>Level <b>${H.lvl}</b></span><span>${H.lvl>=LV_MAX?'Top level!':`<b>${H.xp}</b> / ${need} XP`}</span></div><div class="xpbar"><i style="width:${H.lvl>=LV_MAX?100:Math.round(100*H.xp/need)}%"></i></div></div>`;
   let body='';
   if(heroTab==='gear'){
@@ -4536,9 +4542,7 @@ function openHero(tab){if(tab)heroTab=tab;const d=HEROES[H.cls];
     const L=Object.assign({},d.col,H.look||{});
     body=`<div class="shopgrid"><div class="scard" style="align-items:center">${heroPic(220)}
         <label class="sub" for="heroName">Name</label><input class="namein" id="heroName" maxlength="16" value="${esc(H.name||d.name)}" autocomplete="off">
-        <div class="row"><button class="btn alt" type="button" data-act="rand" style="font-size:18px">Surprise me</button><button class="btn alt" type="button" data-act="deflook" style="font-size:18px">Original look</button></div></div>
-      <div class="scard">${Object.keys(LOOKS).map(k=>`<p class="sub l">${LOOK_N[k]}</p><div class="sws">${LOOKS[k].map(c=>`<button class="sw ${L[k]===c?'sel':''}" type="button" style="--c:${c}" data-act="look-${k}-${c.slice(1)}" aria-label="${LOOK_N[k]} color"></button>`).join('')}</div>`).join('')}
-      <p class="note l">Helmets, gloves, boots, capes and off-hands you wear show up on your hero too.</p></div></div>`;}
+        </div></div>`;} /* the colour swatches did nothing on the 3D heroes, so only the name stays */
   openDlg(`<h1 class="logo sm"><small>Level ${H.lvl} ${esc(d.name)}</small>${esc(H.name||d.name)}</h1><div class="tabs">${tabs}</div>${body}
     <div class="row"><button class="btn alt" type="button" data-act="bag">Bag</button><button class="btn alt" type="button" data-act="set">Settings</button><button class="btn" type="button" data-act="close">Done</button></div>`,'hero',(act)=>{
     const [k,x,y]=act.split('-');if(k==='set'){closeDlg();openSettings();return;}
@@ -5753,7 +5757,7 @@ function render3D(){
     if(realNpc(n,1.8)){}else if(syncFig(n.spr,()=>buildNpc(n))){poseNpc(n.spr.fig,Object.assign(n,{pause:1}));n.spr.fig.root.visible=!(n.rm&&realWaiting(n.rm));}else paintSprite(n.spr,g=>drawNpc(g,{pause:1,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
   if(lv==='dungeon')for(const n of [S.pris,S.gilp]){if(!n||n.gone)continue;n.anim++;const dx=H.x-n.x,dz=H.z-n.z;if(Math.hypot(dx,dz)<6){n.fx=dx;n.fz=dz;}n.face=screenFace(n.fx,n.fz,n.face);
     if(realNpc(n,1.76)){}else if(syncFig(n.spr,()=>buildNpc(n))){poseNpc(n.spr.fig,n);n.spr.fig.root.visible=!(n.rm&&realWaiting(n.rm));}else paintSprite(n.spr,g=>drawNpc(g,{pause:1,anim:n.anim,vx:n.face,col:n.col,skin:n.skin,hat:n.hat}));placeSprite(n.spr,n.x,0,n.z,0.36,emis);}
-  for(const p of S.pickups){p.spr.position.set(p.x,p.y+Math.sin((p.age+p.x*10)*0.12)*0.05+p.sz*0.35,p.z);if(p.spr.children[0])p.spr.children[0].rotation.y+=0.04;}
+  for(const p of S.pickups){p.spr.position.set(p.x,p.y+Math.sin((p.age+p.x*10)*0.12)*0.05+p.sz*0.35,p.z);{const c=p.spr.children[0];if(c)(c.userData.spin||c).rotation.y+=0.04;}}
   if(lv==='dungeon'&&SET.style==='real')for(const e of S.enemies)if(REALMON[e.type])loadReal(null,rmInfo(e).f);
   if(!heroLight){heroLight=new THREE.PointLight(0xffe2c4,0,9,1.6);scene.add(heroLight);}
   if(H){const cv=camVecs();heroLight.position.set(H.x-cv.fx*1.6,H.y+2.4,H.z-cv.fz*1.6);heroLight.intensity=lv==='dungeon'?1.25:lv==='house'?0.45:0;heroLight.distance=lv==='dungeon'?13:9;}
@@ -5852,7 +5856,7 @@ function drawHUD(){
   g.textAlign='left';g.font=`700 13px ${BF}`;g.fillStyle='rgba(242,231,207,.78)';g.fillText(S.level==='town'?'Sumera · Town of Grimfall':S.level==='house'?HOUSES.find(x=>x.id===S.house).name:FLOORS[S.floor].sub+' · '+FLOORS[S.floor].name,px,py+90);
   drawBelt(g);
   g.font=`500 12px ${BF}`;g.fillStyle='rgba(242,231,207,.6)';g.fillText(isTouch?'':camMode()==='diablo'?'Overhead camera · wheel to zoom'+(S.level==='dungeon'?' · M for the map':' · C to change'):SET.cam==='free'?'Free camera · Q / E turn · R / F up and down · C to change':SET.cam==='behind'?'Behind the hero · arrows turn · A / D side-step · C to change':'Side view · C to change',px,py+106);
-  drawJobs(g,px,py+130);
+  drawJobs(g,px,py+130+(isTouch?36:0));
   if(S.level==='dungeon'&&MZ)drawMaze(g);
   // boss bar
   const b=S.boss;if(S.level==='dungeon'&&b&&b.state!=='dead'&&b.hp>0){const bw2=420,bx2=HW/2-bw2/2,by=40;g.textAlign='center';g.font=`800 22px ${DF}`;g.lineWidth=4;g.strokeStyle=OUT;g.strokeText(b.def.name,HW/2,by-6);g.fillStyle='#f2e7cf';g.fillText(b.def.name,HW/2,by-6);
@@ -6153,7 +6157,8 @@ function updateTouch(){touchIcons();powUI();document.getElementById('touch').hid
   stick.addEventListener('pointermove',mv);const end=e=>{if(e.pointerId!==id)return;id=null;touch.mx=touch.my=touch.tx=0;nub.style.transform='';};
   stick.addEventListener('pointerup',end);stick.addEventListener('pointercancel',end);
   document.querySelectorAll('#touch [data-m]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(S.state!=='play')return;const m=b.dataset.m;
-    if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set')openSettings();else drinkPotion(m);}));
+    if(m==='map'){if(S.level==='dungeon')S.mapOn=!S.mapOn;else toast('The map is for the dungeon.');}else if(m==='bag')openInv();else if(m==='hero')openHero();else if(m==='set'||m==='pause')openSettings();else drinkPotion(m);}));
+  glc.addEventListener('pointerdown',e=>{if(S.state!=='play'||!JOBBOX)return;const r=glc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*HW,y=(e.clientY-r.top)/r.height*HH,b=JOBBOX;if(x>=b.x-6&&x<=b.x+b.w+6&&y>=b.y-6&&y<=b.y+b.h+6){SET.jobsHide=!b.show;try{saveSet();}catch(_){}e.stopImmediatePropagation();}},true);
   // tap the corner map to open or close the big map
   glc.addEventListener('pointerdown',e=>{if(!isTouch||S.state!=='play'||S.level!=='dungeon'||!MZ)return;const r=glc.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*HW,y=(e.clientY-r.top)/r.height*HH;const mx=HW-44*4-14;if(S.mapOn||(x>=mx-10&&y>=64&&y<=74+32*4+10)){S.mapOn=!S.mapOn;}});
   const pts=new Map();let pd0=0;glc.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2){const [a,c]=[...pts.values()];pd0=Math.hypot(a[0]-c[0],a[1]-c[1]);}}});
