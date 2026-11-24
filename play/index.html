@@ -1178,9 +1178,10 @@ function torch(x,y,z,grp,col=0xff9a40){
 }
 /* ---- the user's oak: one shared copy of the 3D model; far-away oaks are the real oak painted onto 3 crossed cards ---- */
 const OAK={};
-function oakModel(){return OAK.p||(OAK.p=loadModelData('oak').then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)throw new Error('no oak');
+/* two kinds of oak (the user's first oak and their textured leafy tree), each loaded once */
+function oakModel(nm='oak'){return OAK['p_'+nm]||(OAK['p_'+nm]=loadModelData(nm).then(gl=>{let o=null;gl.scene.traverse(q=>{if(q.isMesh&&!o)o=q;});if(!o)throw new Error('no oak');
   const m=o.material;m.side=THREE.DoubleSide;m.metalness=0;m.roughness=0.9;m.needsUpdate=true;o.geometry.computeBoundingBox();return o;}));}
-function oakCards(o){if(OAK.cards)return OAK.cards;
+function oakCards(o){if(o.userData.cards)return o.userData.cards;
   const P=document.body.classList.contains('phone')?256:512,rt=new THREE.WebGLRenderTarget(P*4,P);rt.texture.encoding=THREE.sRGBEncoding;
   const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(0xfff4e0,0x3a4a2a,1.0));const dl=new THREE.DirectionalLight(0xffffff,0.9);dl.position.set(0.4,1,0.7);sc.add(dl);sc.add(new THREE.Mesh(o.geometry,o.material));
   const bb=o.geometry.boundingBox,cy=(bb.min.y+bb.max.y)/2,half=Math.max(-bb.min.x,bb.max.x,-bb.min.z,bb.max.z,(bb.max.y-bb.min.y)/2)*1.03;
@@ -1191,10 +1192,10 @@ function oakCards(o){if(OAK.cards)return OAK.cards;
   renderer.setRenderTarget(oRT);renderer.setClearColor(oC,oA);renderer.autoClear=oAuto;
   const gs=[];for(let k=0;k<3;k++){const p=new THREE.PlaneGeometry(2*half,2*half);p.translate(0,cy,0);const uv=p.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,(k+uv.getX(i))/4);p.rotateY(k*Math.PI/3);gs.push(p);}
   const g=mergeGeo(gs),Pp=g.attributes.position,N=g.attributes.normal;for(let i=0;i<Pp.count;i++){const v=new THREE.Vector3(Pp.getX(i),2.5,Pp.getZ(i)).normalize();N.setXYZ(i,v.x,v.y,v.z);}
-  return OAK.cards={geo:g,mat:new THREE.MeshLambertMaterial({map:rt.texture,alphaTest:0.45,side:THREE.DoubleSide}),depth:new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:rt.texture,alphaTest:0.45})};}
+  return o.userData.cards={geo:g,mat:new THREE.MeshLambertMaterial({map:rt.texture,alphaTest:0.45,side:THREE.DoubleSide}),depth:new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:rt.texture,alphaTest:0.45})};}
 function tree(x,z,grp0,s=1,front=false,oak=false){const grp=new THREE.Group();grp0.add(grp);
   /* broad leafy oak (the user's own tree model) */
-  if(oak){oakModel().then(o=>{const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,0,z);m.scale.setScalar(s*7);m.rotation.y=x*1.7+z;grp.add(m);}).catch(()=>{});if(front)occluder(grp,x-3*s,x+3*s,z-3*s,z+3*s,true,'town');return;}
+  if(oak){oakModel(Math.round(x+z)&1?'oak2':'oak').then(o=>{const m=new THREE.Mesh(o.geometry,o.material);m.userData.shared=true;m.castShadow=true;m.position.set(x,0,z);m.scale.setScalar(s*7);m.rotation.y=x*1.7+z;grp.add(m);}).catch(()=>{});if(front)occluder(grp,x-3*s,x+3*s,z-3*s,z+3*s,true,'town');return;}
   if(DN.cardG){const m=new THREE.Mesh(DN.cardG,DN.pineMats[(Math.abs(x*7+z*3)|0)%3].clone());m.position.set(x,0,z);m.scale.setScalar(s*0.62);m.rotation.y=x+z;m.castShadow=true;m.customDepthMaterial=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:m.material.map,alphaTest:0.45});grp.add(m);if(front)occluder(grp,x-1.6*s,x+1.6*s,z-1.6*s,z+1.6*s,true,'town');return;}
   grp.add(mesh(new THREE.CylinderGeometry(0.18*s,0.25*s,1.6*s,7),M.wood,x,0.8*s,z));
   for(let i=0;i<3;i++)grp.add(mesh(new THREE.ConeGeometry((1.5-i*0.35)*s,1.6*s,8),lam({color:[0x2f5a3a,0x3a6a42,0x467a4a][i]}),x,(1.8+i*0.9)*s,z));
@@ -1877,7 +1878,8 @@ function buildWilds(T){
   if(oaks.length)oakModel().then(o=>{const C=oakCards(o);C.geo.computeBoundingBox();const hb=C.geo.boundingBox.max.x*0.7,P=new THREE.Vector3(),Q=new THREE.Quaternion(),Sc=new THREE.Vector3(),keep=[];
     /* no oak planted inside another: keep one only when its crown clears the ones already kept */
     for(const m of oaks){m.decompose(P,Q,Sc);const r=hb*Sc.x;if(keep.every(k=>Math.hypot(k[0]-P.x,k[1]-P.z)>0.55*(k[2]+r)))keep.push([P.x,P.z,r,m]);}
-    const im=new THREE.InstancedMesh(C.geo,C.mat,keep.length);keep.forEach((k,i)=>im.setMatrixAt(i,k[3]));im.instanceMatrix.needsUpdate=true;im.castShadow=true;im.receiveShadow=true;im.customDepthMaterial=C.depth;im.name='Oaks';T.add(im);}).catch(()=>{});
+    const add=(L,C2,nm)=>{if(!L.length)return;const im=new THREE.InstancedMesh(C2.geo,C2.mat,L.length);L.forEach((k,i)=>im.setMatrixAt(i,k[3]));im.instanceMatrix.needsUpdate=true;im.castShadow=true;im.receiveShadow=true;im.customDepthMaterial=C2.depth;im.name=nm;T.add(im);};
+    const A=keep.filter((k,i)=>i%2===0),B=keep.filter((k,i)=>i%2===1);add(A,C,'Oaks');oakModel('oak2').then(o2=>add(B,oakCards(o2),'Oaks2')).catch(()=>add(B,C,'Oaks2'));}).catch(()=>{});
   DN.cardG=cardG;DN.pineMats=groups.map(g=>g.material);
   // bushes and rocks along the forest edge
   const bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.9,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.95}),220);let nb=0;
