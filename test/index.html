@@ -2349,6 +2349,20 @@ function mzNest(G,r,back,corners,bx,bz,col,glowSpr){const big=r.kind==='piece'||
     MZ.cocoonAt={x:cx,z:z+1.4};
     // the skull-backed spider over the lair
     const t=new THREE.TextureLoader().load('fx/spideremblem.png');t.encoding=THREE.sRGBEncoding;const em=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.4),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));em.position.set(cx,3.0,bz+0.08);G.add(em);}}
+// woven wall tapestries (made in the Creation Station), a set for each floor, hung between the torches and fire baskets
+const TAPSET={castle:[29,30,31,32,20,21],crypt:[33,3,34,4,35,5,36,17],fungal:[45,46,47,48,49,50,51,52],cistern:[3,6,20,22],ice:[11,12,23,24],forge:[1,2,13,14],library:[25,26,27,28],armory:[20,22,21,31],garden:[19,11,17],throne:[37,38,39,40,15,16],nest:[7,8,9,10],sanctum:[41,42,43,44,16,18]};
+const TAPT={};let TAPK=null;function tapMat(n){if(TAPT[n])return TAPT[n];const m=lam({color:0xffffff,transparent:true,alphaTest:0.45,side:THREE.DoubleSide});m.emissive=new THREE.Color(0xffffff);m.emissiveIntensity=0.16;TAPT[n]=m;
+  new THREE.TextureLoader().load('fx/tap'+String(n).padStart(2,'0')+'.webp',t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;m.map=t;m.emissiveMap=t;m.userData.asp=t.image.width/t.image.height;m.needsUpdate=true;});m.userData.shared=true;return m;}
+const TAP_ASP={1:0.83,2:1.16,3:0.98,4:0.89,5:1.03,6:1.23,7:0.96,8:0.9,9:0.91,10:1.02,11:0.76,12:0.99,13:1.05,14:1.06,15:1.01,16:0.95,17:0.9,18:1.0,19:0.87,20:0.8,21:0.82,22:1.04,23:0.81,24:0.94,25:0.99,26:0.75,27:0.98,28:0.91,29:0.83,30:0.83,31:0.85,32:0.74,33:0.89,34:0.79,35:0.88,36:0.84,37:0.95,38:0.81,39:0.95,40:0.84,41:0.81,42:0.91,43:0.79,44:0.88,45:0.83,46:0.74,47:1.01,48:0.86,49:0.88,50:0.99,51:0.86,52:1.15};
+function mzTaps(fi,G,r,back,bx,bz,theme){if(r.kind==='closet'||back.length<2)return;const F=FLOORS[fi]||{},set=TAPSET[F.id]||TAPSET[theme];if(!set)return;
+  const wz=bz+0.12,busy=MZ.torches.filter(t=>Math.abs(t.z-0.6-wz)<0.3).map(t=>[t.x,0.45]);
+  if(r.kind!=='start'&&back.length>2&&theme!=='nest'){const big=r.kind==='piece'||r.kind==='boss';for(const k of (big?[Math.floor(back.length/3),Math.floor(back.length*2/3)]:[Math.floor(back.length/2)]))busy.push([bx(back[k]),0.7]);}
+  const okX=(x,hw)=>{for(let xx=x-hw+0.05;xx<=x+hw-0.05;xx+=0.25){const tx=Math.floor(xx/TS);if(!back.includes(tx))return false;}return busy.every(([bx2,br])=>Math.abs(bx2-x)>=hw+br);};
+  const H=2.5;let last=-99;(MZ.taps=MZ.taps||[]);
+  for(let x=bx(back[0])-1;x<=bx(back[back.length-1])+1;x+=0.5){if(x-last<6.5)continue;const n=set[(MZ.taps.length+fi)%set.length],w=H*(TAP_ASP[n]||0.9);if(!okX(x,w/2))continue;
+    const g=new THREE.PlaneGeometry(w,H,1,6);g.translate(0,-H/2,0);const m=new THREE.Mesh(g,tapMat(n));m.position.set(x,3.75,bz+0.05);m.userData.base=Float32Array.from(g.attributes.position.array);m.userData.ph=Math.random()*6;G.add(m);MZ.taps.push(m);
+    const rod=mesh(new THREE.CylinderGeometry(0.035,0.035,w+0.3,6),M.dark,x,3.78,bz+0.1,false,false);rod.rotation.z=Math.PI/2;G.add(rod);
+    for(const s of [-1,1])G.add(mesh(new THREE.SphereGeometry(0.07,8,6),TAPK||(TAPK=lam({color:0x8a6a2a})),x+s*(w/2+0.15),3.78,bz+0.1,false,false));last=x;}}
 function mzDecor(fi,theme){
   const G=MZ.grp,{W,t,rid,doorT}=MZ,I=(x,z)=>z*W+x;
   const nearDoor=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,zz=z+dz;if(xx>=0&&zz>=0&&xx<W&&zz<MZ.H&&doorT[I(xx,zz)]>=0)return true;}return false;};
@@ -2359,8 +2373,7 @@ function mzDecor(fi,theme){
     const back=[];for(let x=r.x0;x<=r.x1;x++)if(!nearDoor(x,r.z0)&&MZ.h[I(x,r.z0-1)]===WALL_H)back.push(x);
     const corners=[[r.x0,r.z0],[r.x1,r.z0],[r.x0,r.z1],[r.x1,r.z1]].filter(([x,z])=>!nearDoor(x,z));
     const bx=x=>x*TS+TS/2,bz=r.z0*TS;
-    if(theme==='castle'){for(let k=1;k<back.length&&r.kind!=='piece';k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),M.banner,bx(back[k]),2.6,bz+0.03,false,false));
-}
+    mzTaps(fi,G,r,back,bx,bz,theme);
     if(theme==='crypt'){for(let k=1;k+1<back.length&&r.kind!=='piece';k+=5){const x=bx(back[k])+1,z=bz+0.8;const sg=new THREE.Group();sg.position.set(x,0,z);sg.add(mesh(new THREE.BoxGeometry(2.3,0.9,1.1),M.stone,0,0.45,0));sg.add(mesh(new THREE.BoxGeometry(2.45,0.18,1.25),M.stone,0,0.98,0));
         sg.add(mesh(new THREE.BoxGeometry(0.16,0.06,0.7),lam({color:0xc9a03a}),0,1.1,0,false,false));sg.add(mesh(new THREE.BoxGeometry(0.6,0.06,0.16),lam({color:0xc9a03a}),0,1.1,-0.08,false,false));G.add(sg);col(x,z,1.25,0.65);glowSpr(x-0.9,1.45,z+0.3,0xffb070,0.9);}
       }
@@ -2377,7 +2390,7 @@ function mzDecor(fi,theme){
     if(theme==='nest')mzNest(G,r,back,corners,bx,bz,col,glowSpr);
     mzFog(G,r,FLOORS[fi]?FLOORS[fi].mote:0xffffff);
     if(r.kind!=='start'&&back.length>2&&theme!=='nest')mzHang(G,r,back,bx,bz,FLOORS[fi]?FLOORS[fi].torch:0xffa040); /* the Nest is lit by its glowing egg sacs */
-    if(theme==='sanctum'){for(let k=1;k<back.length;k+=4)G.add(mesh(new THREE.PlaneGeometry(1.3,3.2),lam({map:TX.bannerP,transparent:true,alphaTest:0.5,side:THREE.DoubleSide}),bx(back[k]),2.6,bz+0.03,false,false));
+    if(theme==='sanctum'){
       for(const [x,z] of corners.slice(0,2)){const px=x*TS+TS/2,pz=z*TS+TS/2;for(let k=0;k<3;k++){const cr=mesh(new THREE.OctahedronGeometry(0.25+Math.random()*0.25,0),lam({color:0xb38cff,emissive:0x6a3aaa}),px+k*0.35-0.35,0.35+Math.random()*0.3,pz+Math.random()*0.3,true,false);cr.scale.y=1.8;cr.rotation.z=(k-1)*0.4;G.add(cr);}glowSpr(px,0.8,pz,0xb38cff,2.4);col(px,pz,0.6,0.5);}
       if(r.kind==='piece'||r.kind==='boss'){const [cx,cz]=mzCenter(r);const rg=mesh(new THREE.TorusGeometry(2.2,0.06,6,48),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg.rotation.x=-Math.PI/2;G.add(rg);const rg2=mesh(new THREE.TorusGeometry(1.5,0.04,6,6),new THREE.MeshBasicMaterial({color:0x9dff8a}),cx,0.04,cz,false,false);rg2.rotation.x=-Math.PI/2;G.add(rg2);glowSpr(cx,0.3,cz,0x9dff8a,4);}}
     if(r.kind==='boss'){for(const sx of [r.x0,r.x1]){const x=sx*TS+TS/2,z=r.z0*TS+1.2;G.add(mesh(new THREE.CylinderGeometry(0.55,0.35,0.9,12),M.metal,x,0.45,z));G.add(mesh(new THREE.CylinderGeometry(0.12,0.16,0.6,8),M.dark,x,0.95-0.6,z));col(x,z,0.6,0.6);
@@ -2478,6 +2491,7 @@ function updMaze(){
   if(MZ.drips&&S.frame%14===0){const d=MZ.drips[ri(0,MZ.drips.length-1)];addPart({x:d[0]+rnd(-0.1,0.1),y:2.0,z:d[1],vy:-0.02,g:0.004,life:30,size:0.05,color:'#bfefff'});}
   if(MZ.fogs)for(const [f,x0,ph,m] of MZ.fogs){const k=S.frame*0.004+ph;f.position.x=x0+Math.sin(k)*1.2;m.opacity=0.22+Math.sin(k*1.7)*0.08;}
   if(MZ.bob)for(const [o,y,ph] of MZ.bob)o.position.y=y+Math.sin(S.frame*0.03+ph)*0.08;
+  if(MZ.taps&&S.frame%2===0)for(const w of MZ.taps){const a=w.geometry.attributes.position,b=w.userData.base,ph=w.userData.ph;for(let i=0;i<a.count;i++){const y=b[i*3+1];a.setZ(i,(0.5+0.5*Math.sin(S.frame*0.03+ph+y*1.3))*0.07*(-y/2.5));}a.needsUpdate=true;}
   if(MZ.lava)for(const m of MZ.lava){if(m.map)m.map.offset.y+=0.0006;if(m.emissiveMap)m.emissiveMap.offset.y+=0.0006;m.emissiveIntensity=1.4+Math.sin(S.frame*0.05)*0.25;}
   // torch flicker + nearest-torch light pool
   for(const tc of MZ.torches){const k=0.85+Math.sin(S.frame*0.25+tc.ph)*0.08;tc.f.scale.set((tc.sw||(tc.big?1:0.5))*k,(tc.sh||(tc.big?1.4:0.75))*(2-k),1);}
