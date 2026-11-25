@@ -2641,11 +2641,11 @@ const royalsHome=()=>won()||!!INV.royals;
 // ---- test page only: jump straight to any floor's boss (Shift+1 to Shift+9, Shift+0 for 10, or the Bosses panel) ----
 const TESTPG=/\/test\//.test(location.pathname);
 // shortcut: clear the way and stand at the boss door
-function skipBoss(){if(!(S.level==='dungeon'&&MZ&&!S.exitOpen))return;{S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
+function skipBoss(){if(!ADMIN||!(S.level==='dungeon'&&MZ&&!S.exitOpen))return;{S.enemies.forEach(en=>{if(en.state!=='dead'){en.state='dead';en.t=0;}});S.queue.length=0;mzRoomDone();
     const BR=MZ.rooms.find(r=>r.kind==='boss'),d=MZ.doors[BR.doors[0]];d.lock=null;d.open=true;mzRefreshBlk();const [tx,tz]=d.axis==='z'?[d.tx+1,d.inPos?d.tz-1:d.tz+1]:[d.inPos?d.tx-1:d.tx+1,d.tz+1];H.x=tx*TS+(d.axis==='z'?0:TS/2);H.z=tz*TS+(d.axis==='z'?TS/2:0);camUpdate(true);toast('Shortcut: you are at the boss door!');}}
-function devBoss(i){if(!H||S.state!=='play'||i>=FLOORS.length)return toast('Start playing first, then pick a boss.');INV.gift=1;goDungeon(i);skipBoss();H.hp=H.maxHp;}
+function devBoss(i){if(!ADMIN)return;if(!H||S.state!=='play'||i>=FLOORS.length)return toast('Start playing first, then pick a boss.');INV.gift=1;goDungeon(i);skipBoss();H.hp=H.maxHp;}
 if(TESTPG){addEventListener('load',()=>{const d=document.createElement('div');d.id='devboss';d.style.cssText='position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(18,15,28,.92);color:#f2e7cf;font:13px sans-serif;padding:6px 8px;border:1px solid #4a3e68;border-radius:10px;max-width:230px';
-    d.innerHTML='<b style="cursor:pointer" id="devbossT">Bosses ▸</b><div id="devbossL" hidden></div>';document.body.appendChild(d);const L=d.querySelector('#devbossL');
+    d.innerHTML='<b style="cursor:pointer" id="devbossT">Bosses ▸</b><div id="devbossL" hidden></div>';document.body.appendChild(d);d.hidden=!ADMIN;setInterval(()=>{d.hidden=!ADMIN;},1500); /* the Bosses panel shows only for the admin account */const L=d.querySelector('#devbossL');
     L.innerHTML=FLOORS.map((f,i)=>`<button data-i="${i}" style="display:block;width:100%;margin-top:3px;text-align:left;font:12px sans-serif;padding:3px 6px">${i+1}. ${f.name}</button>`).join('');
     d.querySelector('#devbossT').onclick=()=>{L.hidden=!L.hidden;d.querySelector('#devbossT').textContent=L.hidden?'Bosses ▸':'Bosses ▾';};L.onclick=e=>{const b=e.target.closest('button');if(b)devBoss(+b.dataset.i);};});}
 function floorDone(i){floorReach();INV.fcl[FLOORS[i].id]=1;INV.deepest=floorReach();}
@@ -2669,7 +2669,7 @@ addEventListener('keydown',e=>{
   if(e.code==='Escape'&&S.state==='dialog'&&dlgClosable)closeDlg();
   if(e.target&&e.target.tagName==='INPUT')return;
   /* testing shortcuts: only on the test page or for admins (the owner), never for regular players */
-  const DEVK=TESTPG||ADMIN;
+  const DEVK=ADMIN; /* only the owner's admin account, on the test page too */
   if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyS'){devBoss(flIdx('nest'));toast('Shortcut: the Spider Queen');return;}
   if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyQ'){devBoss(flIdx('sanctum'));toast('Shortcut: the Lich Queen');return;}
   if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow(!INV.cleared);return;}
