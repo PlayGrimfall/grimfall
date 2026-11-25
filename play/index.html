@@ -2667,10 +2667,14 @@ addEventListener('keydown',e=>{
   if((e.code==='KeyB'&&!e.shiftKey||e.code==='Tab')&&(S.state==='play'||(S.state==='dialog'&&dlgKind==='inv'))){e.preventDefault();if(S.state==='play')openInv();else closeDlg();}
   if(e.code==='Escape'&&S.state==='dialog'&&dlgClosable)closeDlg();
   if(e.target&&e.target.tagName==='INPUT')return;
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow(!INV.cleared);return;}
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyY'){lqPreview();return;}
-  if(S.state==='play'&&e.shiftKey&&/^Digit[0-9]$/.test(e.code)&&+e.code.slice(5)<=FLOORS.length){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
-  if(S.state==='play'&&e.shiftKey&&e.code==='KeyB'){skipBoss();return;}
+  /* testing shortcuts: only on the test page or for admins (the owner), never for regular players */
+  const DEVK=TESTPG||ADMIN;
+  if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyS'){devBoss(flIdx('nest'));toast('Shortcut: the Spider Queen');return;}
+  if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyQ'){devBoss(flIdx('sanctum'));toast('Shortcut: the Lich Queen');return;}
+  if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyF'){partyNow(!INV.cleared);return;}
+  if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyY'){lqPreview();return;}
+  if(DEVK&&S.state==='play'&&e.shiftKey&&/^Digit[0-9]$/.test(e.code)&&+e.code.slice(5)<=FLOORS.length){const n=+e.code.slice(5);if(n===0)goTown();else{goDungeon(n-1);toast('Shortcut: Floor '+n+' · '+FLOORS[n-1].name+' (Shift+B jumps to the boss)');}return;}
+  if(DEVK&&S.state==='play'&&e.shiftKey&&e.code==='KeyB'){skipBoss();return;}
   if(S.state==='play'&&!e.shiftKey&&(e.code==='Digit1'||e.code==='Digit2'))drinkPotion(e.code==='Digit1'?'hp':'mp');
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit3'){if(!INV.mealSel)nextMeal(true);eatMeal(INV.mealSel);}
   if(S.state==='play'&&!e.shiftKey&&!e.repeat&&e.code==='Digit4')nextMeal();
